@@ -142,3 +142,26 @@ export function proFeatureOverrides (tier, chosenKeys = []) {
   }
   return Object.keys(overrides).length > 0 ? overrides : null
 }
+
+/**
+ * proFeatureOverrides as the API's list of `{ key, enabled }` (empty when the choice matches the
+ * tier), for the grant and updateGrant mutations' `features` argument.
+ */
+export function proFeatureOverrideList (tier, chosenKeys = []) {
+  return Object.entries(proFeatureOverrides(tier, chosenKeys) || {}).map(([key, enabled]) => ({ key, enabled }))
+}
+
+/**
+ * The feature keys an entitlement row gives (its tier's, plus/minus its overrides), in registry
+ * order: the reverse of proFeatureOverrideList, e.g. to tick a row's features in a form.
+ *
+ * @param {{ tier?: string, features?: Array<{ key: string, enabled: boolean }> }} row
+ */
+export function chosenProFeatures (row = {}) {
+  const chosen = new Set(featuresForTier(row.tier || HYLO_PRO_DEFAULT_TIER))
+  for (const { key, enabled } of row.features || []) {
+    if (enabled) chosen.add(key)
+    else chosen.delete(key)
+  }
+  return HYLO_PRO_FEATURE_KEYS.filter(key => chosen.has(key))
+}

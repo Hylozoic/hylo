@@ -61,3 +61,22 @@ export function formatUserDatePair (options = {}) {
     locale: options.locale ?? getDateLocale()
   })
 }
+
+/**
+ * A YYYY-MM-DD date input value as an ISO timestamp for the end of that day in the viewer's time
+ * zone (so "until 31 Dec" includes the 31st), or null when empty or invalid.
+ */
+export function endOfDayIso (value) {
+  if (!value) return null
+  const date = new Date(`${value}T23:59:59`)
+  return isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+/** A date (ISO string or Date) as a YYYY-MM-DD date input value in the viewer's time zone, or '' */
+export function toDateInputValue (date) {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}

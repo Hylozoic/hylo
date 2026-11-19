@@ -48,3 +48,13 @@ export async function queryHyloAPI ({ query: unknownGraphql, variables }) {
     throw error
   }
 }
+
+/**
+ * Dispatches a Redux GraphQL action and returns `data[field]`. These actions can resolve with an
+ * error or reject, so both throw here (the resolved error's payload, or the rejection).
+ */
+export async function runGraphql (dispatch, action, field) {
+  const result = await dispatch(action)
+  if (result?.error) throw result.payload || new Error('GraphQL error')
+  return result?.payload?.data?.[field]
+}

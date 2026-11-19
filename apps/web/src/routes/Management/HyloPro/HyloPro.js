@@ -5,13 +5,14 @@ import { toast } from 'sonner'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
-import { HYLO_PRO_DEFAULT_TIER, featuresForTier } from '@hylo/shared'
+import { HYLO_PRO_DEFAULT_TIER, featuresForTier, formatCurrencyAmount, proFeatureOverrideList } from '@hylo/shared'
+import { endOfDayIso } from 'util/dateFormat'
+import { runGraphql } from 'util/graphql'
 import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import SubscriptionRow from './SubscriptionRow'
 import TierFeatures from './TierFeatures'
 import { fetchHyloProGroups, fetchHyloProMetrics, fetchHyloProSubscriptions, grantHyloPro } from './HyloPro.store'
-import { endOfDayIso, formatMoney, overridesList, runGraphql } from './util'
 
 const PAGE_SIZE = 50
 
@@ -176,7 +177,7 @@ function Metrics ({ metrics, error, t, locale }) {
     },
     {
       label: t('Monthly recurring revenue'),
-      value: formatMoney(metrics.mrrCents, metrics.currency, locale),
+      value: formatCurrencyAmount(metrics.mrrCents, metrics.currency, locale),
       detail: t('Yearly plans count 1/12. Trialing not included.')
     },
     {
@@ -280,7 +281,7 @@ function GrantForm ({ onGranted }) {
       const row = await runGraphql(dispatch, grantHyloPro({
         groupId: group.id,
         tier: bundle.tier,
-        features: overridesList(bundle.tier, bundle.chosen),
+        features: proFeatureOverrideList(bundle.tier, bundle.chosen),
         expiresAt: endOfDayIso(expiresOn),
         note
       }), 'grantHyloPro')

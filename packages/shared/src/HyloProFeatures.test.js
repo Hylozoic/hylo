@@ -2,9 +2,11 @@ import {
   HYLO_PRO_FEATURES,
   HYLO_PRO_FEATURE_KEYS,
   HYLO_PRO_TIERS,
+  chosenProFeatures,
   featuresForTier,
   higherProTier,
   isProFeature,
+  proFeatureOverrideList,
   proFeatureOverrides,
   resolveProFeatures,
   tierIncludesProFeature,
@@ -96,6 +98,37 @@ describe('HyloProFeatures', () => {
       const overrides = proFeatureOverrides('pro', chosen)
       const features = resolveProFeatures([{ tier: 'pro', features: overrides }])
       expect(HYLO_PRO_FEATURE_KEYS.filter(key => features[key])).toEqual(chosen)
+    })
+  })
+
+  describe('proFeatureOverrideList', () => {
+    it('lists the differences from the tier as { key, enabled }', () => {
+      const pro = featuresForTier('pro')
+      expect(proFeatureOverrideList('pro', pro)).toEqual([])
+      expect(proFeatureOverrideList('pro', pro.filter(key => key !== 'groupThemes').concat('recording')))
+        .toEqual([{ key: 'groupThemes', enabled: false }, { key: 'recording', enabled: true }])
+    })
+  })
+
+  describe('chosenProFeatures', () => {
+    it("is the tier's features plus and minus the row's overrides, in registry order", () => {
+      expect(chosenProFeatures({ tier: 'pro_plus' })).toEqual(featuresForTier('pro_plus'))
+      expect(chosenProFeatures({})).toEqual(featuresForTier('pro'))
+      const chosen = chosenProFeatures({
+        tier: 'pro',
+        features: [{ key: 'singleSignOn', enabled: true }, { key: 'groupThemes', enabled: false }]
+      })
+      expect(chosen).toEqual(featuresForTier('pro').filter(key => key !== 'groupThemes').concat('singleSignOn'))
+    })
+
+    it('ignores override keys that are no longer registered', () => {
+      expect(chosenProFeatures({ tier: 'pro', features: [{ key: 'retiredFeature', enabled: true }] }))
+        .toEqual(featuresForTier('pro'))
+    })
+
+    it('round-trips through proFeatureOverrideList', () => {
+      const chosen = ['postAsGroup', 'recording', 'singleSignOn']
+      expect(chosenProFeatures({ tier: 'pro_plus', features: proFeatureOverrideList('pro_plus', chosen) })).toEqual(chosen)
     })
   })
 })
