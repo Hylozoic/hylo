@@ -1,22 +1,11 @@
 import { GraphQLError } from 'graphql'
 import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 import { groupIdsForPost, track } from '../../../lib/analytics/track'
-import { uniq } from 'lodash/fp'
-import { createPost } from './post'
 
 const Stripe = require('stripe')
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null
-
-export function createProject (userId, data) {
-  // add creator as a member of project on creation
-  const memberIds = data.memberIds
-    ? uniq(data.memberIds.concat([userId]))
-    : []
-  const projectData = Object.assign({}, data, { type: Post.Type.PROJECT, memberIds })
-  return createPost(userId, projectData)
-}
 
 async function getModeratedProject (userId, projectId) {
   const project = await Post.find(projectId, { withRelated: 'user' })

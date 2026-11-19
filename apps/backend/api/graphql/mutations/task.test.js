@@ -77,6 +77,21 @@ describe('tasks', () => {
       expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(String(review.id))
     })
 
+    it('turns a new post sent with the old project type into a task', async () => {
+      const post = await newTask(steward.id, { type: 'project' })
+      expect(post.get('type')).to.equal('task')
+      expect((await placementIn(post.id, group.id)).statusName).to.equal('To do')
+    })
+
+    it('leaves an existing project post a project when it is edited', async () => {
+      const project = await factories.post({ type: 'project', user_id: steward.id, name: 'Old project' }).save()
+      await project.groups().attach(group)
+      await updatePost(steward.id, { id: project.id, data: { type: 'project', title: 'Old project, renamed', groupIds: [group.id] } })
+      const saved = await Post.find(project.id)
+      expect(saved.get('type')).to.equal('project')
+      expect(saved.get('name')).to.equal('Old project, renamed')
+    })
+
     it('assigns the people passed as members', async () => {
       const post = await newTask(steward.id, { memberIds: [member.id] })
       const members = await (await Post.find(post.id)).members().fetch()

@@ -18,7 +18,6 @@ import {
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST,
-  CREATE_PROJECT,
   DROP_QUERY_RESULTS,
   FIND_OR_CREATE_THREAD,
   FETCH_THREADS,
@@ -98,7 +97,6 @@ export default function (state = {}, action) {
       }, nextState)
     }
 
-    case CREATE_PROJECT:
     case CREATE_POST:
     case RECEIVE_POST:
       root = {

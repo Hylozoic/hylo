@@ -133,7 +133,6 @@ export {
 export { convertProjectToSpace } from './projectSpace'
 export {
   addPeopleToProjectRole,
-  createProject,
   createProjectRole,
   deleteProjectRole,
   joinProject,
