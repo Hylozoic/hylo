@@ -256,7 +256,8 @@ export default function BillingTab ({ group }) {
     }
   }
 
-  const intervalChoice = 'rounded-md border-2 px-3 py-1 text-sm font-medium transition-all'
+  // The cards are narrow at the xl breakpoint, so the two choices share the width and may wrap
+  const intervalChoice = 'flex-1 rounded-md border-2 px-3 py-1 text-sm font-medium transition-all'
   const intervalSelected = 'border-selected bg-selected/20 text-foreground'
   const intervalUnselected = 'border-foreground/20 text-foreground/80 hover:border-foreground/50'
 
@@ -327,7 +328,7 @@ export default function BillingTab ({ group }) {
               </div>
 
               {isPro && !hasPro && plans.length > 1 && (
-                <div className='flex gap-2' role='group'>
+                <div className='flex flex-wrap gap-2' role='group'>
                   {plans.map(plan => (
                     <button
                       key={plan.interval}
