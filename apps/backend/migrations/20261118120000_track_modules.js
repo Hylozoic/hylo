@@ -14,27 +14,34 @@
  */
 
 exports.up = async function (knex) {
-  await knex.schema.createTable('track_modules', table => {
-    table.increments().primary()
-    table.bigInteger('view_id').notNullable().references('id').inTable('group_views').onDelete('CASCADE')
-    table.string('title')
-    table.text('description')
-    table.integer('order').defaultTo(0)
-    table.jsonb('settings').defaultTo('{}')
-    table.timestamp('created_at', { useTz: true })
-    table.timestamp('updated_at', { useTz: true })
-    table.index(['view_id', 'order'], 'idx_track_modules_view_id_order')
-  })
+  // Each step checks first, so the migration is safe on a database that already has part of it
+  if (!(await knex.schema.hasTable('track_modules'))) {
+    await knex.schema.createTable('track_modules', table => {
+      table.increments().primary()
+      table.bigInteger('view_id').notNullable().references('id').inTable('group_views').onDelete('CASCADE')
+      table.string('title')
+      table.text('description')
+      table.integer('order').defaultTo(0)
+      table.jsonb('settings').defaultTo('{}')
+      table.timestamp('created_at', { useTz: true })
+      table.timestamp('updated_at', { useTz: true })
+      table.index(['view_id', 'order'], 'idx_track_modules_view_id_order')
+    })
+  }
 
-  await knex.schema.alterTable('collections_posts', table => {
-    table.bigInteger('module_id').references('id').inTable('track_modules').onDelete('SET NULL')
-    table.index('module_id', 'idx_collections_posts_module_id')
-  })
+  if (!(await knex.schema.hasColumn('collections_posts', 'module_id'))) {
+    await knex.schema.alterTable('collections_posts', table => {
+      table.bigInteger('module_id').references('id').inTable('track_modules').onDelete('SET NULL')
+      table.index('module_id', 'idx_collections_posts_module_id')
+    })
+  }
 
-  await knex.schema.alterTable('tracks', table => {
-    table.string('module_descriptor').defaultTo('Module')
-    table.string('module_descriptor_plural').defaultTo('Modules')
-  })
+  if (!(await knex.schema.hasColumn('tracks', 'module_descriptor'))) {
+    await knex.schema.alterTable('tracks', table => {
+      table.string('module_descriptor').defaultTo('Module')
+      table.string('module_descriptor_plural').defaultTo('Modules')
+    })
+  }
 }
 
 exports.down = async function (knex) {
