@@ -34,7 +34,7 @@ import { cn } from 'util/index'
 import { CompletionTypeTag } from './TrackOutlineParts'
 import { moduleNumber, moveOutlineItem, outlineToInput } from './outlineModel'
 
-const fieldClass = 'h-8 px-2.5 rounded-lg border border-foreground/20 bg-background text-foreground text-[13px] outline-none focus:border-foreground/50'
+const fieldClass = 'h-8 px-2.5 rounded-lg border border-foreground/20 bg-background text-foreground text-[13px] outline-none placeholder:text-foreground/50 focus:border-foreground/50'
 
 // Drag and drop ids are "<type>:<id>", e.g. "action:42" or "module-end:7"
 const dndId = (type, id) => `${type}:${id}`
