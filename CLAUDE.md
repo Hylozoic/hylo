@@ -101,14 +101,15 @@ gh release upload "untagged-5c3bf358d6724b65a174" screenshot.png --repo Hylozoic
 # Embed in PR body
 # ![description](https://github.com/Hylozoic/hylo/releases/download/untagged-5c3bf358d6724b65a174/screenshot.png)
 ```
+#### Splitting into several PRs
 
-### Splitting a feature into several PRs
+Separate features or bug fixes should be split into separate PRs so its easier to review and merge each one individually.
 
-Use one PR unless the change is too big to review as a whole. When you split, split for the reviewer, not by the order you built things in.
+For a single feature-set that must be deployed and used together use one PR, unless the change is really too big to review as a whole. When you split, split for the reviewer, not by the order you built things in.
 
 - **Order the series backend first, then features:**
   1. **Backend changes and migrations.** Migrations go here only when they've been permitted. Every migration and schema change the feature needs goes in this first PR.
-  2. **Front-end changes, one PR per feature.** Where one feature ends and the next begins is a judgement call: aim for pieces a reviewer can understand and try on their own. These PRs can include backend changes their feature needs, but no migrations, and ideally no edits to what earlier PRs added.
+  2. **Front-end changes, one PR per feature.** Where one part of a feature-set ends and the next begins is a judgement call: aim for pieces a reviewer can understand and try on their own. These PRs can include backend changes their feature needs, but no migrations, and ideally no edits to what earlier PRs added.
 
   When the feature set is one shared backend change with several features built on it, the first PR is that backend change and each later PR covers one of the features.
 - **After the first PR, later PRs only add; they never rewrite earlier ones.** Don't change behaviour, defaults, signatures, names or comments that an earlier PR in the series introduced, and don't add or edit migrations. If an earlier PR needs to change, change it on that PR's branch and rebase the PRs after it.
