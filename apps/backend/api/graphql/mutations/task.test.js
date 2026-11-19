@@ -300,6 +300,25 @@ describe('tasks', () => {
       expect(mine[1].meta.toStatusName).to.equal('Complete')
       expect(mine[1].actor.id).to.equal(String(member.id))
 
+      // The board: each column with its tasks in order, and a "my tasks" filter
+      const ordering = await createTaskStatus(steward.id, { groupId: group.id, name: 'Board order' })
+      const one = await newTask(steward.id, { title: 'board one', taskStatusId: ordering.id })
+      const two = await newTask(steward.id, { title: 'board two', taskStatusId: ordering.id, memberIds: [member.id] })
+      await moveTask(steward.id, { postId: two.id, groupId: group.id, taskStatusId: ordering.id, index: 0 })
+      const { executionResult: board } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") { taskStatuses {
+          id tasksTotal tasks { id title } mine: tasks(assigneeId: "${member.id}") { title } mineTotal: tasksTotal(assigneeId: "${member.id}")
+        } } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(board.errors).to.not.exist
+      const column = board.data.group.taskStatuses.find(s => s.id === String(ordering.id))
+      expect(column.tasks.map(t => t.title)).to.deep.equal(['board two', 'board one'])
+      expect(column.tasksTotal).to.equal(2)
+      expect(column.mine.map(t => t.title)).to.deep.equal(['board two'])
+      expect(column.mineTotal).to.equal(1)
+      expect(one.id).to.exist
+
       const statuses = task.groups[0].taskStatuses
       expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
       expect(statuses.map(s => s.order)).to.deep.equal(statuses.map((s, i) => i))

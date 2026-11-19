@@ -83,7 +83,7 @@ export const COMMON_VIEWS = {
   tasks: {
     name: 'Tasks',
     iconName: 'Layers',
-    defaultViewMode: 'list',
+    defaultViewMode: 'kanban',
     postTypes: ['task'],
     defaultSortBy: 'created'
   },
