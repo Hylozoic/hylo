@@ -8,29 +8,17 @@ Thanks for checking out our code. The documentation below may be incomplete or i
 
 ### Setup
 
-You need to install redis locally, then follow the steps to launch it on startup (on the default port of 6379). For OSX/MacOS:
+From the repository root, `docker compose up` starts Postgres (with PostGIS), Redis, the API, the worker, and the web app. To run only the databases in Docker and this app on your machine:
 
 ```shell
-brew install redis
+yarn docker:services
+yarn setup
+yarn dev
 ```
 
-Arch Linux:
+`yarn setup` creates `.env` from `.env.example` when you don't have one, sets `DATABASE_URL` to `postgres://postgres:postgres@localhost:5432/hylo`, generates `OIDC_KEYS`, creates the `hylo` and `hylo_test` databases, and seeds `test@hylo.com` / `hylo`. It does not overwrite an existing `.env`. An `.env` left over from a Postgres you installed yourself needs that same `DATABASE_URL` (user `postgres`, password `postgres`) and `REDIS_URL=redis://localhost:6379`. The same steps are documented in the [root README](../../README.md).
 
-```shell
-pacman -S redis
-systemctl enable redis.service
-systemctl start redis.service
-```
-
-Ubuntu Linux:
-
-```shell
-sudo apt-get -y install redis-server
-sudo systemctl enable redis
-sudo systemctl start redis
-```
-
-Create a `.env` file in the root directory by copying .env.example. More info about specific keys below:
+Create a `.env` file by copying `.env.example` if you are not using `yarn setup`. More info about specific keys below:
 
 * `ADMIN_GOOGLE_CLIENT_*`: To access the admin console.  Get these values from the [hylo-admin Google project](https://console.developers.google.com/project/hylo-admin).
 * `DEBUG_SQL`: set to `true` if you want to output the SQL used within knex/bookshelf
@@ -46,7 +34,7 @@ Create a `.env` file in the root directory by copying .env.example. More info ab
 
 ### populating the database
 
-Make sure you have Postgres running with PostGIS installed and your user has create database privileges. Then you should be able to use one of the following scenarios.
+`yarn setup` loads `migrations/schema.sql`, runs the seeds, and applies any newer migrations. The scenarios below are the same steps by hand. Postgres needs PostGIS, and your user needs permission to create databases.
 
 #### creating a fresh instance without fake data
 
