@@ -55,6 +55,19 @@ describe('UploadController', () => {
         expect(res.body.error).to.equal('Validation error: Invalid type')
       })
     })
+
+    it('answers 422 for a file over the upload limit', () => {
+      nock('https://example.com').get('/big.mp4').reply(200, 'x', { 'Content-Length': String(51 * 1048576) })
+      req.session.userId = '42'
+      req.params.type = 'userAvatar'
+      req.params.id = '42'
+      req.params.url = 'https://example.com/big.mp4'
+      return UploadController.create(req, res)
+      .then(() => {
+        expect(res.statusCode).to.equal(422)
+        expect(res.body.error).to.equal('Validation error: File is larger than the 50 MB upload limit')
+      })
+    })
   })
 
   describe('uploading via file', () => {

@@ -12,7 +12,7 @@ import uploadAttachment from 'store/actions/uploadAttachment'
  *
  * Resolves to { uploaded, failed } so callers can report failures.
  */
-export default function useUploadFiles ({ type, id = ID_FOR_NEW }) {
+export default function useUploadFiles ({ type, id = ID_FOR_NEW, groupIds }) {
   const dispatch = useDispatch()
 
   return useCallback(async (files, onUploaded = () => {}) => {
@@ -23,7 +23,7 @@ export default function useUploadFiles ({ type, id = ID_FOR_NEW }) {
       try {
         const fileUploaded = await uploadFile(file)
         const attachment = uploadedFileToAttachment(fileUploaded)
-        const response = await dispatch(uploadAttachment(type, id, attachment))
+        const response = await dispatch(uploadAttachment(type, id, attachment, { groupIds }))
         if (!response || response.error || !response.payload?.url) {
           throw response?.payload || new Error('No response returned from uploader')
         }
@@ -37,5 +37,5 @@ export default function useUploadFiles ({ type, id = ID_FOR_NEW }) {
     }
 
     return { uploaded, failed }
-  }, [dispatch, type, id])
+  }, [dispatch, type, id, groupIds])
 }

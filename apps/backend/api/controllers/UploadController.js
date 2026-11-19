@@ -1,5 +1,7 @@
 import Busboy from 'busboy'
+import { PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
 import { upload } from '../../lib/uploader'
+import { uploadLimitForRequest } from '../../lib/uploader/limits'
 import { getMediaTypeFromMimetype } from '../models/media/util'
 
 module.exports = {
@@ -15,7 +17,9 @@ module.exports = {
       type: req.param('type'),
       id: req.param('id'),
       url: req.param('url'),
-      filename: req.param('filename')
+      filename: req.param('filename'),
+      // the groups a new post or comment is for, so the upload gets their Hylo Pro limit (#1761)
+      groupIds: req.param('groupIds')
     }
 
     // this promise is used for tests
@@ -29,8 +33,10 @@ module.exports = {
   }
 }
 
+// Resolves the per-file size limit for this upload before storing it (lib/uploader/limits.js)
 const doUpload = (res, args, resolve) =>
-  upload(args)
+  uploadLimitForRequest(args)
+    .then(maxBytes => upload({ ...args, maxBytes }))
     .then(({ type, id, url, mimetype }) => {
       const uploadResponse = {
         type,
@@ -64,7 +70,9 @@ function setupBusboy (req, res, args, resolve) {
       headers: req.headers,
       limits: {
         files: 1,
-        fileSize: 10 * 1048576
+        // A ceiling: the limit that applies to this upload (free, or Hylo Pro for the group it's
+        // for) is enforced on the stream by lib/uploader, which rejects instead of truncating
+        fileSize: PRO_UPLOAD_LIMIT_BYTES + 1
       }
     })
   } catch (err) {
@@ -72,7 +80,7 @@ function setupBusboy (req, res, args, resolve) {
   }
 
   busboy.on('field', (name, value) => {
-    if (['id', 'type', 'url'].includes(name)) {
+    if (['id', 'type', 'url', 'groupIds'].includes(name)) {
       args[name] = value
     }
   })

@@ -1,3 +1,4 @@
+import nock from 'nock'
 import { upload, guessFileType, originalFilestackUrl, filestackPngUrl } from './index'
 import { Readable } from 'stream'
 
@@ -86,6 +87,56 @@ describe('Uploader', () => {
     .then(() => expect.fail('should reject'))
     .catch(err => {
       expect(err.message).to.equal('wow')
+    })
+  })
+
+  describe('size limit', () => {
+    let s3Requests
+
+    beforeEach(() => {
+      // never upload to a real S3 bucket from tests
+      s3Requests = 0
+      nock(/amazonaws\.com/).put(/.*/).reply(200, () => { s3Requests++; return '' }, { ETag: '"test"' })
+    })
+
+    afterEach(() => nock.cleanAll())
+
+    it('rejects a stream that sends more than maxBytes, without storing anything', async () => {
+      let pushed = 0
+      const stream = new Readable({
+        read () {
+          pushed += 1
+          this.push(pushed <= 5 ? Buffer.alloc(100, 'a') : null)
+        }
+      })
+
+      await upload({ userId: '10', type: 'userBanner', id: '10', stream, maxBytes: 250 })
+        .then(() => expect.fail('should reject'))
+        .catch(err => {
+          expect(err.message).to.equal('Validation error: File is larger than the 0 MB upload limit')
+        })
+      // the rest of the request body is read and discarded
+      await new Promise(resolve => stream.readableEnded ? resolve() : stream.once('end', resolve))
+      expect(s3Requests).to.equal(0)
+    })
+
+    it('rejects a download whose Content-Length is over maxBytes before reading it', async () => {
+      nock('https://example.com').get('/big.mp4').reply(200, 'not really 60 MB', { 'Content-Length': String(60 * 1048576) })
+
+      await upload({ userId: '10', type: 'userBanner', id: '10', url: 'https://example.com/big.mp4', maxBytes: 50 * 1048576 })
+        .then(() => expect.fail('should reject'))
+        .catch(err => {
+          expect(err.message).to.equal('Validation error: File is larger than the 50 MB upload limit')
+        })
+      expect(s3Requests).to.equal(0)
+    })
+
+    it('stores a download within maxBytes', async () => {
+      nock('https://example.com').get('/small.txt').reply(200, 'hello world', { 'Content-Length': '11' })
+
+      const result = await upload({ userId: '10', type: 'userBanner', id: '10', url: 'https://example.com/small.txt', maxBytes: 1024 })
+      expect(result.type).to.equal('userBanner')
+      expect(s3Requests).to.equal(1)
     })
   })
 

@@ -3,18 +3,20 @@ import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import useUploadFiles from 'hooks/useUploadFiles'
+import useUploadLimit from 'hooks/useUploadLimit'
 import useInlineImageDrop from './useInlineImageDrop'
 
 const mockUploadFiles = jest.fn()
 jest.mock('hooks/useUploadFiles', () => jest.fn(() => mockUploadFiles))
+jest.mock('hooks/useUploadLimit', () => jest.fn(() => 52428800))
 
 const png = new window.File(['x'], 'photo.png', { type: 'image/png' })
 const pdf = new window.File(['x'], 'doc.pdf', { type: 'application/pdf' })
 const transfer = files => ({ types: ['Files'], files, items: [], getData: () => '' })
 
-function setup ({ enabled = true, content = '<p>Hello</p><p>World</p>' } = {}) {
+function setup ({ enabled = true, content = '<p>Hello</p><p>World</p>', groupIds } = {}) {
   const editor = new Editor({ extensions: [StarterKit, Image], content })
-  renderHook(() => useInlineImageDrop(editor, { type: 'group', id: '42', enabled }))
+  renderHook(() => useInlineImageDrop(editor, { type: 'group', id: '42', groupIds, enabled }))
   const run = (prop, ...args) => editor.view.someProp(prop, f => f(editor.view, ...args))
   return { editor, run }
 }
@@ -28,9 +30,10 @@ describe('useInlineImageDrop', () => {
     })
   })
 
-  it('uploads with the toolbar Image button\'s type and id', () => {
-    setup()
-    expect(useUploadFiles).toHaveBeenCalledWith({ type: 'group', id: '42' })
+  it('uploads with the toolbar Image button\'s type, id and groups, at the groups\' size limit', () => {
+    setup({ groupIds: ['42'] })
+    expect(useUploadFiles).toHaveBeenCalledWith({ type: 'group', id: '42', groupIds: ['42'] })
+    expect(useUploadLimit).toHaveBeenCalledWith(['42'])
   })
 
   it('inserts a dropped image where it was dropped', async () => {

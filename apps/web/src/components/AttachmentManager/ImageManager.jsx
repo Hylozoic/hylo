@@ -11,7 +11,7 @@ import { addAttachment, moveAttachment, removeAttachment } from './AttachmentMan
 export function ImageManager (props) {
   const { t } = useTranslation()
   const {
-    type, id, attachments, onChange, onLoadingChange,
+    type, id, groupIds, attachments, onChange, onLoadingChange,
     uploadAttachmentPending, showLoading, showAddButton, showLabel
   } = props
 
@@ -64,6 +64,7 @@ export function ImageManager (props) {
               <UploadAttachmentButton
                 type={type}
                 id={id}
+                groupIds={groupIds}
                 attachmentType='image'
                 onSuccess={handleAddAttachment}
                 onLoadingChange={onLoadingChange}
