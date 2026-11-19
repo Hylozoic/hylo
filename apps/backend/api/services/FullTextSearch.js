@@ -197,7 +197,10 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
   })
 }
 
-const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+// Postgres allows a SELECT alias in ORDER BY only when it stands alone.
+// `rank` inside this expression has to be the rank SQL, not the output alias.
+const recencyRankSql = (rankExpr, sortTs = 'sort_ts') =>
+  `(${rankExpr} * case when ${sortTs} is null then 1 else exp(-extract(epoch from (now() - ${sortTs})) / ${recencyHalfLifeSeconds}.0) end)`
 
 const search = (opts) => {
   // Strips tsquery operators and punctuation so user input like "#release!"
@@ -238,7 +241,7 @@ const search = (opts) => {
   }
 
   if (!opts.subquery && !opts.skipOrder) {
-    query = query.orderByRaw(`${recencyRankSql} desc, rank desc`)
+    query = query.orderByRaw(`${recencyRankSql(rank)} desc, rank desc`)
   }
 
   return query
@@ -252,7 +255,7 @@ const runWithStatementTimeout = (queryBuilder) => {
 }
 
 const recencyRankForAlias = (alias) =>
-  `(${alias}.rank * case when ${alias}.sort_ts is null then 1 else exp(-extract(epoch from (now() - ${alias}.sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+  recencyRankSql(`${alias}.rank`, `${alias}.sort_ts`)
 
 const buildSearchInGroupsQuery = (groupAccess, opts) => {
   const limit = opts.limit || 20
