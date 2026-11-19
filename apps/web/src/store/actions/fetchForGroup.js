@@ -70,6 +70,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       id
       actionDescriptor
       actionDescriptorPlural
+      moduleDescriptor
+      moduleDescriptorPlural
       completionMessage
       completionRole {
         id
@@ -78,6 +80,8 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       }
       accessControlled
       canAccess
+      isEnrolled
+      numPeopleEnrolled
     }
     fundingRound {
       id

@@ -141,6 +141,8 @@ query FetchGroupsMenuData (
               id
               actionDescriptor
               actionDescriptorPlural
+              moduleDescriptor
+              moduleDescriptorPlural
               accessControlled
               canAccess
             }
@@ -271,6 +273,8 @@ query FetchGroupsMenuData (
             id
             actionDescriptor
             actionDescriptorPlural
+            moduleDescriptor
+            moduleDescriptorPlural
             accessControlled
             canAccess
           }

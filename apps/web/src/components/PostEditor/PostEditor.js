@@ -273,6 +273,8 @@ function PostEditorInner ({
   const editingPostId = routeParams.postId || parsedRouteParams.postId
   const fromPostId = getQuerystringParam('fromPostId', urlLocation)
   const viewId = getQuerystringParam('viewId', urlLocation)
+  // Set when an action is added from inside a track module, so it lands in that module
+  const moduleId = getQuerystringParam('moduleId', urlLocation)
 
   const postType = getQuerystringParam('newPostType', urlLocation)
   const eventDateParam = getQuerystringParam('eventDate', urlLocation)
@@ -1422,6 +1424,7 @@ function PostEditorInner ({
         trackId: currentTrack?.id,
         markAsReadTopicName,
         viewId,
+        moduleId,
         type
       }
 
@@ -1463,7 +1466,7 @@ function PostEditorInner ({
       setIsSubmitting(false)
       throw error
     }
-  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId])
+  }, [afterSave, announcementSelected, cancelPendingSave, clearDraft, currentFundingRound?.id, currentPost, currentTrack?.id, currentUser, dispatch, editing, editingPost?.type, editingPost?.creator?.id, fileAttachments, imageAttachments, isEditing, isOtherEditor, onSave, selectedLocation, setIsDirty, showGroupAdminsCanEdit, syncDetailsToCurrentPost, t, i18n?.language, viewId, moduleId])
 
   /** Adds an image or file dropped or pasted onto the description as an attachment */
   const handleDroppedAttachment = useCallback((attachment) => {

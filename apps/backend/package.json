@@ -198,6 +198,7 @@
       "FullTextSearch",
       "FundingRound",
       "CollectionPost",
+      "TrackModule",
       "Group",
       "GroupAgreement",
       "GroupExtension",

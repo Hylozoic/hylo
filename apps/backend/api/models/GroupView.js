@@ -1,4 +1,4 @@
-/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView */
+/* global bookshelf, Group, Post, User, GroupViewUser, CollectionPost, GroupViewPin, GroupView, TrackModule */
 /* eslint-disable camelcase */
 
 const { homeRoutePathForView } = require('@hylo/navigation')
@@ -28,6 +28,28 @@ module.exports = bookshelf.Model.extend({
 
   collectionPosts () {
     return this.hasMany(CollectionPost, 'view_id').query(q => q.orderBy('order', 'asc'))
+  },
+
+  trackModules () {
+    return this.hasMany(TrackModule, 'view_id').query(q => q.orderBy('order', 'asc'))
+  },
+
+  /**
+   * This view's modules, each with `topLevelIndex` set: its position in the
+   * track's top-level outline, counting modules and the actions outside any module.
+   */
+  async trackModulesWithIndex ({ transacting } = {}) {
+    const modules = (await this.trackModules().fetch({ transacting })).models
+    if (modules.length === 0) return modules
+    const rows = (await this.collectionPosts().fetch({ transacting })).models
+    const topLevel = [
+      ...modules.map(m => ({ order: m.get('order'), trackModule: m })),
+      ...rows.filter(row => !row.get('module_id')).map(row => ({ order: row.get('order') }))
+    ]
+    // A module sorts ahead of an action with the same number
+    topLevel.sort((a, b) => (a.order - b.order) || (a.trackModule ? -1 : 0) - (b.trackModule ? -1 : 0))
+    topLevel.forEach((entry, index) => { if (entry.trackModule) entry.trackModule.topLevelIndex = index })
+    return modules
   },
 
   pins () {
