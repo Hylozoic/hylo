@@ -8,6 +8,7 @@ export const CHAT_VISIBLE_POST_TYPES = [
   'discussion',
   'request',
   'offer',
+  'project',
   'task',
   'proposal',
   'event',
@@ -18,6 +19,7 @@ export const CHAT_VISIBLE_POST_TYPES = [
 export const TYPED_BADGE_VIEW_TYPES = [
   'discussions',
   'events',
+  'projects',
   'tasks',
   'proposals',
   'resources',
@@ -32,6 +34,7 @@ export const PINNABLE_VIEW_TYPES = [
   'requests-and-offers',
   'resources',
   'proposals',
+  'projects',
   'tasks',
   'chat',
   'custom',
@@ -69,6 +72,7 @@ export const POST_TYPE_TO_TYPED_VIEW = {
   request: 'requests-and-offers',
   resource: 'resources',
   proposal: 'proposals',
+  project: 'projects',
   task: 'tasks'
 }
 

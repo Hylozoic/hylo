@@ -3656,6 +3656,10 @@ type Mutation {
   # Join a Space (creates a group membership + per-view unread rows).
   # accessCode or invitationToken pre-approves Closed and Restricted spaces, but not role-gated ones; a member's invitation never does.
   joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
+  # Turn a legacy project post into a project Space under one of its groups (groupId, or the first group
+  # the post is in). Only the post's creator, and only where they can create Spaces. The post's text
+  # becomes the Space's description and the post stays behind as a discussion
+  convertProjectToSpace(postId: ID!, groupId: ID): Group
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user
