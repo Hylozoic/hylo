@@ -32,7 +32,7 @@ import { createPostUrl, editPostUrl, postUrl } from '@hylo/navigation'
 import { cn } from 'util/index'
 
 import { CompletionTypeTag } from './TrackOutlineParts'
-import { moduleNumber, moveOutlineItem, outlineToInput } from './trackOutline'
+import { moduleNumber, moveOutlineItem, outlineToInput } from './outlineModel'
 
 const fieldClass = 'h-8 px-2.5 rounded-lg border border-foreground/20 bg-background text-foreground text-[13px] outline-none focus:border-foreground/50'
 
@@ -372,7 +372,7 @@ export default function TrackOutlineEditor ({ items, track, groupId, viewId }) {
         </div>
         <DragOverlay>
           {draggingTitle != null && (
-            <div className='flex items-center gap-2.5 rounded-[10px] border border-focus bg-card py-2.5 px-3.5 text-sm font-semibold shadow-2xl cursor-grabbing'>
+            <div data-testid='track-drag-overlay' className='flex items-center gap-2.5 rounded-[10px] border border-focus bg-card py-2.5 px-3.5 text-sm font-semibold shadow-2xl cursor-grabbing'>
               <GripVertical className='w-4 h-4 text-foreground/50' />
               <span className='truncate'>{draggingTitle}</span>
             </div>

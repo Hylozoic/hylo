@@ -23,7 +23,7 @@ import { cn } from 'util/index'
 
 import TrackOutline from './TrackOutline'
 import TrackOutlineEditor from './TrackOutlineEditor'
-import { buildOutline } from './trackOutline'
+import { buildOutline } from './outlineModel'
 
 /**
  * A Track space's outline: actions on their own or grouped into modules.

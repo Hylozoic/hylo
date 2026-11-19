@@ -12,7 +12,7 @@ import {
   UPDATE_TRACK_MODULE_PENDING,
   UPDATE_TRACK_OUTLINE_PENDING
 } from 'store/constants'
-import { applyOutlineInput, buildOutline, outlineToViewFields } from './trackOutline'
+import { applyOutlineInput, buildOutline, outlineToViewFields } from './outlineModel'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 function normalizeGroupIds (groupIds) {

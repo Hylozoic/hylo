@@ -6,7 +6,7 @@ import {
   moveOutlineItem,
   outlineProgress,
   outlineToInput
-} from './trackOutline'
+} from './outlineModel'
 
 const post = (id, done) => ({ id: String(id), title: `Post ${id}`, completedAt: done ? '2026-01-01T00:00:00.000Z' : null })
 const trackModule = (id, index, postIds, extra = {}) => ({ id: String(id), title: `Module ${id}`, index, postIds: postIds.map(String), ...extra })
@@ -14,7 +14,7 @@ const trackModule = (id, index, postIds, extra = {}) => ({ id: String(id), title
 /** Outline as readable strings, e.g. ['1', 'm10[2,3]']. */
 const shape = items => items.map(item => item.kind === 'module' ? `m${item.id}[${item.posts.map(p => p.id).join(',')}]` : item.id)
 
-describe('trackOutline', () => {
+describe('outlineModel', () => {
   // Flat order of the whole track: 1, then module 10 (2, 3), then an empty module 11, then 4
   const posts = [post(1, true), post(2, true), post(3), post(4)]
   const modules = [trackModule(10, 1, [2, 3]), trackModule(11, 2, [])]

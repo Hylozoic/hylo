@@ -2,11 +2,13 @@ import { Check, ChevronRight, Lock } from 'lucide-react'
 import { DateTime } from 'luxon'
 import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import HyloHTML from 'components/HyloHTML'
 import Button from 'components/ui/button'
+import { TextHelpers } from '@hylo/shared'
 import { cn } from 'util/index'
 
 import { CompletionTypeTag, StatusDot } from './TrackOutlineParts'
-import { currentAction, moduleLock, moduleNumber, outlineProgress } from './trackOutline'
+import { currentAction, moduleLock, moduleNumber, outlineProgress } from './outlineModel'
 
 /** One action in the participant outline. Clicking it opens the action. */
 function ActionRow ({ post, current, locked, nested, onOpen }) {
@@ -154,7 +156,11 @@ export default function TrackOutline ({ items, track, group, canEdit, onOpenPost
   return (
     <>
       <div className='rounded-xl bg-card border border-foreground/10 px-5 py-[18px] mb-4' data-testid='track-summary'>
-        {group.description && <p className='text-sm text-foreground/80 leading-relaxed whitespace-pre-line mb-0'>{group.description}</p>}
+        {group.description && (
+          <div className='text-sm text-foreground/80 leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0'>
+            <HyloHTML html={TextHelpers.markdown(group.description)} />
+          </div>
+        )}
         <div className='flex items-center gap-x-3.5 gap-y-1 flex-wrap mt-3 text-[13px] text-foreground/60'>
           {moduleCount > 0 && <span>{moduleCount} {moduleCount === 1 ? track.moduleDescriptor : track.moduleDescriptorPlural}</span>}
           <span>{progress.total} {progress.total === 1 ? track.actionDescriptor : track.actionDescriptorPlural}</span>
