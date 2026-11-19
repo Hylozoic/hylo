@@ -1,5 +1,5 @@
 // A contribution to Hylo's Open Collective, copied locally by OpenCollectiveService.syncOrders.
-// Amounts are stored for reference only and are never exposed through GraphQL.
+// The full OC payload is kept in raw; amounts are never exposed through GraphQL.
 module.exports = bookshelf.Model.extend({
   tableName: 'open_collective_orders',
   requireFetch: false,
