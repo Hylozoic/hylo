@@ -2,7 +2,7 @@ import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 
 describe('Project Mixin', () => {
-  describe('addProjectMembers', () => {
+  describe('addPostMembers', () => {
     var project, user
     before(async function () {
       user = factories.user()
@@ -12,14 +12,14 @@ describe('Project Mixin', () => {
     })
 
     it('removes a user from a project', async () => {
-      await project.addProjectMembers([user.id])
+      await project.addPostMembers([user.id])
       const members = await project.members().fetch()
       expect(members.length).to.equal(1)
       expect(members.first().id).to.equal(user.id)
     })
   })
 
-  describe('removeProjectMembers', () => {
+  describe('removePostMembers', () => {
     var user, project
 
     before(async function () {
@@ -27,17 +27,17 @@ describe('Project Mixin', () => {
       await user.save()
       project = factories.post({type: Post.Type.PROJECT})
       await project.save()
-      await project.addProjectMembers([user.id])
+      await project.addPostMembers([user.id])
     })
 
     it('removes a user from a project', async () => {
-      await project.removeProjectMembers([user.id])
+      await project.removePostMembers([user.id])
       const members = await project.members().fetch()
       expect(members.length).to.equal(0)
     })
   })
 
-  describe('setProjectMembers', () => {
+  describe('setPostMembers', () => {
     var user1, user2, user3, project
 
     before(async function () {
@@ -49,11 +49,11 @@ describe('Project Mixin', () => {
       await user3.save()
       project = factories.post({type: Post.Type.PROJECT})
       await project.save()
-      await project.addProjectMembers([user1.id, user2.id])
+      await project.addPostMembers([user1.id, user2.id])
     })
 
     it('sets the members of a project', async () => {
-      await project.setProjectMembers([user2.id, user3.id])
+      await project.setPostMembers([user2.id, user3.id])
       const members = await project.members().fetch()
       expect(members.length).to.equal(2)
       expect(members.map('id').sort()).to.deep.equal([user2.id, user3.id].sort())

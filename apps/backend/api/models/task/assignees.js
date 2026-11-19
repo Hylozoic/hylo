@@ -37,7 +37,7 @@ export async function assignTask ({ post, userIds, actorId, transacting }) {
     }
   }
 
-  await post.addProjectMembers(toAdd, { transacting })
+  await post.addPostMembers(toAdd, { transacting })
   const groupIds = await groupIdsFor(post, transacting)
   for (const userId of toAdd) {
     const user = await User.find(userId, { transacting })
@@ -54,7 +54,7 @@ export async function unassignTask ({ post, userIds, actorId, transacting }) {
   const toRemove = uniq(userIds.map(String)).filter(id => current.includes(id))
   if (toRemove.length === 0) return post
 
-  await post.removeProjectMembers(toRemove, { transacting })
+  await post.removePostMembers(toRemove, { transacting })
   const groupIds = await groupIdsFor(post, transacting)
   for (const userId of toRemove) {
     await TaskEvent.log({ postId: post.id, groupIds, actorId, type: TaskEvent.Type.UNASSIGNED, meta: { userId } }, { transacting })

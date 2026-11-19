@@ -3699,8 +3699,6 @@ type Mutation {
   createModerationAction(data: ModerationActionInput): ModerationAction
   # Create a new Post
   createPost(data: PostInput): Post
-  # Create a new 'project' type Post NOT USED RIGHT NOW, use createPost instead
-  createProject(data: PostInput): Post
   # NOT USED RIGHT NOW
   createProjectRole(projectId: ID, roleName: String): GenericResult
   # Create a new Saved Search for the map

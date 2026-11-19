@@ -48,7 +48,6 @@ import {
   createMessage,
   createModerationAction,
   createPost,
-  createProject,
   createProjectRole,
   createSavedSearch,
   createSpace,
@@ -799,8 +798,6 @@ export function makeMutations ({ fetchOne }) {
     createModerationAction: (root, { data }, context) => createModerationAction({ data, userId: context.currentUserId }),
 
     createPost: (root, { data }, context) => createPost(context.currentUserId, data, context),
-
-    createProject: (root, { data }, context) => createProject(context.currentUserId, data, context),
 
     createProjectRole: (root, { projectId, roleName }, context) => createProjectRole(context.currentUserId, projectId, roleName),
 
