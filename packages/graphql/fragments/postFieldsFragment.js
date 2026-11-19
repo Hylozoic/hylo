@@ -21,6 +21,15 @@ export const postFieldsFragment = gql`
     isAnonymousVote
     isPublic
     fulfilledAt
+    taskCategory
+    taskPlacements {
+      id
+      groupId
+      taskStatusId
+      statusName
+      statusCategory
+      position
+    }
     startTime
     endTime
     timezone

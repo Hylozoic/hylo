@@ -28,10 +28,21 @@ describe('PostTypeSelect', () => {
     render(<PostTypeSelect postType='discussion' setPostType={jest.fn()} />)
     openSelect()
 
-    for (const type of ['discussion', 'event', 'offer', 'request', 'resource', 'project', 'proposal']) {
+    for (const type of ['discussion', 'event', 'offer', 'request', 'resource', 'task', 'proposal']) {
       expect(screen.getByTestId(`post-type-description-${type}`)).toHaveTextContent(POST_TYPES[type].description)
     }
     expect(screen.queryByTestId('post-type-description-chat')).not.toBeInTheDocument()
+  })
+
+  it('does not offer project for a new post, but keeps it on a project being edited', () => {
+    const { unmount } = render(<PostTypeSelect postType='discussion' setPostType={jest.fn()} />)
+    openSelect()
+    expect(screen.queryByRole('option', { name: 'project' })).not.toBeInTheDocument()
+    unmount()
+
+    render(<PostTypeSelect postType='project' setPostType={jest.fn()} />)
+    openSelect()
+    expect(screen.getByRole('option', { name: 'project' })).toBeInTheDocument()
   })
 
   it('lists only the allowed types', () => {

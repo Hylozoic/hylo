@@ -1,6 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { difference, uniq } from 'lodash'
 import { placeTaskOnBoards, placementsForPost } from './placement'
+import { notifyTaskAssigned } from './notifications'
 
 // A task's assignees are stored the way project members were: posts_users rows with a
 // project role. Changes are written to the task event log for each board the task is on.
@@ -39,8 +40,11 @@ export async function assignTask ({ post, userIds, actorId, transacting }) {
   await post.addProjectMembers(toAdd, { transacting })
   const groupIds = await groupIdsFor(post, transacting)
   for (const userId of toAdd) {
-    await TaskEvent.log({ postId: post.id, groupIds, actorId, type: TaskEvent.Type.ASSIGNED, meta: { userId } }, { transacting })
+    const user = await User.find(userId, { transacting })
+    const meta = { userId, userName: user ? user.get('name') : null }
+    await TaskEvent.log({ postId: post.id, groupIds, actorId, type: TaskEvent.Type.ASSIGNED, meta }, { transacting })
   }
+  await notifyTaskAssigned({ post, userIds: toAdd, actorId, groupId: groupIds[0], transacting })
   return post
 }
 

@@ -19,7 +19,8 @@ const POST_TYPE_OPTIONS = [
   { id: 'project', label: 'Projects' },
   { id: 'proposal', label: 'Proposals' },
   { id: 'request', label: 'Requests' },
-  { id: 'resource', label: 'Resources' }
+  { id: 'resource', label: 'Resources' },
+  { id: 'task', label: 'Tasks' }
 ]
 
 const TIMEFRAME_OPTIONS = [

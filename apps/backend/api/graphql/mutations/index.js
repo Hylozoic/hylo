@@ -130,6 +130,7 @@ export {
   unassignTask,
   updateTaskStatus
 } from './task'
+export { convertProjectToSpace } from './projectSpace'
 export {
   addPeopleToProjectRole,
   createProject,

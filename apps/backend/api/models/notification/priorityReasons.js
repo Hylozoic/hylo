@@ -2,7 +2,7 @@
 // activity's reasons starts with
 export const PRIORITY_REASONS = [
   'donation to', 'donation from', 'announcement', 'eventInvitation', 'mention', 'commentMention', 'newComment', 'newContribution', 'chat', 'tag',
-  'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'joinRequest', 'approvedJoinRequest', 'groupInvitation', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
+  'newPost', 'follow', 'followAdd', 'unfollow', 'postFulfilled', 'postUnfulfilled', 'taskAssigned', 'taskStatusChanged', 'taskDueSoon', 'joinRequest', 'approvedJoinRequest', 'groupInvitation', 'groupChildGroupInviteAccepted', 'groupChildGroupInvite',
   'groupParentGroupJoinRequestAccepted', 'groupParentGroupJoinRequest', 'groupPeerGroupInviteAccepted', 'groupPeerGroupInvite', 'memberJoinedGroup', 'trackCompleted', 'trackEnrollment',
   'fundingRoundNewSubmission', 'fundingRoundPhaseTransition', 'fundingRoundReminder'
 ]

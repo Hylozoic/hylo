@@ -87,6 +87,12 @@ exports.es = {
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
+  textForTask: ({ post, actor, reason, meta = {} }) => {
+    const name = post.summary()
+    if (reason === 'taskAssigned') return `${actor.get('name')} te asignó la tarea "${name}"`
+    if (reason === 'taskStatusChanged') return `${actor.get('name')} movió "${name}" a ${meta.statusName}`
+    return meta.when === 'today' ? `"${name}" vence hoy` : `"${name}" vence mañana`
+  },
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

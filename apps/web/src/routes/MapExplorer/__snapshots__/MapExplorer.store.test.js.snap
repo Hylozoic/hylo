@@ -264,6 +264,15 @@ posts: viewPosts(
     }
   }
   fulfilledAt
+  taskCategory
+  taskPlacements {
+    id
+    groupId
+    taskStatusId
+    statusName
+    statusCategory
+    position
+  }
   groupAdminsCanEdit
   isAnonymousVote
   isPublic

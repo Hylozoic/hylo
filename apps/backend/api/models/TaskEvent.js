@@ -25,7 +25,23 @@ module.exports = bookshelf.Model.extend({
     REOPENED: 'reopened',
     ASSIGNED: 'assigned',
     UNASSIGNED: 'unassigned',
-    EDITED: 'edited'
+    EDITED: 'edited',
+    DUE_REMINDER: 'due_reminder'
+  },
+
+  /** A group's task activity over the last few days, oldest first (reminders bookkeeping excluded). */
+  recentForGroup: function (groupId, sinceDaysAgo = 1) {
+    const days = Math.max(0, Math.min(Number(sinceDaysAgo) || 0, 14)) + 1
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    return TaskEvent.query(q => {
+      q.join('posts', 'posts.id', 'task_events.post_id')
+      q.where({ 'task_events.group_id': groupId, 'posts.active': true })
+      q.where('task_events.created_at', '>', since)
+      q.whereNot('task_events.type', TaskEvent.Type.DUE_REMINDER)
+      q.orderBy('task_events.created_at', 'asc').orderBy('task_events.id', 'asc')
+      q.limit(500)
+      q.select('task_events.*')
+    }).fetchAll().then(result => result.models)
   },
 
   /** Writes one event for each of the given groups (or a single group-less event). */

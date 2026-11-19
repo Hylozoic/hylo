@@ -19,6 +19,10 @@ export default function PostTypeSelect ({ allowedPostTypes, className, includeCh
       postTypes = [...postTypes, postType]
     }
   }
+  // New project posts can no longer be made, but one being edited keeps its type
+  if (postType === 'project' && !postTypes.includes(postType)) {
+    postTypes = [...postTypes, postType]
+  }
 
   // The trigger shows only the type's name; the open list adds each type's
   // one-line description underneath it

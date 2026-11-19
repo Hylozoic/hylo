@@ -9,6 +9,7 @@ export const CHAT_VISIBLE_POST_TYPES = [
   'request',
   'offer',
   'project',
+  'task',
   'proposal',
   'event',
   'resource'
@@ -19,6 +20,7 @@ export const TYPED_BADGE_VIEW_TYPES = [
   'discussions',
   'events',
   'projects',
+  'tasks',
   'proposals',
   'resources',
   'requests-and-offers'
@@ -33,6 +35,7 @@ export const PINNABLE_VIEW_TYPES = [
   'resources',
   'proposals',
   'projects',
+  'tasks',
   'chat',
   'custom',
   'collection'
@@ -69,7 +72,8 @@ export const POST_TYPE_TO_TYPED_VIEW = {
   request: 'requests-and-offers',
   resource: 'resources',
   proposal: 'proposals',
-  project: 'projects'
+  project: 'projects',
+  task: 'tasks'
 }
 
 /** Alias used on web (same map as POST_TYPE_TO_TYPED_VIEW). */

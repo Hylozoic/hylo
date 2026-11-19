@@ -1079,6 +1079,8 @@ export default function AuthLayoutRouter (props) {
                 <Route path='all/stream/*' element={<RedirectStreamToAll basePath='/all' />} />
                 <Route path='public/all/*' element={<ViewContent context='public' view='all' />} />
                 <Route path='public/stream/*' element={<RedirectStreamToAll basePath='/public' />} />
+                <Route path='all/tasks/*' element={<ViewContent context='all' view='tasks' />} />
+                <Route path='public/tasks/*' element={<ViewContent context='public' view='tasks' />} />
                 <Route path='all/projects/*' element={<ViewContent context='all' view='projects' />} />
                 <Route path='public/projects/*' element={<ViewContent context='public' view='projects' />} />
                 <Route path='all/proposals/*' element={<ViewContent context='all' view='proposals' />} />
@@ -1133,6 +1135,7 @@ export default function AuthLayoutRouter (props) {
                             <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
                             <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
                             <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
+                            <Route path='tasks/*' element={<ViewContent context='groups' view='tasks' />} />
                             <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
                             <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
                             <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />

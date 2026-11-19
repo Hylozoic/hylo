@@ -42,6 +42,15 @@ export default function postCardFieldsFragment ({ includeGroups = true } = {}) {
     }
   }
   fulfilledAt
+  taskCategory
+  taskPlacements {
+    id
+    groupId
+    taskStatusId
+    statusName
+    statusCategory
+    position
+  }
   groupAdminsCanEdit
   isAnonymousVote
   isPublic

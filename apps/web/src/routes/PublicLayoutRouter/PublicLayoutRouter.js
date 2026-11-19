@@ -37,6 +37,7 @@ export default function PublicLayoutRouter (props) {
           <Route path='groups/*' element={<GroupExplorerLayoutRouter />} />
           <Route path='all/*' element={<PublicCenterColumn><ViewContent context='public' view='all' /></PublicCenterColumn>} />
           <Route path='stream/*' element={<RedirectPublicStreamToAll />} />
+          <Route path='tasks/*' element={<PublicCenterColumn><ViewContent context='public' view='tasks' /></PublicCenterColumn>} />
           <Route path='projects/*' element={<PublicCenterColumn><ViewContent context='public' view='projects' /></PublicCenterColumn>} />
           <Route path='proposals/*' element={<PublicCenterColumn><ViewContent context='public' view='proposals' /></PublicCenterColumn>} />
           <Route path='events/*' element={<PublicCenterColumn><ViewContent context='public' view='events' /></PublicCenterColumn>} />

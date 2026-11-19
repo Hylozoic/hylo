@@ -1278,6 +1278,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         acceptedPostTypes: g => parseAcceptedPostTypes(g.get('accepted_post_types')),
         eventCalendarUrl: g => g.eventCalendarUrl(),
         taskStatuses: g => TaskStatus.forGroup(g.id),
+        taskEvents: async (g, { sinceDaysAgo = 1 }) => {
+          if (!userId || !(await GroupMembership.hasActiveMembership(userId, g))) return []
+          return TaskEvent.recentForGroup(g.id, sinceDaysAgo)
+        },
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
         chatConverted: g => Boolean(g && g.getSetting('chat_converted_to_post_id')),
@@ -1886,6 +1890,17 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'user'
       ],
       fetchMany: args => TagFollow.query()
+    },
+
+    TaskEvent: {
+      model: TaskEvent,
+      attributes: [
+        'id',
+        'type',
+        'created_at',
+        'meta'
+      ],
+      relations: ['actor', 'post']
     },
 
     TaskStatus: {

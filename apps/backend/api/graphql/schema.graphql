@@ -1024,6 +1024,9 @@ type Group {
   agreements: AgreementQuerySet
   # The columns of this Group's or Space's Tasks board, in board order. Empty until the board is first used
   taskStatuses: [TaskStatus]
+  # Recent activity on this Group's or Space's tasks, oldest first, for the daily summary. Members only.
+  # sinceDaysAgo: how many days back to look (default 1, at most 14)
+  taskEvents(sinceDaysAgo: Int): [TaskEvent]
 
   # Child groups of this group
   childGroups(
@@ -1425,11 +1428,28 @@ type TaskStatus {
   order: Int
 }
 
+# Something that happened to a task on a group's board: 'created', 'moved', 'completed',
+# 'reopened', 'assigned', 'unassigned' or 'edited'
+type TaskEvent {
+  id: ID
+  type: String
+  createdAt: Date
+  # Details of the event, e.g. { toStatusName, toCategory } for 'moved' or { userId, userName } for 'assigned'
+  meta: JSON
+  # Who did it
+  actor: Person
+  # The task it happened to
+  post: Post
+}
+
 # Where a task sits on one group's Tasks board
 type TaskPlacement {
   id: ID
   groupId: ID
   taskStatusId: ID
+  # The column's name and category ('todo', 'active' or 'done'), so a task's status can be shown without loading the board
+  statusName: String
+  statusCategory: String
   # Sort key within the column, ascending. Only meaningful relative to other tasks in the same column
   position: Float
 }
@@ -3636,6 +3656,10 @@ type Mutation {
   # Join a Space (creates a group membership + per-view unread rows).
   # accessCode or invitationToken pre-approves Closed and Restricted spaces, but not role-gated ones; a member's invitation never does.
   joinSpace(spaceId: ID!, accessCode: String, invitationToken: String): Membership
+  # Turn a legacy project post into a project Space under one of its groups (groupId, or the first group
+  # the post is in). Only the post's creator, and only where they can create Spaces. The post's text
+  # becomes the Space's description and the post stays behind as a discussion
+  convertProjectToSpace(postId: ID!, groupId: ID): Group
   # Update the current logged in user's last-read position for a chat GroupView, recalculating newPostCount
   updateGroupViewUser(viewId: ID!, lastReadPostId: ID): GroupView
   # Mark a View as read for the current logged in user

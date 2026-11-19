@@ -21,6 +21,13 @@ export const UPDATE_STATE = `${MODULE_NAME}/UPDATE_STATE`
 
 export const FEATURE_TYPES = {
   ...POST_TYPES,
+  // New project posts can no longer be made (so they are not in POST_TYPES), but existing
+  // ones still show on the map
+  project: {
+    primaryColor: [252, 128, 0, 255],
+    backgroundColor: 'rgba(252, 128, 0, .2)',
+    map: true
+  },
   member: {
     primaryColor: [201, 88, 172, 255],
     backgroundColor: 'rgba(201, 88, 172, 1.000)',

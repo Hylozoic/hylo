@@ -430,6 +430,7 @@ async function clearPreviousE2eBaseline (client) {
   )
 
   await client.query("DELETE FROM posts WHERE name = 'E2E Public Post'")
+  await client.query("DELETE FROM posts WHERE name = 'E2E Legacy Project'")
 
   await client.query(
     `DELETE FROM group_memberships_group_roles
@@ -1024,6 +1025,20 @@ async function main () {
     await client.query(
       'INSERT INTO groups_posts (post_id, group_id) VALUES ($1, $2)',
       [publicPostId, publicGroupId]
+    )
+
+    // A project post from before projects became spaces, for the convert-to-space flow
+    // (see apps/web/e2e/authenticated.tasks.spec.js). The main E2E user created it and
+    // has Administration in the public group, so they are offered the conversion.
+    const legacyProjectRes = await client.query(
+      `INSERT INTO posts (name, description, type, created_at, updated_at, user_id, active, visibility, is_public)
+       VALUES ($1, $2, 'project', $3::timestamptz, $3::timestamptz, $4, true, 0, false)
+       RETURNING id`,
+      ['E2E Legacy Project', '<p>Plant fruit trees along the east fence.</p>', now, userId]
+    )
+    await client.query(
+      'INSERT INTO groups_posts (post_id, group_id) VALUES ($1, $2)',
+      [legacyProjectRes.rows[0].id, publicGroupId]
     )
 
     /** Groups + posts for Playwright post-detail close navigation (see apps/web/e2e/authenticated.post-detail.spec.js). */

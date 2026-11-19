@@ -103,6 +103,7 @@ import {
   joinGroup,
   joinProject,
   assignTask,
+  convertProjectToSpace,
   createTaskStatus,
   deleteTaskStatus,
   moveTask,
@@ -878,6 +879,7 @@ export function makeMutations ({ fetchOne }) {
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
 
     // Tasks
+    convertProjectToSpace: (root, args, context) => convertProjectToSpace(context.currentUserId, args, context),
     assignTask: (root, args, context) => assignTask(context.currentUserId, args),
     createTaskStatus: (root, args, context) => createTaskStatus(context.currentUserId, args),
     deleteTaskStatus: (root, args, context) => deleteTaskStatus(context.currentUserId, args),

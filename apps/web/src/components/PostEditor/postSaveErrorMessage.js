@@ -14,6 +14,7 @@ function postTypeLabel (t, postType) {
     event: t('event'),
     offer: t('offer'),
     project: t('project'),
+    task: t('task'),
     proposal: t('proposal'),
     request: t('request'),
     resource: t('resource')
