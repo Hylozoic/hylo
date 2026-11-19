@@ -38,8 +38,8 @@ const PORTAL_METADATA_KEY = 'hylo_pro_portal'
 const CURRENCY = 'usd'
 
 const PLANS = {
-  month: { lookupKey: 'hylo_pro_monthly_usd', unitAmount: 1000 },
-  year: { lookupKey: 'hylo_pro_yearly_usd', unitAmount: 10000 }
+  month: { lookupKey: 'hylo_pro_monthly_usd', unitAmount: 6000 },
+  year: { lookupKey: 'hylo_pro_yearly_usd', unitAmount: 60000 }
 }
 const INTERVALS = Object.keys(PLANS)
 

@@ -192,8 +192,8 @@ describe('graphql request handler', () => {
       })
       expect(new Date(proBilling.subscription.endsAt).toISOString()).to.equal('2099-01-01T00:00:00.000Z')
       expect(proBilling.plans).to.deep.equal([
-        { interval: 'month', unitAmount: 1000, currency: 'usd' },
-        { interval: 'year', unitAmount: 10000, currency: 'usd' }
+        { interval: 'month', unitAmount: 6000, currency: 'usd' },
+        { interval: 'year', unitAmount: 60000, currency: 'usd' }
       ])
     })
 

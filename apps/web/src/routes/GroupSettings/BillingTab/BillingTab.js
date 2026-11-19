@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
+import { AlertCircle, Check, CheckCircle2, Sparkles } from 'lucide-react'
 import Loading from 'components/Loading'
+import SupportHyloModal from 'components/SupportHyloModal/SupportHyloModal'
 import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { formatLocalizedDate } from 'util/dateFormat'
+import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import { activateProCheckoutSession, createProCheckoutSession, createProPortalSession, fetchProBilling } from './BillingTab.store'
+import { CONTACT_EMAIL, TIERS } from './tiers'
 
 // On return from Checkout the page activates the subscription right away; if Stripe is still
 // processing the payment, poll briefly (the webhook also syncs it)
@@ -42,6 +45,9 @@ export default function BillingTab ({ group }) {
   const [redirecting, setRedirecting] = useState(null)
   const [error, setError] = useState(null)
   const [activationTimedOut, setActivationTimedOut] = useState(false)
+  // Which Pro price the Pro card shows and its Upgrade button starts Checkout for
+  const [proInterval, setProInterval] = useState('month')
+  const [supportOpen, setSupportOpen] = useState(false)
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -171,6 +177,9 @@ export default function BillingTab ({ group }) {
   const awaitingActivation = checkoutResult === 'success' && !hasPro && !activationTimedOut
   const showUpgrade = !!billing?.canUpgrade && !awaitingActivation
   const plans = billing?.plans || []
+  // While the group pays for Pro, the Pro card shows the price of the interval it is on
+  const shownInterval = paidActive && subscription.interval ? subscription.interval : proInterval
+  const proPlan = plans.find(plan => plan.interval === shownInterval) || plans[0]
 
   let planName = t('Free')
   let planDetail = null
@@ -188,6 +197,68 @@ export default function BillingTab ({ group }) {
   } else if (subscription?.endedAt && !billing?.needsPaymentUpdate) {
     planDetail = t('Your Hylo Pro subscription ended on {{date}}.', { date: formatDate(subscription.endedAt) })
   }
+
+  const priceFor = plan => plan.interval === 'year'
+    ? t('{{price}}/year', { price: formatPrice(plan) })
+    : t('{{price}}/month', { price: formatPrice(plan) })
+
+  // Price line of a tier card
+  const renderPrice = tier => {
+    switch (tier.priceKind) {
+      case 'any': return t('Any amount')
+      case 'plans': return proPlan ? priceFor(proPlan) : null
+      case 'comingSoon': return t('Coming soon')
+      case 'contact': return t('Contact us')
+      default: return null
+    }
+  }
+
+  // Call to action of a tier card. The Pro card shows "Current plan" instead of an Upgrade button
+  // while the group has Pro; Manage subscription stays below the cards
+  const renderCta = tier => {
+    switch (tier.ctaKind) {
+      case 'support':
+        return (
+          <Button className='w-full' onClick={() => setSupportOpen(true)} data-testid='billing-support-hylo'>
+            {t('Support Hylo')}
+          </Button>
+        )
+      case 'upgrade':
+        if (hasPro) {
+          return (
+            <span className='inline-flex items-center justify-center gap-1 rounded-md bg-selected/20 px-3 py-2 text-sm font-medium text-foreground' data-testid='billing-current-plan'>
+              <Sparkles className='w-4 h-4 text-selected' />
+              {t('Current plan')}
+            </span>
+          )
+        }
+        if (!showUpgrade || !proPlan) return null
+        return (
+          <Button
+            className='w-full'
+            disabled={!!redirecting}
+            onClick={() => upgrade(proPlan.interval)}
+            data-testid={`billing-upgrade-${proPlan.interval}`}
+          >
+            {proPlan.interval === 'year' ? t('Upgrade yearly') : t('Upgrade monthly')}
+          </Button>
+        )
+      case 'comingSoon':
+        return <Button className='w-full' disabled data-testid='billing-coming-soon'>{t('Coming soon')}</Button>
+      case 'contact':
+        return (
+          <Button asChild className='w-full'>
+            <a href={`mailto:${CONTACT_EMAIL}`} data-testid='billing-contact-us'>{t('Contact us')}</a>
+          </Button>
+        )
+      default:
+        return null
+    }
+  }
+
+  const intervalChoice = 'rounded-md border-2 px-3 py-1 text-sm font-medium transition-all'
+  const intervalSelected = 'border-selected bg-selected/20 text-foreground'
+  const intervalUnselected = 'border-foreground/20 text-foreground/80 hover:border-foreground/50'
 
   return (
     <div className='flex flex-col gap-4' data-testid='billing-tab'>
@@ -233,26 +304,60 @@ export default function BillingTab ({ group }) {
         {planDetail && <p className='text-foreground/70' data-testid='billing-plan-detail'>{planDetail}</p>}
       </div>
 
-      {showUpgrade && plans.length > 0 && (
-        <div className='flex flex-col sm:flex-row gap-3'>
-          {plans.map(plan => (
-            <Button
-              key={plan.interval}
-              className='flex-1 min-w-0 h-auto py-3 flex flex-col items-center'
-              disabled={!!redirecting}
-              onClick={() => upgrade(plan.interval)}
-              data-testid={`billing-upgrade-${plan.interval}`}
+      <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3' data-testid='billing-tiers'>
+        {TIERS.map(tier => {
+          const isPro = tier.id === 'pro'
+          const price = renderPrice(tier)
+          return (
+            <div
+              key={tier.id}
+              className={cn(
+                'rounded-xl border-2 p-4 flex flex-col gap-3',
+                isPro && hasPro ? 'border-selected' : 'border-foreground/10'
+              )}
+              data-testid={`billing-tier-${tier.id}`}
             >
-              <span className='font-bold'>{plan.interval === 'year' ? t('Upgrade yearly') : t('Upgrade monthly')}</span>
-              <span className='text-sm opacity-80'>
-                {plan.interval === 'year'
-                  ? t('{{price}}/year', { price: formatPrice(plan) })
-                  : t('{{price}}/month', { price: formatPrice(plan) })}
-              </span>
-            </Button>
-          ))}
-        </div>
-      )}
+              <div className='flex flex-col gap-1'>
+                <h3 className='text-lg font-bold text-foreground flex items-center gap-2'>
+                  {isPro && <Sparkles className='w-5 h-5 text-selected' />}
+                  {t(tier.nameKey)}
+                </h3>
+                {tier.subtitleKey && <p className='text-sm text-foreground/70'>{t(tier.subtitleKey)}</p>}
+                {price && <p className='text-foreground font-semibold' data-testid={`billing-tier-${tier.id}-price`}>{price}</p>}
+              </div>
+
+              {isPro && !hasPro && plans.length > 1 && (
+                <div className='flex gap-2' role='group'>
+                  {plans.map(plan => (
+                    <button
+                      key={plan.interval}
+                      type='button'
+                      className={cn(intervalChoice, plan.interval === proPlan?.interval ? intervalSelected : intervalUnselected)}
+                      onClick={() => setProInterval(plan.interval)}
+                      data-testid={`billing-interval-${plan.interval}`}
+                    >
+                      {plan.interval === 'year' ? t('Yearly') : t('Monthly')}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <ul className='flex flex-col gap-1 text-sm text-foreground/80 flex-1'>
+                {tier.featureKeys.map(key => (
+                  <li key={key} className='flex items-start gap-2'>
+                    <Check className='w-4 h-4 mt-0.5 shrink-0 text-selected' />
+                    <span>{t(key)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {renderCta(tier)}
+            </div>
+          )
+        })}
+      </div>
+
+      <SupportHyloModal open={supportOpen} onOpenChange={setSupportOpen} initialGroupId={group.id} />
 
       {billing?.canManage && (
         <div className='flex flex-col gap-2'>
