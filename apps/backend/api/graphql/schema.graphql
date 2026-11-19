@@ -1022,6 +1022,8 @@ type Group {
 
   # The agreements required to participate in this Group
   agreements: AgreementQuerySet
+  # The columns of this Group's or Space's Tasks board, in board order. Empty until the board is first used
+  taskStatuses: [TaskStatus]
 
   # Child groups of this group
   childGroups(
@@ -1409,6 +1411,27 @@ type GroupQuerySet {
   total: Int
   hasMore: Boolean
   items: [Group]
+}
+
+# A column on a Group's or Space's Tasks board
+type TaskStatus {
+  id: ID
+  # The Group or Space whose board this column is on
+  group: Group
+  name: String
+  # 'todo' (not started), 'active' (in progress) or 'done'. Tasks in a 'done' column count as completed
+  category: String
+  # Position of the column on the board, starting at 0
+  order: Int
+}
+
+# Where a task sits on one group's Tasks board
+type TaskPlacement {
+  id: ID
+  groupId: ID
+  taskStatusId: ID
+  # Sort key within the column, ascending. Only meaningful relative to other tasks in the same column
+  position: Float
 }
 
 # A View within a Group's or Space's navigation menu (see docs/spaces-and-views-engineering-spec.md section 2.5)
@@ -2507,6 +2530,10 @@ type Post {
   followersTotal: Int
   # When the posr creator marked it as "fulfilled" or "complete"
   fulfilledAt: Date
+  # Tasks only: 'todo', 'active' or 'done'. Shared by every board the task is on
+  taskCategory: String
+  # Tasks only: the column and position of this task on the board of each group it is posted to
+  taskPlacements: [TaskPlacement]
   # Whether the creator lets members who manage content in the post's group edit it (only applies while the post is in a single group)
   groupAdminsCanEdit: Boolean
   # The funding round this post is associated with
@@ -3723,6 +3750,20 @@ type Mutation {
   rejoinGroup(groupId: ID!): Membership
   # Join a project Post as a member
   joinProject(id: ID): GenericResult
+  # Add someone to a task (yourself when userId is omitted). They must belong to one of the task's groups
+  assignTask(postId: ID, userId: ID): Post
+  # Remove someone from a task (yourself when userId is omitted)
+  unassignTask(postId: ID, userId: ID): Post
+  # Move a task to a column on one group's board. index is its place among the column's other tasks (0 = top, omitted = bottom).
+  # Moving into a column of another category (todo / active / done) also updates the task's other boards
+  moveTask(postId: ID, groupId: ID, taskStatusId: ID, index: Int): Post
+  # Add a column to a group's Tasks board. Defaults to an 'active' column placed before the first 'done' column.
+  # Needs Manage Content or Administration in the group
+  createTaskStatus(groupId: ID, name: String, category: String): TaskStatus
+  # Rename, re-categorise or move (order = new index) a column on a Tasks board
+  updateTaskStatus(id: ID, name: String, category: String, order: Int): TaskStatus
+  # Delete a column. Its tasks move to the board's first remaining column. A board keeps at least one 'done' column
+  deleteTaskStatus(id: ID): GenericResult
   # Leave a funding round
   leaveFundingRound(id: ID): FundingRound
   # Leave a group
@@ -4694,6 +4735,8 @@ input PostInput {
   quorum: Int
   # When this post "starts". Used for events, resources, projects, requests and offers right now
   startTime: Date
+  # Tasks only, on create: the column to start in. It applies on that column's own board; other boards use their first column of the same category
+  taskStatusId: ID
   # The timezone of the post
   timezone: String
   # The title text for the post

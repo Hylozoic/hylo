@@ -11,6 +11,8 @@ import { partitionImageUrls } from '../../../lib/uploader/rehostRemoteMedia'
 import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
 import { groupIdsForPost, track } from '../../../lib/analytics/track'
 import { assertCanEditPost } from './postEditPermissions'
+import { changedTaskFields, logTaskEdit, setTaskAssignees } from '../task/assignees'
+import { placeTaskOnBoards } from '../task/placement'
 
 export default function updatePost (userId, id, params) {
   if (!id) throw new GraphQLError('updatePost called with no ID')
@@ -33,7 +35,8 @@ export default function updatePost (userId, id, params) {
           Post.Type.PROPOSAL,
           Post.Type.REQUEST,
           Post.Type.RESOURCE,
-          Post.Type.SUBMISSION
+          Post.Type.SUBMISSION,
+          Post.Type.TASK
         ]
         if (!updatableTypes.includes(post.get('type'))) {
           throw new GraphQLError("This post can't be modified")
@@ -49,7 +52,11 @@ export default function updatePost (userId, id, params) {
         // important: record relevant event changes before post is saved
         const eventChanges = post.isEvent() && getEventChanges({ post, params: paramsForUpdate })
 
+        // also before saving: which task fields this update changes, for the task event log
+        const taskFields = post.isTask() ? changedTaskFields(post, attrs) : []
+
         return post.save(attrs, { patch: true, transacting })
+          .tap(updatedPost => logTaskEdit({ post: updatedPost, fields: taskFields, actorId: userId, transacting }))
           .tap(updatedPost => afterUpdatingPost(updatedPost, { params: paramsForUpdate, userId, eventChanges, transacting }))
       })))
     .then(post => {
@@ -96,6 +103,9 @@ export function afterUpdatingPost (post, opts) {
     ]))
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventUpdated', { postId: post.id, eventInviteeIds, userId, eventChanges }))
     .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
+    .then(() => post.isTask() && memberIds && setTaskAssignees({ post, userIds: memberIds, actorId: userId, transacting }))
+    // A task that was added to another group needs a column on that group's board
+    .then(() => post.isTask() && placeTaskOnBoards(post, { transacting }))
     .then(() => post.get('type') === 'proposal' && proposalOptions && post.updateProposalOptions({ options: proposalOptions, userId, opts: { transacting } }))
     .then(() => Post.afterRelatedMutation(post.id, { changeContext: 'edit' }))
 }

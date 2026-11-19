@@ -908,6 +908,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     REQUEST: 'request',
     RESOURCE: 'resource',
     SUBMISSION: 'submission',
+    TASK: 'task',
     THREAD: 'thread',
     WELCOME: 'welcome'
   },

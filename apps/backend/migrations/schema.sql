@@ -1657,7 +1657,9 @@ ALTER SEQUENCE public.groups_id_seq OWNED BY public.groups.id;
 CREATE TABLE public.groups_posts (
     post_id bigint NOT NULL,
     id integer NOT NULL,
-    group_id bigint NOT NULL
+    group_id bigint NOT NULL,
+    task_status_id bigint,
+    task_position double precision
 );
 
 
@@ -2396,7 +2398,8 @@ CREATE TABLE public.posts (
     ical_sequence integer,
     tag_names text[] DEFAULT '{}'::text[] NOT NULL,
     notice_data jsonb,
-    group_admins_can_edit boolean DEFAULT false
+    group_admins_can_edit boolean DEFAULT false,
+    task_category character varying(255)
 );
 
 
@@ -3313,6 +3316,74 @@ ALTER SEQUENCE public.tags_id_seq OWNED BY public.tags.id;
 
 
 --
+-- Name: task_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.task_events (
+    id bigint NOT NULL,
+    post_id bigint NOT NULL,
+    group_id bigint,
+    actor_id bigint,
+    type character varying(255) NOT NULL,
+    meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: task_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.task_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: task_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.task_events_id_seq OWNED BY public.task_events.id;
+
+
+--
+-- Name: task_statuses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.task_statuses (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    name character varying(255) NOT NULL,
+    category character varying(255) DEFAULT 'active'::character varying NOT NULL,
+    "order" integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: task_statuses_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.task_statuses_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: task_statuses_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.task_statuses_id_seq OWNED BY public.task_statuses.id;
+
+
+--
 -- Name: thank_you_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -4175,6 +4246,20 @@ ALTER TABLE ONLY public.tag_follows ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.tags ALTER COLUMN id SET DEFAULT nextval('public.tags_id_seq'::regclass);
+
+
+--
+-- Name: task_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_events ALTER COLUMN id SET DEFAULT nextval('public.task_events_id_seq'::regclass);
+
+
+--
+-- Name: task_statuses id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_statuses ALTER COLUMN id SET DEFAULT nextval('public.task_statuses_id_seq'::regclass);
 
 
 --
@@ -5083,6 +5168,22 @@ ALTER TABLE ONLY public.tags
 
 
 --
+-- Name: task_events task_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_events
+    ADD CONSTRAINT task_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: task_statuses task_statuses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_statuses
+    ADD CONSTRAINT task_statuses_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tracks tracks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5535,6 +5636,13 @@ CREATE INDEX group_to_group_join_request_question_answers_join_request_id_in ON 
 
 
 --
+-- Name: groups_posts_task_status_id_task_position_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX groups_posts_task_status_id_task_position_index ON public.groups_posts USING btree (task_status_id, task_position);
+
+
+--
 -- Name: groups_roles_group_id_index; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5953,6 +6061,27 @@ CREATE INDEX subscription_change_events_stripe_subscription_id_index ON public.s
 --
 
 CREATE INDEX subscription_change_events_user_id_group_id_index ON public.subscription_change_events USING btree (user_id, group_id);
+
+
+--
+-- Name: task_events_group_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX task_events_group_id_created_at_index ON public.task_events USING btree (group_id, created_at);
+
+
+--
+-- Name: task_events_post_id_created_at_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX task_events_post_id_created_at_index ON public.task_events USING btree (post_id, created_at);
+
+
+--
+-- Name: task_statuses_group_id_order_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX task_statuses_group_id_order_index ON public.task_statuses USING btree (group_id, "order");
 
 
 --
@@ -6898,6 +7027,14 @@ ALTER TABLE ONLY public.groups_posts
 
 
 --
+-- Name: groups_posts groups_posts_task_status_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups_posts
+    ADD CONSTRAINT groups_posts_task_status_id_foreign FOREIGN KEY (task_status_id) REFERENCES public.task_statuses(id) ON DELETE SET NULL;
+
+
+--
 -- Name: groups_roles groups_roles_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7455,6 +7592,38 @@ ALTER TABLE ONLY public.tag_follows
 
 ALTER TABLE ONLY public.tag_follows
     ADD CONSTRAINT tag_follows_last_read_post_id_foreign FOREIGN KEY (last_read_post_id) REFERENCES public.posts(id);
+
+
+--
+-- Name: task_events task_events_actor_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_events
+    ADD CONSTRAINT task_events_actor_id_foreign FOREIGN KEY (actor_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: task_events task_events_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_events
+    ADD CONSTRAINT task_events_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: task_events task_events_post_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_events
+    ADD CONSTRAINT task_events_post_id_foreign FOREIGN KEY (post_id) REFERENCES public.posts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: task_statuses task_statuses_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.task_statuses
+    ADD CONSTRAINT task_statuses_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
 
 
 --
