@@ -1,6 +1,7 @@
 import { filestackKey, isTest } from 'config/index'
 import * as Filestack from 'filestack-js'
 import { isSandboxMode } from 'sandbox/isSandbox'
+import { isMobileDevice } from 'util/mobile'
 
 // Dev / CI often omit VITE_FILESTACK_API_KEY; Filestack.init(undefined) throws and breaks the whole tree (e.g. Playwright /login).
 const filestack = Filestack.init(isTest || !filestackKey ? 'dummykey' : filestackKey)
@@ -76,6 +77,61 @@ export function acceptFromAttachmentType (attachmentType) {
     : FILESTACK_ACCEPTED_MIME_TYPES
 }
 
+// Phones ignore application/* and text/*, and a list that also contains video/*
+// opens a video-only picker. octet-stream is public.data on iOS (every document;
+// the photo library stays videos) and tells Android to offer every file.
+// The concrete types cover pickers that only honor an exact MIME type.
+const MOBILE_FILE_PICKER_MIME_TYPES = [
+  'application/octet-stream',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/rtf',
+  'text/rtf',
+  'application/vnd.oasis.opendocument.text',
+  'text/csv',
+  'text/html',
+  'application/vnd.apple.pages'
+]
+
+const IMAGE_FILE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg', 'avif', 'tif', 'tiff']
+
+/**
+ * Accept list for the system file dialog. Desktop keeps the wildcard list.
+ * On a phone, general file picks also include types the mobile dialog actually honors.
+ */
+export function pickerAcceptFromAttachmentType (attachmentType, { mobile = isMobileDevice() } = {}) {
+  const accept = acceptFromAttachmentType(attachmentType)
+  if (attachmentType !== 'file' || !mobile) return accept
+  const extra = MOBILE_FILE_PICKER_MIME_TYPES.filter(type => !accept.includes(type))
+  return [...extra, ...accept]
+}
+
+/**
+ * Extension of a filename, or '' when there is none.
+ */
+function fileExtension (name = '') {
+  const base = String(name).split(/[/\\]/).pop() || ''
+  const dot = base.lastIndexOf('.')
+  if (dot <= 0) return ''
+  return base.slice(dot + 1).toLowerCase()
+}
+
+/**
+ * True when a picked file is allowed for this accept list.
+ * Phones often leave the MIME type blank for markdown and other text files.
+ * A blank type is allowed unless the name is an image, which has its own button.
+ */
+export function isPickerFileAccepted (file, accept) {
+  const mimetype = (file?.mimetype || file?.type || '').toLowerCase()
+  if (isAcceptedMimeType(mimetype, accept)) return true
+  if (mimetype) return false
+  const extension = fileExtension(file?.filename || file?.name || file?.originalFile?.name)
+  return extension !== '' && !IMAGE_FILE_EXTENSIONS.includes(extension)
+}
+
 export function uploadedFileToAttachment ({ url, filename, mimetype }) {
   return {
     url,
@@ -129,7 +185,7 @@ function sandboxFilePicker ({
       const input = document.createElement('input')
       input.type = 'file'
       input.multiple = maxFiles > 1
-      const accept = acceptFromAttachmentType(attachmentType)
+      const accept = pickerAcceptFromAttachmentType(attachmentType)
       if (Array.isArray(accept)) input.accept = accept.join(',')
 
       input.addEventListener('change', async () => {
@@ -201,8 +257,20 @@ export function filestackPicker ({
     })
   }
 
+  const mobileFilePick = attachmentType === 'file' && isMobileDevice()
+  const typeAccept = acceptFromAttachmentType(attachmentType)
+
   return filestack.picker({
-    accept: acceptFromAttachmentType(attachmentType),
+    accept: pickerAcceptFromAttachmentType(attachmentType),
+    // Filestack skips its own type check when this is set. Phones report no MIME
+    // type for a lot of text files, which that check would reject.
+    ...(mobileFilePick
+      ? {
+          acceptFn: file => isPickerFileAccepted(file, typeAccept)
+            ? Promise.resolve()
+            : Promise.reject(typeof t === 'function' ? t('This file type is not supported') : 'This file type is not supported')
+        }
+      : {}),
     customText: {
       'Select Files to Upload': attachmentType === 'image' ? t('Select Images to Upload (max 50 MB each)') : t('Select Files to Upload (max 50 MB each)')
     },

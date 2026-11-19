@@ -1980,6 +1980,7 @@
   "This controls how you receive all notifications for this group. Including new posts (according to setting below), event invitations and mentions.": "Isso controla como você recebe todas as notificações deste grupo. Incluindo novas publicações (de acordo com a configuração abaixo), convites para eventos e menções.",
   "This controls how you receive notifications for all your groups.": "Isso controla como você recebe as notificações de todos os seus grupos.",
   "This conversation is muted. Sending a message will not unmute it or turn notifications back on.": "Esta conversa está silenciada. Enviar uma mensagem não a reativará nem reativará as notificações.",
+  "This file type is not supported": "Este tipo de arquivo não é suportado",
   "This function exports all member data for this group as a CSV file for import into other software.": "Esta função exporta todos os dados de membros deste grupo como um arquivo CSV para importação em outro software.",
   "This group cannot be converted to a space because it has other related groups. A group can only become a space if it has exactly one parent and no child or peer groups.": "Este grupo não pode ser convertido em um espaço porque tem outros grupos relacionados. Um grupo só pode se tornar um espaço se tiver exatamente um pai e nenhum grupo filho ou par.",
   "This group cannot be converted to a space because it has other related groups and spaces of its own.": "Este grupo não pode ser convertido em um espaço porque tem outros grupos relacionados e espaços próprios.",
