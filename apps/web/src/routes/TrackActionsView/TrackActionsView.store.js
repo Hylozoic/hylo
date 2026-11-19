@@ -3,11 +3,16 @@ import {
   COMPLETE_POST_PENDING,
   CREATE_COMMENT_PENDING,
   CREATE_POST,
+  CREATE_TRACK_MODULE,
   DELETE_POST_PENDING,
+  DELETE_TRACK_MODULE_PENDING,
   REACT_ON_POST_PENDING,
   REMOVE_POST_FROM_VIEW_PENDING,
-  REORDER_VIEW_POST_PENDING
+  REORDER_VIEW_POST_PENDING,
+  UPDATE_TRACK_MODULE_PENDING,
+  UPDATE_TRACK_OUTLINE_PENDING
 } from 'store/constants'
+import { applyOutlineInput, buildOutline, outlineToViewFields } from './trackOutline'
 import { updateGroupViewInMenu } from 'store/util/groupViewsOrder'
 
 function normalizeGroupIds (groupIds) {
@@ -56,6 +61,39 @@ function findCollectionPosts (group, viewId) {
   return undefined
 }
 
+/** Finds a view's raw row within a group's embedded menu (top-level or nested space menu). */
+function findView (group, viewId) {
+  const items = group?.groupViews?.items || []
+  const view = items.find(v => String(v.id) === String(viewId))
+  if (view) return view
+
+  for (const item of items) {
+    const nested = (item.linkedGroup?.groupViews?.items || []).find(v => String(v.id) === String(viewId))
+    if (nested) return nested
+  }
+  return undefined
+}
+
+/**
+ * Rewrites a track's outline in place: builds the top-level items from the
+ * view's stored posts and modules, runs `change` on them, and stores the result.
+ * Returns false when the view has no modules, so the caller can fall back to
+ * the plain collectionPosts update.
+ */
+function rewriteOutline (group, viewId, change) {
+  const view = findView(group, viewId)
+  if (!view?.collectionPosts || !view.trackModules?.length) return false
+  updateGroupViewInMenu(group, viewId, outlineToViewFields(change(buildOutline(view.collectionPosts, view.trackModules))))
+  return true
+}
+
+/** Takes a post out of an outline, wherever it sits. */
+const withoutPost = postId => items => items
+  .filter(item => !(item.kind === 'action' && item.id === String(postId)))
+  .map(item => item.kind === 'module'
+    ? { ...item, posts: item.posts.filter(post => String(post.id) !== String(postId)) }
+    : item)
+
 /**
  * Optimistically updates a view's raw collectionPosts (a plain attribute, not
  * a normalized Post relation — see fetchViewPosts) for reordering and removal.
@@ -89,7 +127,7 @@ export function ormSessionReducer ({ Group, Post }, { type, meta, payload }) {
     }
 
     case CREATE_POST: {
-      const { groupIds, viewId } = meta
+      const { groupIds, viewId, moduleId } = meta
       const createdPost = payload?.data?.createPost
       if (!viewId || !createdPost) return
 
@@ -101,9 +139,63 @@ export function ormSessionReducer ({ Group, Post }, { type, meta, payload }) {
       if (!posts) return
       if (posts.some(p => String(p.id) === String(createdPost.id))) return
 
+      // An action added from inside a module goes to the end of that module
+      const trackModules = findView(group, viewId)?.trackModules
       updateGroupViewInMenu(group, viewId, {
-        collectionPosts: [...posts, createdPost]
+        collectionPosts: [...posts, createdPost],
+        trackModules: moduleId && trackModules
+          ? trackModules.map(m => String(m.id) === String(moduleId)
+            ? { ...m, postIds: [...(m.postIds || []), createdPost.id] }
+            : m)
+          : trackModules
       })
+      break
+    }
+
+    case UPDATE_TRACK_OUTLINE_PENDING: {
+      const { groupId, viewId, items } = meta
+      const group = Group.safeWithId(groupId)
+      const view = findView(group, viewId)
+      if (!view?.collectionPosts) return
+      updateGroupViewInMenu(group, viewId, applyOutlineInput(view.collectionPosts, view.trackModules, items))
+      break
+    }
+
+    case CREATE_TRACK_MODULE: {
+      const { groupId, viewId } = meta
+      const created = payload?.data?.createTrackModule
+      const group = Group.safeWithId(groupId)
+      const view = findView(group, viewId)
+      if (!created || !view) return
+      const trackModules = view.trackModules || []
+      if (trackModules.some(m => String(m.id) === String(created.id))) return
+      // A new module goes last in the top-level outline
+      const index = buildOutline(view.collectionPosts, trackModules).length
+      updateGroupViewInMenu(group, viewId, {
+        trackModules: [...trackModules, { ...created, index, postIds: created.postIds || [] }]
+      })
+      break
+    }
+
+    case UPDATE_TRACK_MODULE_PENDING: {
+      const { groupId, viewId, moduleId, data } = meta
+      const group = Group.safeWithId(groupId)
+      const view = findView(group, viewId)
+      if (!view?.trackModules) return
+      updateGroupViewInMenu(group, viewId, {
+        trackModules: view.trackModules.map(m => String(m.id) === String(moduleId) ? { ...m, ...data } : m)
+      })
+      break
+    }
+
+    case DELETE_TRACK_MODULE_PENDING: {
+      const { groupId, viewId, moduleId } = meta
+      const group = Group.safeWithId(groupId)
+      // The module's actions stay, at the top level where the module was
+      rewriteOutline(group, viewId, items => items.flatMap(item =>
+        item.kind === 'module' && item.id === String(moduleId)
+          ? item.posts.map(post => ({ kind: 'action', id: String(post.id), post }))
+          : [item]))
       break
     }
 
@@ -145,6 +237,7 @@ export function ormSessionReducer ({ Group, Post }, { type, meta, payload }) {
       const group = Group.safeWithId(groupId)
       const posts = findCollectionPosts(group, viewId)
       if (!posts) return
+      if (rewriteOutline(group, viewId, withoutPost(postId))) break
       updateGroupViewInMenu(group, viewId, {
         collectionPosts: posts.filter(p => String(p.id) !== String(postId))
       })
@@ -157,6 +250,7 @@ export function ormSessionReducer ({ Group, Post }, { type, meta, payload }) {
       const group = Group.safeWithId(groupId)
       const posts = findCollectionPosts(group, viewId)
       if (!posts) return
+      if (rewriteOutline(group, viewId, withoutPost(postId))) break
 
       updateGroupViewInMenu(group, viewId, {
         collectionPosts: posts.filter(p => String(p.id) !== String(postId))

@@ -16,6 +16,8 @@ export default function fetchGroupViews (groupId) {
             id
             actionDescriptor
             actionDescriptorPlural
+            moduleDescriptor
+            moduleDescriptorPlural
             accessControlled
             canAccess
           }
@@ -70,6 +72,8 @@ export default function fetchGroupViews (groupId) {
                   id
                   actionDescriptor
                   actionDescriptorPlural
+                  moduleDescriptor
+                  moduleDescriptorPlural
                   accessControlled
                   canAccess
                 }

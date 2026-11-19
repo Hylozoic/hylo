@@ -49,6 +49,8 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
     id
     actionDescriptor
     actionDescriptorPlural
+    moduleDescriptor
+    moduleDescriptorPlural
     completionMessage
     completionRole {
       id

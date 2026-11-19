@@ -138,6 +138,8 @@ export function fetchTrack (trackId) {
             canAccess
             actionDescriptor
             actionDescriptorPlural
+            moduleDescriptor
+            moduleDescriptorPlural
             completionMessage
             completionRole {
               id
@@ -207,6 +209,8 @@ export function createTrack (data) {
           id
           actionDescriptor
           actionDescriptorPlural
+          moduleDescriptor
+          moduleDescriptorPlural
           completionMessage
           completionRole {
             id

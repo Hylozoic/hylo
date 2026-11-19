@@ -13,6 +13,10 @@ import {
   REMOVE_POST_FROM_VIEW,
   REORDER_GROUP_VIEW,
   REORDER_VIEW_POST,
+  CREATE_TRACK_MODULE,
+  DELETE_TRACK_MODULE,
+  UPDATE_TRACK_MODULE,
+  UPDATE_TRACK_OUTLINE,
   SET_GROUP_VIEW_HIDDEN,
   SET_HOME_VIEW,
   UPDATE_GROUP_VIEW,
@@ -318,6 +322,9 @@ export function fetchViewPosts (groupId, viewId) {
               collectionPosts {
                 ${PostFieldsFragment}
               }
+              trackModules {
+                ${TrackModuleFieldsFragment}
+              }
             }
           }
         }
@@ -325,6 +332,84 @@ export function fetchViewPosts (groupId, viewId) {
       variables: { groupId }
     },
     meta: { groupId, viewId }
+  }
+}
+
+export const TrackModuleFieldsFragment = `
+  id
+  title
+  description
+  order
+  index
+  opensAt
+  opensAfterPrevious
+  postIds
+`
+
+/** Add an empty module to the end of a track's outline. */
+export function createTrackModule ({ groupId, viewId, data }) {
+  return {
+    type: CREATE_TRACK_MODULE,
+    graphql: {
+      query: `mutation ($viewId: ID!, $data: TrackModuleInput) {
+        createTrackModule(viewId: $viewId, data: $data) {
+          ${TrackModuleFieldsFragment}
+        }
+      }`,
+      variables: { viewId, data }
+    },
+    meta: { groupId, viewId }
+  }
+}
+
+/** Update a track module's title, description or opening rule (opensAt, opensAfterPrevious). */
+export function updateTrackModule ({ groupId, viewId, moduleId, data }) {
+  return {
+    type: UPDATE_TRACK_MODULE,
+    graphql: {
+      query: `mutation ($id: ID!, $data: TrackModuleInput) {
+        updateTrackModule(id: $id, data: $data) {
+          id
+        }
+      }`,
+      variables: { id: moduleId, data }
+    },
+    meta: { groupId, viewId, moduleId, data, optimistic: true }
+  }
+}
+
+/** Remove a track module. Its actions stay in the track, at the top level. */
+export function deleteTrackModule ({ groupId, viewId, moduleId }) {
+  return {
+    type: DELETE_TRACK_MODULE,
+    graphql: {
+      query: `mutation ($id: ID!) {
+        deleteTrackModule(id: $id) {
+          success
+        }
+      }`,
+      variables: { id: moduleId }
+    },
+    meta: { groupId, viewId, moduleId, optimistic: true }
+  }
+}
+
+/**
+ * Save a track's whole outline after a drag. `items` is the top-level list:
+ * { postId } for an action outside any module, { moduleId, postIds } for a module.
+ */
+export function updateTrackOutline ({ groupId, viewId, items }) {
+  return {
+    type: UPDATE_TRACK_OUTLINE,
+    graphql: {
+      query: `mutation ($viewId: ID!, $items: [TrackOutlineItemInput]!) {
+        updateTrackOutline(viewId: $viewId, items: $items) {
+          id
+        }
+      }`,
+      variables: { viewId, items }
+    },
+    meta: { groupId, viewId, items, optimistic: true }
   }
 }
 

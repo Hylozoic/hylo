@@ -25,6 +25,8 @@ Track.fields = {
   completionMessage: attr(),
   completionRole: fk('Role', 'tracks'),
   enrolledUsers: many('Person'),
+  moduleDescriptor: attr(),
+  moduleDescriptorPlural: attr(),
   numActions: attr(),
   numPeopleCompleted: attr(),
   numPeopleEnrolled: attr(),

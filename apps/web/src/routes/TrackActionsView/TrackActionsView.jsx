@@ -1,38 +1,41 @@
-import { DndContext, closestCorners } from '@dnd-kit/core'
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { isEmpty } from 'lodash/fp'
-import { Pencil, Plus, Shapes } from 'lucide-react'
-import React, { useEffect, useMemo, useRef } from 'react'
+import { Pencil, Shapes } from 'lucide-react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Loading from 'components/Loading'
-import PostCard from 'components/PostCard'
 import PostDialog from 'components/PostDialog'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
-import useRouteParams from 'hooks/useRouteParams'
+import useViewPostDetails from 'hooks/useViewPostDetails'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
-import { fetchViewPosts, reorderViewPost } from 'store/actions/groupViews'
+import { fetchViewPosts } from 'store/actions/groupViews'
+import { enrollInTrack } from 'store/actions/trackActions'
 import { RESP_ADMINISTRATION } from 'store/constants'
 import presentPost from 'store/presenters/presentPost'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getGroupViews } from 'store/selectors/getGroupViews'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
-import { addQuerystringToPath, createPostUrl } from '@hylo/navigation'
+import { addQuerystringToPath } from '@hylo/navigation'
 import { cn } from 'util/index'
 
-import ActionSummary from './ActionSummary'
+import TrackOutline from './TrackOutline'
+import TrackOutlineEditor from './TrackOutlineEditor'
+import { buildOutline } from './trackOutline'
 
-/** Renders a Track space's ordered action posts, with drag-and-drop reordering for space managers. */
+/**
+ * A Track space's outline: actions on their own or grouped into modules.
+ * Participants see their progress and what's up next; space managers can switch
+ * to the outline editor to add, rename and reorder modules and actions.
+ */
 export default function TrackActionsView () {
   const dispatch = useDispatch()
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
-  const routeParams = useRouteParams()
+  const viewPostDetails = useViewPostDetails()
   const groupSlug = useEffectiveGroupSlug()
   const { parentGroupSlug } = useGroupRouteOpts()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
@@ -62,7 +65,10 @@ export default function TrackActionsView () {
   const cachedPostsRef = useRef([])
   if (posts !== null) cachedPostsRef.current = posts
   const displayedPosts = posts !== null ? posts : cachedPostsRef.current
-  const currentActionId = displayedPosts.find(p => !p.completedAt)?.id
+  const trackModules = view?.trackModules
+  const outline = useMemo(() => buildOutline(displayedPosts, trackModules), [displayedPosts, trackModules])
+  // Hides "Start this track" right away; the track's isEnrolled catches up on the next load
+  const [justEnrolled, setJustEnrolled] = useState(false)
 
   const groupViewsLoaded = group?.groupViews != null
 
@@ -92,26 +98,27 @@ export default function TrackActionsView () {
     })
   }, [currentTrack?.actionDescriptorPlural, t])
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event
-    if (over && over.id !== active.id && group?.id && viewId) {
-      const overIndex = over.data.current.sortable.index
-      dispatch(reorderViewPost({
-        groupId: group.id,
-        viewId,
-        postId: active.id,
-        order: overIndex
-      }))
-    }
+  const setEditing = editing => {
+    navigate(addQuerystringToPath(location.pathname, { edit: editing ? 'true' : null }), { replace: true })
   }
 
-  const toggleEditing = () => {
-    navigate(addQuerystringToPath(location.pathname, { edit: isEditing ? null : 'true' }), { replace: true })
+  const handleEnroll = () => {
+    setJustEnrolled(true)
+    dispatch(enrollInTrack(trackId))
   }
 
   if (!group || !groupViewsLoaded || !trackId) return <Loading />
 
   const { accessControlled, canAccess } = currentTrack
+  // Tracks made before modules existed, or loaded by an older query, have no module names
+  const track = {
+    ...currentTrack,
+    actionDescriptor: currentTrack.actionDescriptor || t('Action'),
+    actionDescriptorPlural: currentTrack.actionDescriptorPlural || t('Actions'),
+    moduleDescriptor: currentTrack.moduleDescriptor || t('Module'),
+    moduleDescriptorPlural: currentTrack.moduleDescriptorPlural || t('Modules'),
+    isEnrolled: justEnrolled ? true : currentTrack.isEnrolled
+  }
   const hasAccess = accessControlled ? canAccess !== false : true
 
   return (
@@ -123,11 +130,18 @@ export default function TrackActionsView () {
       {canAdminister && (
         <button
           type='button'
-          onClick={toggleEditing}
+          onClick={() => setEditing(!isEditing)}
           className='w-full text-foreground border-2 border-dashed border-foreground/30 hover:border-foreground/50 transition-all px-4 py-2 rounded-md flex flex-row items-center gap-2 justify-center mb-4'
         >
           <Pencil className='w-4 h-4' />
-          <span>{isEditing ? t('Done Editing') : t('Edit {{actionDescriptorPlural}}', { actionDescriptorPlural: currentTrack.actionDescriptorPlural })}</span>
+          <span>
+            {isEditing
+              ? t('Done Editing')
+              : t('Edit {{moduleDescriptorPlural}} and {{actionDescriptorPlural}}', {
+                moduleDescriptorPlural: track.moduleDescriptorPlural,
+                actionDescriptorPlural: track.actionDescriptorPlural
+              })}
+          </span>
         </button>
       )}
 
@@ -138,36 +152,21 @@ export default function TrackActionsView () {
       )}
 
       <div className={cn({ 'pointer-events-none opacity-50': !hasAccess })}>
-        {isEditing
-          ? (
-            <>
-              <DndContext
-                onDragEnd={handleDragEnd}
-                collisionDetection={closestCorners}
-                modifiers={[restrictToVerticalAxis]}
-              >
-                <SortableContext items={displayedPosts.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                  {displayedPosts.map(post => (
-                    <ActionSummary key={post.id} post={post} trackId={trackId} groupId={group.id} viewId={viewId} />
-                  ))}
-                </SortableContext>
-              </DndContext>
-              <button
-                className='w-full text-foreground border-2 border-foreground/20 hover:border-foreground/50 transition-all px-4 py-2 rounded-md mb-4 flex items-center justify-center gap-2'
-                onClick={() => navigate(createPostUrl(routeParams, { newPostType: 'action', viewId }))}
-              >
-                <Plus className='w-4 h-4' />
-                {t('Add {{actionDescriptor}}', { actionDescriptor: currentTrack.actionDescriptor })}
-              </button>
-            </>
-            )
-          : (
-              postsMissing && displayedPosts.length === 0
-                ? <Loading />
-                : displayedPosts.map(post => (
-                  <PostCard key={post.id} post={post} isCurrentAction={currentActionId === post.id} actionDescriptor={currentTrack.actionDescriptor} />
-                ))
-            )}
+        {postsMissing && displayedPosts.length === 0
+          ? <Loading />
+          : isEditing
+            ? <TrackOutlineEditor items={outline} track={track} groupId={group.id} viewId={viewId} />
+            : (
+              <TrackOutline
+                items={outline}
+                track={track}
+                group={group}
+                canEdit={canAdminister}
+                onOpenPost={viewPostDetails}
+                onStartEditing={() => setEditing(true)}
+                onEnroll={handleEnroll}
+              />
+              )}
       </div>
     </div>
   )

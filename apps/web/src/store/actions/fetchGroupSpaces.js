@@ -98,6 +98,8 @@ export default function fetchGroupSpaces (groupId) {
                 id
                 actionDescriptor
                 actionDescriptorPlural
+                moduleDescriptor
+                moduleDescriptorPlural
                 accessControlled
                 canAccess
               }
