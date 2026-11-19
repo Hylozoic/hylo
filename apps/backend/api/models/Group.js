@@ -1243,13 +1243,10 @@ module.exports = bookshelf.Model.extend(merge({
             bio: m.get('bio'),
             contactEmail: m.get('contact_email'),
             contactPhone: m.get('contact_phone'),
-            facebookUrl: m.get('facebook_url'),
-            linkedinUrl: m.get('linkedin_url'),
             location: m.get('location'),
             name: m.get('name'),
             profileUrl: Frontend.Route.profile(m, group),
             tagline: m.get('tagline'),
-            twitterName: m.get('twitter_name'),
             url: m.get('url'),
             // Whether this user was previously in the group and is being reactivated
             reactivated: reactivatedUserIds.includes(m.id),
