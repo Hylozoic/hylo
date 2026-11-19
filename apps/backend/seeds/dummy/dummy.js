@@ -443,14 +443,10 @@ function fakeUser (maybeEmail) {
     created_at: faker.date.past(),
     bio: faker.lorem.paragraph(),
     banner_url: faker.image.imageUrl(),
-    twitter_name: faker.internet.userName(),
-    linkedin_url: faker.internet.url(),
-    facebook_url: faker.internet.url(),
     work: faker.lorem.paragraph(),
     intention: faker.lorem.paragraph(),
     extra_info: faker.lorem.paragraph(),
     updated_at: faker.date.past(),
-    location: faker.address.country(),
-    url: faker.internet.url()
+    location: faker.address.country()
   })
 }

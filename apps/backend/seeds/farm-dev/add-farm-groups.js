@@ -16,7 +16,7 @@ const {
   MANAGEMENT_PLANS,
   PREFERRED_CONTACT_METHODS,
   PRODUCT_CATAGORIES,
-  PUBLIC_OFFERINGS,
+  PUBLIC_OFFERINGS
 } = require('../../lib/constants')
 const { v4: uuidv4 } = require('uuid')
 
@@ -317,7 +317,7 @@ function generateFakeFarmData (index) {
     },
     land_other_detail: {
       rent: Math.random() > 0.6 ? null : renting ? Math.random() * 99 + 1 : 0,
-      share_farm: Math.random() > 0.8 ? null : share_farm ? Math.random() * 99 + 1: 0,
+      share_farm: Math.random() > 0.8 ? null : share_farm ? Math.random() * 99 + 1 : 0,
       pastoral_lease: Math.random() > 0.8 ? null : pastoral_lease ? Math.random() * 99 + 1 : 0,
       native_land_title: Math.random() > 0.8 ? null : native_land_title ? Math.random() * 99 + 1 : 0
     },
@@ -439,7 +439,7 @@ function fakeGroupData (name, slug, created_by_id, type) {
     avatar_url: `https://avatars.dicebear.com/api/bottts/${faker.random.word()}.svg`,
     access_code: faker.datatype.uuid(),
     description: faker.lorem.paragraph(),
-    slug: slug,
+    slug,
     banner_url: 'https://d3ngex8q79bk55.cloudfront.net/misc/default_community_banner.jpg',
     created_at: faker.date.past(),
     created_by_id,
@@ -467,14 +467,10 @@ function fakeUser () {
     created_at: faker.date.past(),
     bio: faker.lorem.paragraph(),
     banner_url: faker.image.imageUrl(),
-    twitter_name: faker.internet.userName(),
-    linkedin_url: faker.internet.url(),
-    facebook_url: faker.internet.url(),
     work: faker.lorem.paragraph(),
     intention: faker.lorem.paragraph(),
     extra_info: faker.lorem.paragraph(),
     updated_at: faker.date.past(),
-    location: faker.address.country(),
-    url: faker.internet.url()
+    location: faker.address.country()
   })
 }
