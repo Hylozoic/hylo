@@ -43,7 +43,9 @@ x-node: &node
 
 services:
   db:
-    image: postgis/postgis:17-3.5
+    # Official postgis/postgis publishes amd64 only. imresamu/postgis is the
+    # same image, also built for Apple Silicon (linux/arm64).
+    image: imresamu/postgis:17-3.5
     container_name: hylo-db
     restart: unless-stopped
     environment:

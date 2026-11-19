@@ -102,7 +102,7 @@ npx nx add @nx/react-native
 git commit -a -m "Add base nx plugins"
 ```
 
-2. Merged in Hylo Backend, Web, and Mobile keeping history:
+2. Merged in old repos for Hylo Backend, Web, and Mobile keeping history:
 
 Prepare individual legacy repos to be merged, and then merge into the monorepo using this sequence for each app (https://nx.dev/recipes/adopting-nx/preserving-git-histories):
 

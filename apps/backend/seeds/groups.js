@@ -115,7 +115,11 @@ exports.seed = function (knex, Promise) {
 
   // now wipe and initialize the database
   // NB: Deletes ALL existing users, groups, and posts, etc
-  return knex('groups_posts').del()
+  // Role rows reference groups, so they have to go first or the groups delete fails.
+  return knex('group_roles_responsibilities').del()
+    .then(() => knex('group_memberships_group_roles').del())
+    .then(() => knex('groups_roles').del())
+    .then(() => knex('groups_posts').del())
     .then(() => knex('groups_tags').del())
     .then(() => knex('tag_follows').del())
     .then(() => knex('linked_account').del())
@@ -142,6 +146,6 @@ exports.seed = function (knex, Promise) {
       await knex.raw('ALTER SEQUENCE post_seq RESTART WITH 1')
       await knex('posts').insert(initialPost)
 
-      return knex('groups_posts').insert({ group_id: 1, post_id: 1, active: true })
+      return knex('groups_posts').insert({ group_id: 1, post_id: 1 })
     })
 }

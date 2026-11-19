@@ -278,6 +278,38 @@ async function usersTableExists () {
 }
 
 /**
+ * True when the dummy seed finished. It creates test@hylo.com last.
+ * A failed earlier seed can leave some other user behind.
+ */
+async function devDataExists () {
+  if (!(await usersTableExists())) return false
+  const client = await connect(DEV_DATABASE_URL)
+  try {
+    const result = await client.query("SELECT 1 FROM users WHERE email = 'test@hylo.com' LIMIT 1")
+    return result.rowCount > 0
+  } finally {
+    await client.end()
+  }
+}
+
+/**
+ * True when knex_migrations lists the baseline migrations.
+ * schema.sql already created those tables, so migrate must not run them again.
+ */
+async function migrationsStamped () {
+  if (!(await usersTableExists())) return false
+  const client = await connect(DEV_DATABASE_URL)
+  try {
+    const table = await client.query("SELECT to_regclass('public.knex_migrations') AS name")
+    if (!table.rows[0] || !table.rows[0].name) return false
+    const result = await client.query('SELECT 1 FROM knex_migrations LIMIT 1')
+    return result.rowCount > 0
+  } finally {
+    await client.end()
+  }
+}
+
+/**
  * schema.sql with psql meta-commands (\\restrict, \\unrestrict) removed.
  */
 function schemaSql () {
@@ -505,8 +537,16 @@ async function main () {
   buildPackages()
   ensureEnvFiles()
   await ensureDatabases()
-  if (resetDb || !(await usersTableExists())) {
+  const hasSchema = await usersTableExists()
+  const hasData = hasSchema && await devDataExists()
+  const stamped = hasSchema && await migrationsStamped()
+  if (resetDb || !hasSchema) {
     await loadSchema()
+  }
+  if (resetDb || !hasData || !stamped) {
+    if (hasSchema && !stamped) {
+      console.log('Migration history is missing, so the seed will run again')
+    }
     seedDatabase()
   } else {
     console.log('Database already has data, skipping schema and seed')
