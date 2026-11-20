@@ -30,16 +30,18 @@ describe('useUploadLimit', () => {
     expect(screen.getByTestId('probe')).toHaveTextContent(String(PRO_PLUS_UPLOAD_LIMIT_BYTES))
   })
 
-  it('gives the free limit without groups, for a group without the features, and the lowest limit for a mix', () => {
+  it('gives the free limit without groups or for a group without the features, and the highest limit for a mix', () => {
     renderProbe(undefined)
     expect(screen.getByTestId('probe')).toHaveTextContent(String(FREE_UPLOAD_LIMIT_BYTES))
     const state = stateWithGroups()
     expect(getUploadLimitForGroupIds(state, [])).toBe(FREE_UPLOAD_LIMIT_BYTES)
     expect(getUploadLimitForGroupIds(state, ['2'])).toBe(FREE_UPLOAD_LIMIT_BYTES)
-    expect(getUploadLimitForGroupIds(state, ['1', '2'])).toBe(FREE_UPLOAD_LIMIT_BYTES)
-    expect(getUploadLimitForGroupIds(state, ['1', '3'])).toBe(FREE_UPLOAD_LIMIT_BYTES)
-    expect(getUploadLimitForGroupIds(state, ['1', '999'])).toBe(FREE_UPLOAD_LIMIT_BYTES)
-    expect(getUploadLimitForGroupIds(state, ['4', '1'])).toBe(PRO_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['3', '999'])).toBe(FREE_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['2', '1'])).toBe(PRO_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['1', '3'])).toBe(PRO_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['1', '999'])).toBe(PRO_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['2', '1', '4'])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    expect(getUploadLimitForGroupIds(state, ['4', '1'])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
     expect(getUploadLimitForGroupIds(state, ['4', '4'])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
   })
 })

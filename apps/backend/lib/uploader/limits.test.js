@@ -53,17 +53,22 @@ describe('uploader limits', () => {
       expect(await uploadLimitForRequest({ userId: member.id, type: 'groupBanner', id: plusGroup.id })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
     })
 
-    it('gives the free limit to a group without Pro, and the lowest limit to a mix of groups', async () => {
+    it('gives the free limit to a group without Pro, and the highest limit to a mix of groups', async () => {
       expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
-      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [proGroup.id, freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
-      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [plusGroup.id, freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
-      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [plusGroup.id, proGroup.id] })).to.equal(PRO_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [freeGroup.id, proGroup.id] })).to.equal(PRO_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [freeGroup.id, proGroup.id, plusGroup.id] })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'comment', id: 'new', groupIds: [plusGroup.id, freeGroup.id] })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
     })
 
     it('ignores groups the user is not a member of, and groups that do not exist', async () => {
       expect(await uploadLimitForRequest({ userId: outsider.id, type: 'post', id: 'new', groupIds: [proGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
       expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: ['999999999'] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
       expect(await groupIdsForUpload({ userId: outsider.id, type: 'post', id: 'new', groupIds: [proGroup.id] })).to.deep.equal([])
+      // a member of a free group can't borrow a Pro Plus group's limit by naming it alongside
+      const freeOnly = await factories.user().save()
+      await freeOnly.joinGroup(freeGroup)
+      expect(await uploadLimitForRequest({ userId: freeOnly.id, type: 'post', id: 'new', groupIds: [freeGroup.id, plusGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [proGroup.id, '999999999'] })).to.equal(PRO_UPLOAD_LIMIT_BYTES)
     })
 
     it('uses the groups of an existing post, whatever the client sends', async () => {

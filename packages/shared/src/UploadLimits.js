@@ -34,15 +34,16 @@ export function uploadLimitFor ({ largerUploads = false, higherUploadLimits = fa
 }
 
 /**
- * The per-file limit for an upload to several groups: the lowest of their limits, so a file is
- * only as large as every group it goes to allows. The free limit when there are no groups.
+ * The per-file limit for an upload to several groups: the highest of their limits, so one group
+ * entitled to larger uploads is enough (the file is then stored for every group it goes to). The
+ * free limit when there are no groups. Callers pass only groups the user may post to.
  *
  * @param {Array<object>} groupsFeatures each group's Pro features, as for uploadLimitFor
  * @returns {number} bytes
  */
 export function uploadLimitForGroups (groupsFeatures = []) {
   if (groupsFeatures.length === 0) return FREE_UPLOAD_LIMIT_BYTES
-  return Math.min(...groupsFeatures.map(features => uploadLimitFor(features || {})))
+  return Math.max(...groupsFeatures.map(features => uploadLimitFor(features || {})))
 }
 
 /**

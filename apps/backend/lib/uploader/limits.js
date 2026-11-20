@@ -55,13 +55,15 @@ async function memberGroupIds (userId, groupIds) {
 /**
  * The per-file byte limit for an upload: each group gets the highest limit its Hylo Pro features
  * give (free 50 MB, largerUploads 250 MB, higherUploadLimits 1 GB), and an upload for several
- * groups gets the lowest of theirs. The free limit for uploads that aren't for any group.
+ * groups gets the highest of theirs: one entitled group is enough, and the file is then available
+ * in every group it's for. Only groups from groupIdsForUpload count (for a new post or comment,
+ * those the user is a member of), so naming someone else's Pro group doesn't raise the limit.
+ * The free limit for uploads that aren't for any group.
  */
 export async function uploadLimitForRequest ({ userId, type, id, groupIds }) {
   const ids = await groupIdsForUpload({ userId, type, id, groupIds })
   if (ids.length === 0) return FREE_UPLOAD_LIMIT_BYTES
   const groups = await Group.where('id', 'in', ids).fetchAll()
-  if (groups.length !== ids.length) return FREE_UPLOAD_LIMIT_BYTES
   const groupsFeatures = await Promise.all(groups.map(async group => {
     const has = await Promise.all(UPLOAD_LIMIT_FEATURES.map(key => group.hasProFeature(key)))
     return Object.fromEntries(UPLOAD_LIMIT_FEATURES.map((key, i) => [key, has[i]]))

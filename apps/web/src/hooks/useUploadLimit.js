@@ -7,8 +7,9 @@ import orm from 'store/models'
 /**
  * The per-file upload size limit (bytes) for `groupIds`, from the groups in the store: each group
  * gets the highest limit its Hylo Pro features give (largerUploads 250 MB, higherUploadLimits
- * 1 GB), and several groups get the lowest of theirs. The free limit with no groups; a group whose
- * proFeatures haven't been fetched counts as having neither feature.
+ * 1 GB), and several groups get the highest of theirs (one entitled group is enough). The free
+ * limit with no groups; a group whose proFeatures haven't been fetched counts as having neither
+ * feature. The server only counts groups the user may post to.
  */
 export const getUploadLimitForGroupIds = ormCreateSelector(
   orm,

@@ -34,16 +34,18 @@ describe('UploadLimits', () => {
     expect(uploadLimitFor()).toBe(FREE_UPLOAD_LIMIT_BYTES)
   })
 
-  it('gives an upload to several groups the lowest of their limits', () => {
+  it('gives an upload to several groups the highest of their limits', () => {
     const plus = { largerUploads: true, higherUploadLimits: true }
     const pro = { largerUploads: true }
     expect(uploadLimitForGroups([])).toBe(FREE_UPLOAD_LIMIT_BYTES)
     expect(uploadLimitForGroups()).toBe(FREE_UPLOAD_LIMIT_BYTES)
     expect(uploadLimitForGroups([plus])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
     expect(uploadLimitForGroups([plus, plus])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
-    expect(uploadLimitForGroups([plus, pro])).toBe(PRO_UPLOAD_LIMIT_BYTES)
-    expect(uploadLimitForGroups([plus, pro, {}])).toBe(FREE_UPLOAD_LIMIT_BYTES)
-    expect(uploadLimitForGroups([plus, null])).toBe(FREE_UPLOAD_LIMIT_BYTES)
+    expect(uploadLimitForGroups([plus, pro])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    expect(uploadLimitForGroups([{}, pro, plus])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    expect(uploadLimitForGroups([{}, pro])).toBe(PRO_UPLOAD_LIMIT_BYTES)
+    expect(uploadLimitForGroups([plus, null])).toBe(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    expect(uploadLimitForGroups([{}, null])).toBe(FREE_UPLOAD_LIMIT_BYTES)
   })
 
   it('describes a limit in whole MB or GB', () => {
