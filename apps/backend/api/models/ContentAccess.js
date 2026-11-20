@@ -3,6 +3,17 @@ const { createTrackScope, createGroupRoleScope, createGroupScope } = require('..
 const StripeService = require('../services/StripeService')
 const { normalizeLocaleToFull } = require('../../lib/localeHelpers')
 
+function formatCurrencyFromMinorUnits (amountMinor, currencyCode) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: (currencyCode || 'USD').toUpperCase()
+    }).format((amountMinor || 0) / 100)
+  } catch (e) {
+    return `${((amountMinor || 0) / 100).toFixed(2)} ${(currencyCode || 'USD').toUpperCase()}`
+  }
+}
+
 module.exports = bookshelf.Model.extend({
   tableName: 'content_access',
   requireFetch: false,
@@ -309,6 +320,58 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * Queues the email telling the member that a purchase was refunded. Never throws,
+   * so a refund that went through is not reported as failed because of the email.
+   * Queued rather than sent here, so a send failure doesn't affect the request and the
+   * job can be retried.
+   * @param {ContentAccess} access - The refunded access record
+   * @param {Object} refund
+   * @param {Number} refund.amount - Amount refunded, in minor units
+   * @param {String} [refund.currency]
+   * @param {String} [refund.reason] - Reason given by the steward, if any
+   * @returns {Promise<Boolean>} true when the email was queued
+   */
+  sendRefundProcessedEmail: async function (access, { amount, currency, reason } = {}) {
+    /* global Queue */
+    try {
+      const user = await User.find(access.get('user_id'))
+      if (!user || !user.get('email')) return false
+
+      const grantedByGroup = access.relations.grantedByGroup?.id
+        ? access.relations.grantedByGroup
+        : await Group.find(access.get('granted_by_group_id'))
+      const productId = access.get('product_id')
+      const product = productId ? await StripeProduct.where({ id: productId }).fetch() : null
+      const locale = user.getLocale()
+      const refundCurrency = (currency || access.get('currency') || 'usd').toUpperCase()
+
+      await Queue.classMethod('Email', 'sendRefundProcessed', {
+        email: user.get('email'),
+        locale,
+        data: {
+          user_name: user.get('name') || user.get('email'),
+          offering_name: product?.get('name') || 'Paid access',
+          group_name: grantedByGroup?.get('name'),
+          group_url: grantedByGroup ? Frontend.Route.group(grantedByGroup) : null,
+          refund_amount_formatted: formatCurrencyFromMinorUnits(amount, refundCurrency),
+          currency: refundCurrency,
+          refund_date: new Date().toLocaleDateString(normalizeLocaleToFull(locale), {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          refund_reason: reason || null,
+          support_email: process.env.EMAIL_SENDER || 'help@hylo.com'
+        }
+      })
+      return true
+    } catch (error) {
+      console.error('Failed to queue refund processed email:', error)
+      return false
+    }
+  },
+
+  /**
    * Check if a user has active access to content
    * @param {Object} params
    * @param {String|Number} params.userId - User to check
@@ -540,8 +603,8 @@ module.exports = bookshelf.Model.extend({
           renewal_date: renewalDateFormatted,
           renewal_amount: renewalAmount,
           renewal_period: renewalPeriod,
-          manage_subscription_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
-          update_payment_url: `${process.env.FRONTEND_URL || 'https://hylo.com'}/settings/subscriptions`,
+          manage_subscription_url: Frontend.Route.myTransactions(),
+          update_payment_url: Frontend.Route.myTransactions(),
           group_avatar_url: group.get('avatar_url')
         }
 
@@ -704,7 +767,7 @@ module.exports = bookshelf.Model.extend({
 
         // Add track info if applicable
         if (track) {
-        emailData.track_name = await track.displayName()
+          emailData.track_name = await track.displayName()
         }
 
         Queue.classMethod('Email', 'sendAccessExpired', {

@@ -2,7 +2,7 @@ import { filter, merge } from 'lodash'
 const kue = require('kue')
 const Promise = require('bluebird')
 const promisify = Promise.promisify
-const rangeByState = promisify(kue.Job.rangeByState, kue.Job)
+const rangeByState = (...args) => promisify(kue.Job.rangeByState, kue.Job)(...args)
 
 // Singleton queue instance to prevent memory leaks from creating multiple queues
 let queueInstance = null

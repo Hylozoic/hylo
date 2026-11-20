@@ -119,5 +119,25 @@ describe('PushNotification', () => {
         badgeNo: 7
       })
     })
+
+    it('leaves sent_at empty and resolves false when OneSignal fails', async () => {
+      mockify(OneSignal, 'notify', spy(() => Promise.resolve(false)))
+
+      const result = await pushNotification.send()
+      const pn = await pushNotification.fetch()
+
+      expect(result).to.equal(false)
+      expect(OneSignal.notify).to.have.been.called()
+      expect(pn.get('sent_at')).to.equal(null)
+    })
+  })
+
+  describe('OneSignal.notify', () => {
+    beforeEach(() => unspyify(OneSignal, 'notify'))
+
+    it('resolves false when the notification cannot be sent', async () => {
+      const result = await OneSignal.notify({ alert: 'hi', path: '/post' })
+      expect(result).to.equal(false)
+    })
   })
 })

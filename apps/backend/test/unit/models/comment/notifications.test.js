@@ -1,11 +1,15 @@
 import { compact } from 'lodash'
 import { notifyAboutMessage } from '../../../../api/models/comment/notifications'
+import '../../../setup'
 import factories from '../../../setup/factories'
+import { mockify, unspyify } from '../../../setup/helpers'
 
 describe('notifyAboutMessage', () => {
   let comment
 
   before(async () => {
+    mockify(OneSignal, 'notify', () => Promise.resolve({ id: 'onesignal-notification' }))
+
     const u1 = await factories.user().save() // should receive
     const u2 = await factories.user().save() // recently read
     const u3 = await factories.user().save() // notifications disabled
@@ -20,6 +24,8 @@ describe('notifyAboutMessage', () => {
     await u1.addSetting({ dm_notifications: 'push' }, true)
     await post.markAsRead(u2.id)
   })
+
+  after(() => unspyify(OneSignal, 'notify'))
 
   it('sends push notifications', async () => {
     const results = await notifyAboutMessage({ commentId: comment.id })
