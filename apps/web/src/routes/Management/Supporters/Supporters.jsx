@@ -10,6 +10,7 @@ import {
   revokeSupporterStatus,
   searchGroupsForSupporterGrant
 } from 'store/actions/supportHylo'
+import { endOfDayIso } from 'util/dateFormat'
 import { cn } from 'util/index'
 
 const inputClass = 'w-full rounded-md border border-foreground/20 bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary'
@@ -93,7 +94,7 @@ export default function Supporters () {
         groupId: targetType === 'group' ? selected.id : null,
         note,
         // End of the chosen day, so "until 31 Dec" includes the 31st
-        expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : null
+        expiresAt: endOfDayIso(expiresAt)
       }))
       setSelected(null)
       setSearchTerm('')

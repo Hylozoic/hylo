@@ -3,11 +3,13 @@ import { useDispatch } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { AlertCircle, Check, CheckCircle2, Sparkles } from 'lucide-react'
+import { formatCurrencyAmount } from '@hylo/shared'
 import Loading from 'components/Loading'
 import SupportHyloModal from 'components/SupportHyloModal/SupportHyloModal'
 import Button from 'components/ui/button'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { formatLocalizedDate } from 'util/dateFormat'
+import { runGraphql } from 'util/graphql'
 import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import { activateProCheckoutSession, createProCheckoutSession, createProPortalSession, fetchProBilling } from './BillingTab.store'
@@ -18,13 +20,6 @@ import { CONTACT_EMAIL, TIERS, tierCardFor } from './tiers'
 const ACTIVATION_POLL_MS = 2000
 const ACTIVATION_POLL_ATTEMPTS = 15
 const ALREADY_SUBSCRIBED = 'HYLO_PRO_ALREADY_SUBSCRIBED'
-
-// Redux GraphQL actions can resolve with an error or reject; treat both as failure
-async function runGraphql (dispatch, action, field) {
-  const result = await dispatch(action)
-  if (result?.error) throw result.payload || new Error('GraphQL error')
-  return result?.payload?.data?.[field]
-}
 
 // GraphQL errors from the server carry a path or extensions; anything else is a network problem
 function isServerError (error) {
@@ -159,15 +154,7 @@ export default function BillingTab ({ group }) {
 
   // Dates and prices follow the user's Hylo locale setting (en-GB is day first), never the browser's
   const formatDate = value => formatLocalizedDate(value, { style: 'long' }) || ''
-  const formatPrice = plan => {
-    const digits = plan.unitAmount % 100 === 0 ? 0 : 2
-    return new Intl.NumberFormat(getDateLocale(), {
-      style: 'currency',
-      currency: (plan.currency || 'usd').toUpperCase(),
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    }).format(plan.unitAmount / 100)
-  }
+  const formatPrice = plan => formatCurrencyAmount(plan.unitAmount, plan.currency, getDateLocale(), { dropZeroFraction: true })
 
   const subscription = billing?.subscription
   const grant = billing?.grant

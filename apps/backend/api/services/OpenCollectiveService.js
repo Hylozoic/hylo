@@ -166,16 +166,12 @@ const OpenCollectiveService = {
       oc_account_id: from.id || null,
       oc_account_slug: from.slug || null,
       account_type: from.type || null,
-      is_guest: !!from.isGuest,
       is_incognito: !!from.isIncognito,
-      to_account_slug: (node.toAccount && node.toAccount.slug) || null,
       status: node.status || null,
       frequency: node.frequency || null,
-      amount_cents: node.amount ? node.amount.valueInCents : null,
       currency: node.amount ? node.amount.currency : null,
       oc_created_at: node.createdAt || null,
       last_charged_at: node.lastChargedAt || null,
-      next_charge_at: node.nextChargeDate || null,
       tags: node.tags || [],
       raw: JSON.stringify(node)
     }

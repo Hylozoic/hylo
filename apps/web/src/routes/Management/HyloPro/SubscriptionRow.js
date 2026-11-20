@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { groupUrl } from '@hylo/navigation'
+import { chosenProFeatures, formatCurrencyAmount, minorUnitsPerMajor, proFeatureOverrideList } from '@hylo/shared'
 import Loading from 'components/Loading'
 import Button from 'components/ui/button'
 import { Input } from 'components/ui/input'
+import { endOfDayIso, formatLocalizedDate, toDateInputValue } from 'util/dateFormat'
+import { runGraphql } from 'util/graphql'
 import { cn } from 'util/index'
 import { getDateLocale } from 'util/locale'
 import {
@@ -20,7 +23,6 @@ import {
 } from './HyloPro.store'
 import TierFeatures from './TierFeatures'
 import { featureLabel, tierLabel } from './featureLabels'
-import { chosenForRow, endOfDayIso, formatDate, formatDateTime, formatMoney, overridesList, runGraphql, toDateInputValue } from './util'
 
 const ENDED_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
 const EXTENDABLE_STRIPE_STATUSES = ['active', 'trialing']
@@ -183,11 +185,11 @@ function FeatureOverrides ({ features, t }) {
 function GrantDetails ({ row, t, locale }) {
   const parts = [
     row.grantedBy
-      ? t('Granted by {{name}} on {{date}}', { name: row.grantedBy.name, date: formatDate(row.createdAt, locale) })
-      : t('Granted on {{date}}', { date: formatDate(row.createdAt, locale) })
+      ? t('Granted by {{name}} on {{date}}', { name: row.grantedBy.name, date: formatLocalizedDate(row.createdAt && new Date(row.createdAt), { style: 'medium', locale }) || '' })
+      : t('Granted on {{date}}', { date: formatLocalizedDate(row.createdAt && new Date(row.createdAt), { style: 'medium', locale }) || '' })
   ]
-  if (row.status !== 'active') parts.push(t('Revoked on {{date}}', { date: formatDateTime(row.endedAt, locale) }))
-  else if (row.expiresAt) parts.push(t('Ends on {{date}}', { date: formatDateTime(row.expiresAt, locale) }))
+  if (row.status !== 'active') parts.push(t('Revoked on {{date}}', { date: formatLocalizedDate(row.endedAt && new Date(row.endedAt), { style: 'mediumDateTime', locale }) || '' }))
+  else if (row.expiresAt) parts.push(t('Ends on {{date}}', { date: formatLocalizedDate(row.expiresAt && new Date(row.expiresAt), { style: 'mediumDateTime', locale }) || '' }))
   else parts.push(t('No end date'))
   return parts.join(' · ')
 }
@@ -197,15 +199,15 @@ function SubscriptionDetails ({ row, t, locale }) {
   if (row.interval === 'month') parts.push(t('Monthly'))
   if (row.interval === 'year') parts.push(t('Yearly'))
   if (row.endedAt) {
-    parts.push(t('Ended on {{date}}', { date: formatDateTime(row.endedAt, locale) }))
+    parts.push(t('Ended on {{date}}', { date: formatLocalizedDate(row.endedAt && new Date(row.endedAt), { style: 'mediumDateTime', locale }) || '' }))
   } else if (row.endsAt) {
-    parts.push(t('Ends on {{date}}', { date: formatDate(row.endsAt, locale) }))
+    parts.push(t('Ends on {{date}}', { date: formatLocalizedDate(row.endsAt && new Date(row.endsAt), { style: 'medium', locale }) || '' }))
   } else if (row.currentPeriodEnd) {
     parts.push(row.status === 'trialing'
-      ? t('Next payment on {{date}}', { date: formatDate(row.currentPeriodEnd, locale) })
-      : t('Renews on {{date}}', { date: formatDate(row.currentPeriodEnd, locale) }))
+      ? t('Next payment on {{date}}', { date: formatLocalizedDate(row.currentPeriodEnd && new Date(row.currentPeriodEnd), { style: 'medium', locale }) || '' })
+      : t('Renews on {{date}}', { date: formatLocalizedDate(row.currentPeriodEnd && new Date(row.currentPeriodEnd), { style: 'medium', locale }) || '' }))
   }
-  parts.push(t('Started {{date}}', { date: formatDate(row.createdAt, locale) }))
+  parts.push(t('Started {{date}}', { date: formatLocalizedDate(row.createdAt && new Date(row.createdAt), { style: 'medium', locale }) || '' }))
   if (row.stripeSubscriptionId) parts.push(row.stripeSubscriptionId)
   return parts.join(' · ')
 }
@@ -233,7 +235,7 @@ function EndDatePanel ({ row, busy, run }) {
 
 function FeaturesPanel ({ row, busy, run }) {
   const { t } = useTranslation()
-  const [bundle, setBundle] = useState({ tier: row.tier || 'pro', chosen: chosenForRow(row) })
+  const [bundle, setBundle] = useState({ tier: row.tier || 'pro', chosen: chosenProFeatures(row) })
 
   return (
     <form
@@ -241,7 +243,7 @@ function FeaturesPanel ({ row, busy, run }) {
       data-testid='hylo-pro-features-panel'
       onSubmit={e => {
         e.preventDefault()
-        run(updateHyloProGrant({ id: row.id, tier: bundle.tier, features: overridesList(bundle.tier, bundle.chosen) }), 'updateHyloProGrant', t('Features updated'))
+        run(updateHyloProGrant({ id: row.id, tier: bundle.tier, features: proFeatureOverrideList(bundle.tier, bundle.chosen) }), 'updateHyloProGrant', t('Features updated'))
       }}
     >
       <TierFeatures tier={bundle.tier} chosen={bundle.chosen} onChange={setBundle} disabled={busy} />
@@ -336,12 +338,12 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const handleRefund = async payment => {
     const refundable = payment.amount - payment.amountRefunded
     const typed = (amounts[payment.id] || '').trim()
-    const cents = typed ? Math.round(Number(typed) * 100) : refundable
+    const cents = typed ? Math.round(Number(typed) * minorUnitsPerMajor(payment.currency)) : refundable
     if (!Number.isInteger(cents) || cents < 1 || cents > refundable) {
-      toast.error(t('Enter an amount up to {{amount}}', { amount: formatMoney(refundable, payment.currency, locale) }))
+      toast.error(t('Enter an amount up to {{amount}}', { amount: formatCurrencyAmount(refundable, payment.currency, locale) }))
       return
     }
-    const amountText = formatMoney(cents, payment.currency, locale)
+    const amountText = formatCurrencyAmount(cents, payment.currency, locale)
     const cancel = canCancelWith(payment) && !!cancelToo[payment.id]
     const question = cancel
       ? t('Refund {{amount}} to {{name}} and cancel the subscription now? Pro stops immediately.', { amount: amountText, name: groupName })
@@ -402,7 +404,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
             const refundable = payment.paid && !payment.refundBlock ? payment.amount - payment.amountRefunded : 0
             return (
               <tr key={payment.id} className='border-b border-foreground/5' data-testid='hylo-pro-payment'>
-                <td className='whitespace-nowrap py-2 pr-4 text-foreground'>{formatDateTime(payment.createdAt, locale)}</td>
+                <td className='whitespace-nowrap py-2 pr-4 text-foreground'>{formatLocalizedDate(payment.createdAt && new Date(payment.createdAt), { style: 'mediumDateTime', locale }) || ''}</td>
                 <td className='py-2 pr-4 text-foreground/70'>
                   {payment.description || payment.id}{!payment.paid && ` (${payment.status})`}
                   {payment.disputed && (
@@ -413,8 +415,8 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
                     </span>
                   )}
                 </td>
-                <td className='py-2 pr-4 text-right text-foreground'>{formatMoney(payment.amount, payment.currency, locale)}</td>
-                <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatMoney(payment.amountRefunded, payment.currency, locale) : '—'}</td>
+                <td className='py-2 pr-4 text-right text-foreground'>{formatCurrencyAmount(payment.amount, payment.currency, locale)}</td>
+                <td className='py-2 pr-4 text-right text-foreground'>{payment.amountRefunded ? formatCurrencyAmount(payment.amountRefunded, payment.currency, locale) : '—'}</td>
                 <td className='py-2 pr-4'>
                   {refundable > 0 && (
                     <div className='flex flex-wrap items-center gap-2'>

@@ -223,7 +223,8 @@ describe('Hylo supporters (Open Collective)', () => {
       const row = rows.find(r => r.oc_order_id === nodes[0].id)
       expect(row.status).to.equal('REFUNDED')
       expect(String(row.attributed_group_id)).to.equal(String(group.id))
-      expect(row.amount_cents).to.equal(2500)
+      // OC-only details such as the amount stay in the raw payload
+      expect(row.raw.amount.valueInCents).to.equal(2500)
     })
 
     it('ignores orders to other collectives', async () => {
@@ -477,7 +478,7 @@ describe('Hylo supporters (Open Collective)', () => {
       await user.joinGroup(group, { assignAdministrator: true })
       await viewer.joinGroup(group)
       await bookshelf.knex('supporter_links').insert({ user_id: user.id, oc_account_id: 'acct-1', method: 'email' })
-      await insertOrder({ frequency: 'MONTHLY', status: 'ACTIVE', amount_cents: 5000, attributed_group_id: group.id, attributed_by_id: user.id })
+      await insertOrder({ frequency: 'MONTHLY', status: 'ACTIVE', attributed_group_id: group.id, attributed_by_id: user.id })
     })
 
     it('exposes booleans and dates only, and the badge only once opted in', async () => {
