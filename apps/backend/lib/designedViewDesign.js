@@ -1,5 +1,3 @@
-import { execFile } from 'child_process'
-import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import {
   DESIGNED_VIEW_BLOCKS,
@@ -18,7 +16,8 @@ import {
   removeUnlistedPosts,
   validateDesignedView
 } from '@hylo/shared'
-import { summarizeUsage } from './groupThemeImport'
+import { isClaudeConfigured, summarizeUsage } from './aiUsage'
+import { runInChildProcess as runScript } from './aiChildProcess'
 
 /**
  * The AI side of "Design your own view": a steward describes the page they
@@ -46,7 +45,7 @@ export function viewDesignModel () {
 }
 
 export function isViewDesignConfigured () {
-  return !!process.env.CLAUDE_API_KEY
+  return isClaudeConfigured()
 }
 
 // The view schema refers to its block definitions from the root ('#/$defs/block'),
@@ -294,28 +293,17 @@ export async function designViewTurn ({ group = {}, groupSummary = '', messages,
 }
 
 /**
- * designViewTurn in a child process, which is how the API runs it: the API's
- * global Bluebird Promise breaks the Anthropic SDK (see groupThemeImport.js).
- * The request goes to the child on stdin.
+ * designViewTurn in a child process, which is how the API runs it (see
+ * aiChildProcess.js for why). The request goes to the child on stdin.
  */
 function runInChildProcess (request) {
-  const env = Object.fromEntries(DESIGN_ENV_KEYS.filter(key => process.env[key]).map(key => [key, process.env[key]]))
-  return new Promise((resolve, reject) => {
-    const child = execFile(
-      process.execPath,
-      [path.join(__dirname, 'designedViewDesignProcess.js')],
-      { env, cwd: path.join(__dirname, '..'), timeout: DESIGN_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 },
-      (error, stdout) => {
-        let output = null
-        try {
-          output = JSON.parse(stdout)
-        } catch (e) {}
-        if (output?.ok) return resolve(output.result)
-        if (output?.error) return reject(new Error(output.error))
-        reject(new Error(error?.killed ? 'The design took too long' : 'The design could not be started'))
-      }
-    )
-    child.stdin.end(JSON.stringify(request))
+  return runScript({
+    script: 'designedViewDesignProcess.js',
+    input: request,
+    envKeys: DESIGN_ENV_KEYS,
+    timeoutMs: DESIGN_TIMEOUT_MS,
+    timeoutMessage: 'The design took too long',
+    startMessage: 'The design could not be started'
   })
 }
 
