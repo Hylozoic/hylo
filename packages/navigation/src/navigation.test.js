@@ -221,6 +221,13 @@ describe('homeRouteHostsPostOverlay', () => {
     expect(homeRouteHostsPostOverlay('/members/42')).toBe(true)
   })
 
+  it('hosts a post on a designed view and on the designer', () => {
+    expect(homeRouteHostsPostOverlay('/designed/12')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/design/12')).toBe(true)
+    expect(homeRouteHostsPostOverlay('/design/new')).toBe(true)
+    expect(nestedPostRedirectPath('/groups/assembly/designed/12/post/99')).toBeNull()
+  })
+
   it('does not host a post on page, welcome, or the members list', () => {
     expect(homeRouteHostsPostOverlay('/page/69228')).toBe(false)
     expect(homeRouteHostsPostOverlay('/welcome')).toBe(false)

@@ -120,6 +120,10 @@ export const COMMON_VIEWS = {
   page: {
     name: 'Page',
     lucideIcon: 'FileText'
+  },
+  designed: {
+    name: 'Designed view',
+    lucideIcon: 'LayoutTemplate'
   }
 }
 
@@ -137,6 +141,7 @@ const VIEW_TYPE_TO_LUCIDE_ICON = {
   members: 'Users',
   moderation: 'ShieldCheck',
   page: 'FileText',
+  designed: 'LayoutTemplate',
   projects: 'Layers',
   proposals: 'Vote',
   resources: 'PackageOpen',
@@ -219,7 +224,7 @@ export function avatarForView (view) {
 /** Resolves the icon for a view — DB override, linked space group icon, then type default. */
 export function iconForView (view) {
   if (view?.icon) {
-    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space-collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout' || view.type === 'page') {
+    if (LUCIDE_ICON_NAMES.has(view.icon) || view.type === 'custom' || view.type === 'collection' || view.type === 'space-collection' || view.type === 'space' || view.type === 'link' || view.type === 'logout' || view.type === 'page' || view.type === 'designed') {
       return { iconName: null, lucideIcon: view.icon }
     }
     return { iconName: view.icon, lucideIcon: null }

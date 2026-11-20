@@ -1,6 +1,10 @@
 export const PROJECT_CONTRIBUTIONS = 'PROJECT_CONTRIBUTIONS'
 // Members sending invitations: the "Who can add new members?" controls
 export const MEMBER_INVITES = 'MEMBER_INVITES'
+
+// Designed views: group pages built from blocks with an AI design chat ("Design your own view")
+export const DESIGNED_VIEWS = 'DESIGNED_VIEWS'
+
 // Hylo Pro billing: the group Billing settings tab
 export const HYLO_PRO = 'HYLO_PRO'
 
