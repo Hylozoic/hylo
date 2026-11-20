@@ -12,6 +12,7 @@ import ical from 'ical-generator'
 import { withStandardConference } from './event/mixin'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 import { safeFetch } from '../../lib/safeFetch'
+import { assertProFeature } from '@hylo/shared'
 
 import mixpanel from '../../lib/mixpanel'
 import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
@@ -143,10 +144,28 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   /**
-   * Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
+   * Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any
+   * tier. Not enough to gate a feature: use hasProFeature(key) for that.
    */
   hasPro () {
     return HyloProSubscription.groupHasPro(this.id)
+  },
+
+  /**
+   * The Pro features this group has now, `{ [key]: boolean }` over every feature registered in
+   * packages/shared HyloProFeatures.js (all false without Pro)
+   */
+  proFeatures () {
+    return HyloProSubscription.featuresForGroup(this.id)
+  },
+
+  /**
+   * Whether this group has one Pro feature now. Throws for a key that isn't registered, so a typo
+   * in a gate fails loudly instead of quietly locking everyone out.
+   */
+  async hasProFeature (key) {
+    assertProFeature(key)
+    return !!(await this.proFeatures())[key]
   },
 
   /**

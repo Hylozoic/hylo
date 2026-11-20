@@ -2,14 +2,14 @@ import React from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { graphql, HttpResponse } from 'msw'
 import mockGraphqlServer from 'util/testing/mockGraphqlServer'
-import { act, AllTheProviders, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { act, AllTheProviders, fireEvent, render, screen, waitFor, within } from 'util/testing/reactTestingLibraryExtended'
 import BillingTab from './BillingTab'
 
 const group = { id: '1', slug: 'hylo', name: 'Hylo' }
 
 const PLANS = [
-  { interval: 'month', unitAmount: 1000, currency: 'usd' },
-  { interval: 'year', unitAmount: 10000, currency: 'usd' }
+  { interval: 'month', unitAmount: 6000, currency: 'usd' },
+  { interval: 'year', unitAmount: 60000, currency: 'usd' }
 ]
 
 const OPEN_STATUSES = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
@@ -87,9 +87,14 @@ describe('BillingTab', () => {
     renderTab()
 
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Free')
-    expect(screen.getByTestId('billing-upgrade-month')).toHaveTextContent('$10/month')
-    expect(screen.getByTestId('billing-upgrade-year')).toHaveTextContent('$100/year')
+    expect(screen.getByTestId('billing-tier-pro-price')).toHaveTextContent('$60/month')
+    expect(screen.getByTestId('billing-upgrade-month')).toHaveTextContent('Upgrade monthly')
+    expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
     expect(screen.queryByTestId('billing-manage')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('billing-interval-year'))
+    expect(screen.getByTestId('billing-tier-pro-price')).toHaveTextContent('$600/year')
+    expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByTestId('billing-upgrade-year'))
 
@@ -104,6 +109,8 @@ describe('BillingTab', () => {
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (yearly)')
     expect(screen.getByTestId('billing-plan-detail')).toHaveTextContent(/^Renews on .*2027/)
     expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+    // The Pro card shows the price of the interval the group is on
+    expect(screen.getByTestId('billing-tier-pro-price')).toHaveTextContent('$600/year')
 
     fireEvent.click(screen.getByTestId('billing-manage'))
 
@@ -148,6 +155,19 @@ describe('BillingTab', () => {
     expect(screen.getByTestId('billing-plan-detail')).toHaveTextContent('No end date')
     expect(screen.queryByTestId('billing-manage')).not.toBeInTheDocument()
     expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+  })
+
+  it('names the tier of a Pro Plus grant and marks the Pro Plus card as the current plan', async () => {
+    mockBillingApi({ billing: { ...billingFor({ grant: manualGrant() }), tier: 'pro_plus' } })
+    renderTab()
+
+    expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro Plus (granted by Hylo)')
+    const proPlus = screen.getByTestId('billing-tier-pro-plus')
+    expect(within(proPlus).getByTestId('billing-current-plan')).toBeInTheDocument()
+    expect(within(proPlus).queryByTestId('billing-coming-soon')).not.toBeInTheDocument()
+    const pro = screen.getByTestId('billing-tier-pro')
+    expect(within(pro).queryByTestId('billing-current-plan')).not.toBeInTheDocument()
+    expect(within(pro).queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
   })
 
   it('lets a lapsed subscriber upgrade again and still reach their invoices', async () => {
@@ -197,7 +217,8 @@ describe('BillingTab', () => {
     })
     renderTab()
 
-    fireEvent.click(await screen.findByTestId('billing-upgrade-year'))
+    fireEvent.click(await screen.findByTestId('billing-interval-year'))
+    fireEvent.click(screen.getByTestId('billing-upgrade-year'))
 
     expect(await screen.findByTestId('billing-error')).toHaveTextContent('This group already has a Hylo Pro subscription. Use Manage subscription to change it.')
     expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
@@ -233,8 +254,59 @@ describe('BillingTab', () => {
     mockBillingApi({ billing: { ...billingFor(), plans: [{ interval: 'month', unitAmount: 1250, currency: 'usd' }] } })
     renderTab()
 
-    expect(await screen.findByTestId('billing-upgrade-month')).toHaveTextContent('$12.50/month')
+    expect(await screen.findByTestId('billing-tier-pro-price')).toHaveTextContent('$12.50/month')
+    expect(screen.getByTestId('billing-upgrade-month')).toBeInTheDocument()
+    // Only one plan, so there is no monthly/yearly choice
+    expect(screen.queryByTestId('billing-interval-year')).not.toBeInTheDocument()
     expect(screen.queryByTestId('billing-upgrade-year')).not.toBeInTheDocument()
+  })
+
+  it('shows the Supporter, Pro, Pro Plus and Custom plans', async () => {
+    mockBillingApi()
+    renderTab()
+
+    const tiers = await screen.findByTestId('billing-tiers')
+    expect(tiers.children.length).toBe(4)
+    expect(screen.getByTestId('billing-tier-supporter')).toHaveTextContent('Supporter')
+    expect(screen.getByTestId('billing-tier-supporter-price')).toHaveTextContent('Any amount')
+    expect(screen.getByTestId('billing-tier-supporter')).toHaveTextContent('Supporter badge')
+    expect(screen.getByTestId('billing-tier-pro')).toHaveTextContent('For nonprofits and networks')
+    expect(screen.getByTestId('billing-tier-pro')).toHaveTextContent('Set post author as group (group-bot)')
+    expect(screen.getByTestId('billing-tier-pro-plus')).toHaveTextContent('Pro Plus')
+    expect(screen.getByTestId('billing-tier-pro-plus-price')).toHaveTextContent('Coming soon')
+    expect(screen.getByTestId('billing-tier-pro-plus')).toHaveTextContent('Collaborative documents')
+    expect(screen.getByTestId('billing-tier-custom-price')).toHaveTextContent('Contact us')
+    expect(screen.getByTestId('billing-tier-custom')).toHaveTextContent('Single sign-on')
+  })
+
+  it('opens the Support Hylo modal from the Supporter plan', async () => {
+    mockBillingApi()
+    renderTab()
+
+    expect(screen.queryByTestId('support-hylo-modal')).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByTestId('billing-support-hylo'))
+
+    expect(await screen.findByTestId('support-hylo-modal')).toBeInTheDocument()
+  })
+
+  it('disables the Pro Plus button and emails us from Custom', async () => {
+    mockBillingApi()
+    renderTab()
+
+    expect(await screen.findByTestId('billing-coming-soon')).toBeDisabled()
+    expect(screen.getByTestId('billing-contact-us')).toHaveAttribute('href', 'mailto:hello@hylo.com')
+  })
+
+  it('marks Pro as the current plan instead of offering an upgrade', async () => {
+    mockBillingApi({ billing: billingFor({ subscription: stripeSub() }) })
+    renderTab()
+
+    const pro = await screen.findByTestId('billing-tier-pro')
+    expect(pro).toHaveTextContent('Current plan')
+    expect(screen.getByTestId('billing-current-plan')).toBeInTheDocument()
+    expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('billing-interval-year')).not.toBeInTheDocument()
+    expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
   })
 
   it('tells the steward when they cancel Checkout', async () => {
@@ -323,7 +395,7 @@ describe('BillingTab', () => {
       renderLapsed()
 
       expect(text(await screen.findByTestId('billing-plan-detail'))).toBe('Your Hylo Pro subscription ended on March 1, 2027.')
-      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('$12.50/month')
+      expect(text(screen.getByTestId('billing-tier-pro-price'))).toContain('$12.50/month')
     })
 
     it('puts the day first for en-GB', async () => {
@@ -331,7 +403,7 @@ describe('BillingTab', () => {
       renderLapsed()
 
       expect(text(await screen.findByTestId('billing-plan-detail'))).toBe('Your Hylo Pro subscription ended on 1 March 2027.')
-      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('US$12.50/month')
+      expect(text(screen.getByTestId('billing-tier-pro-price'))).toContain('US$12.50/month')
     })
 
     it('uses the German format for de', async () => {
@@ -339,7 +411,7 @@ describe('BillingTab', () => {
       renderLapsed()
 
       expect(text(await screen.findByTestId('billing-plan-detail'))).toContain('1. März 2027')
-      expect(text(screen.getByTestId('billing-upgrade-month'))).toContain('12,50 $')
+      expect(text(screen.getByTestId('billing-tier-pro-price'))).toContain('12,50 $')
     })
 
     it('ignores the browser language', async () => {

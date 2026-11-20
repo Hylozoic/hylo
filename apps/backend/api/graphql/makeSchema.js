@@ -195,6 +195,17 @@ import {
   activateHyloProCheckoutSession,
   createHyloProCheckoutSession,
   createHyloProPortalSession,
+  hyloProMetrics,
+  hyloProSubscriptions,
+  hyloProGroups,
+  hyloProPayments,
+  grantHyloPro,
+  updateHyloProGrant,
+  revokeHyloProGrant,
+  cancelHyloProSubscription,
+  resumeHyloProSubscription,
+  extendHyloProSubscription,
+  refundHyloProPayment,
   membershipChangeCommit,
   verifyEmail,
   verifyEmailChange
@@ -216,6 +227,7 @@ import peopleTyping from './mutations/peopleTyping'
 import { leaveMessageThread } from './mutations/messageThread'
 import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import InvitationService from '../services/InvitationService'
+import SupporterService from '../services/SupporterService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
 
@@ -658,7 +670,14 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       const banners = await SiteBanner.all()
       return banners.toModelArray ? banners.toModelArray() : banners
     },
-    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status)
+    publicListingRequests: (root, { status }, context) => publicListingRequests(context.currentUserId, status),
+    hyloProMetrics: (root, args, context) => hyloProMetrics(context.currentUserId),
+    hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
+    hyloProGroups: (root, { slugOrId }, context) => hyloProGroups(context.currentUserId, { slugOrId }),
+    hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after }),
+    supportHylo: (root, args, context) => SupporterService.supportInfo(context.currentUserId),
+    groupSupporterInfo: (root, { groupId }, context) => SupporterService.groupSupportInfo(context.currentUserId, groupId),
+    supporterGrants: (root, args, context) => SupporterService.listGrants(context.currentUserId)
   }
 }
 
@@ -945,6 +964,15 @@ export function makeMutations ({ fetchOne }) {
 
     activateHyloProCheckoutSession: (root, { groupId, sessionId }, context) => activateHyloProCheckoutSession(context.currentUserId, { groupId, sessionId }),
 
+    // Hylo Pro management (Hylo staff only)
+    grantHyloPro: (root, args, context) => grantHyloPro(context.currentUserId, args),
+    updateHyloProGrant: (root, args, context) => updateHyloProGrant(context.currentUserId, args),
+    revokeHyloProGrant: (root, { id }, context) => revokeHyloProGrant(context.currentUserId, { id }),
+    cancelHyloProSubscription: (root, { id, immediately }, context) => cancelHyloProSubscription(context.currentUserId, { id, immediately }),
+    resumeHyloProSubscription: (root, { id }, context) => resumeHyloProSubscription(context.currentUserId, { id }),
+    extendHyloProSubscription: (root, { id, days }, context) => extendHyloProSubscription(context.currentUserId, { id, days }),
+    refundHyloProPayment: (root, args, context) => refundHyloProPayment(context.currentUserId, args),
+
     membershipChangeCommit: (root, { groupId, fromOfferingId, toOfferingId, newQuantity }, context) =>
       membershipChangeCommit(context.currentUserId, { groupId, fromOfferingId, toOfferingId, newQuantity }),
 
@@ -1049,6 +1077,23 @@ export function makeMutations ({ fetchOne }) {
     deleteSiteBanner: (root, { id }, context) => deleteSiteBanner(context.currentUserId, id),
 
     dismissSiteBanner: (root, { id }, context) => dismissSiteBanner(context.currentUserId, id),
+
+    checkOpenCollectiveContributions: (root, args, context) => SupporterService.claimByEmail(context.currentUserId),
+
+    attributeSupportContribution: (root, { contributionId, groupId }, context) => SupporterService.attributeContribution(context.currentUserId, contributionId, groupId),
+
+    setSupporterBadgeVisibility: (root, { groupId, show }, context) => SupporterService.setBadgeVisibility(context.currentUserId, { groupId, show }),
+
+    createSupportIntent: (root, { groupId }, context) => SupporterService.createIntent(context.currentUserId, groupId),
+
+    confirmSupportIntent: async (root, { orderId }, context) => {
+      const { groupId, ...result } = await SupporterService.confirmIntent(context.currentUserId, orderId)
+      return { ...result, group: groupId ? await Group.find(groupId) : null }
+    },
+
+    grantSupporterStatus: (root, { userId, groupId, note, expiresAt }, context) => SupporterService.grant(context.currentUserId, { userId, groupId, note, expiresAt }),
+
+    revokeSupporterStatus: (root, { id }, context) => SupporterService.revoke(context.currentUserId, id),
 
     requestPublicListing: (root, { groupId, message }, context) => requestPublicListing(context.currentUserId, groupId, message),
 

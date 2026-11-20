@@ -37,9 +37,10 @@ const PRO_METADATA_KEY = 'hylo_pro'
 const PORTAL_METADATA_KEY = 'hylo_pro_portal'
 const CURRENCY = 'usd'
 
+// tier: the feature bundle a subscription on this price gives (see packages/shared HyloProFeatures.js)
 const PLANS = {
-  month: { lookupKey: 'hylo_pro_monthly_usd', unitAmount: 1000 },
-  year: { lookupKey: 'hylo_pro_yearly_usd', unitAmount: 10000 }
+  month: { lookupKey: 'hylo_pro_monthly_usd', unitAmount: 6000, tier: 'pro' },
+  year: { lookupKey: 'hylo_pro_yearly_usd', unitAmount: 60000, tier: 'pro' }
 }
 const INTERVALS = Object.keys(PLANS)
 
@@ -57,6 +58,23 @@ const PRO_EVENT_TYPES = new Set([
 
 // Error code for "this group already has a subscription"; the web shows its own translated message
 const ALREADY_SUBSCRIBED = 'HYLO_PRO_ALREADY_SUBSCRIBED'
+// Error codes for a mutation the group's Pro doesn't cover: no Pro at all, or not this feature
+// (extensions.feature names the registry key). The web can show its own translated message for each.
+const PRO_REQUIRED = 'HYLO_PRO_REQUIRED'
+const FEATURE_REQUIRED = 'HYLO_PRO_FEATURE_REQUIRED'
+
+/**
+ * The tier a Stripe price gives, from its lookup key: every current Hylo Pro price is the Pro
+ * bundle. A price we don't know (say one made by hand in the Dashboard) is treated as Pro too, so
+ * a paying group never ends up with nothing.
+ */
+function tierForPrice (price) {
+  const lookupKey = price?.lookup_key
+  const plan = Object.values(PLANS).find(p => p.lookupKey === lookupKey)
+  if (plan) return plan.tier
+  if (lookupKey) console.warn(`Hylo Pro: unknown price lookup key ${lookupKey}, treating it as the Pro tier`)
+  return HyloProSubscription.DEFAULT_TIER
+}
 
 function alreadySubscribedError () {
   return new GraphQLError('This group already has a Hylo Pro subscription. Use Manage subscription to change it.', {
@@ -139,10 +157,30 @@ function billingUrl (group) {
 module.exports = {
   PRODUCT_ID,
   PLANS,
+  PRO_REQUIRED,
+  FEATURE_REQUIRED,
+  tierForPrice,
+
+  /**
+   * Throws unless the group has Pro feature `key` now (a GraphQLError with code FEATURE_REQUIRED and
+   * extensions.feature = key, or PRO_REQUIRED when the group has no Pro at all). For mutations that
+   * are part of a Pro feature: `await HyloProService.requireProFeature(group, 'groupThemes')`.
+   * `key` must be registered in packages/shared HyloProFeatures.js (a typo throws a plain Error).
+   */
+  async requireProFeature (group, key, message) {
+    if (await group.hasProFeature(key)) return
+    const hasPro = await group.hasPro()
+    throw new GraphQLError(message || (hasPro
+      ? `This group's Hylo Pro plan doesn't include ${key}.`
+      : 'This feature is part of Hylo Pro. This group needs Hylo Pro to use it.'), {
+      extensions: { code: hasPro ? FEATURE_REQUIRED : PRO_REQUIRED, feature: key }
+    })
+  },
   INTERVALS,
   CURRENCY,
   ALREADY_SUBSCRIBED,
   alreadySubscribedError,
+  withLock,
 
   // Plans in display order, for the Billing page
   plans () {
@@ -505,6 +543,7 @@ module.exports = {
       source: HyloProSubscription.SOURCE_STRIPE,
       status: subscription.status,
       interval: price?.recurring?.interval || null,
+      tier: tierForPrice(price),
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       stripe_price_id: price?.id || null,

@@ -25,6 +25,8 @@ import { canEditPost } from '../models/post/postEditPermissions'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import HyloProService from '../services/HyloProService'
+import SupporterService from '../services/SupporterService'
+import { orderQualifies } from '../../lib/supporters/status'
 import {
   filterAndSortContentAccess,
   filterAndSortPosts,
@@ -595,6 +597,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         // Whether the viewer may start a DM with this person (same rule as the recipient search)
         canMessage: p => userId ? User.canMessage(userId, p.id) : false,
+        // Hylo supporter badge: true only when the person opted in and currently qualifies (#1754)
+        isSupporter: p => SupporterService.isUserBadgeVisible(p),
         membershipCommonRoles: emptyQuerySet,
         messageThreadId: p => userId ? p.getMessageThreadWith(userId).then(post => post ? post.id : null) : null,
         // Never expose null names to clients — they call .split() etc.
@@ -1277,6 +1281,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         eventCalendarUrl: g => g.eventCalendarUrl(),
         // commonRoles: async g => g.commonRoles(),
         canAccess: g => g ? g.canAccess(userId) : false,
+        // Hylo supporter badge: true only when the group opted in and currently qualifies (#1754)
+        isSupporter: g => SupporterService.isGroupBadgeVisible(g),
         chatConverted: g => Boolean(g && g.getSetting('chat_converted_to_post_id')),
         chatSpacesBlockingConversion: async g => {
           if (!userId || !g) return []
@@ -1293,13 +1299,14 @@ export default function makeModels (userId, isAdmin, apiClient) {
         },
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
+        proFeatures: g => g.proFeatures(),
         proBilling: async g => {
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
-          const { subscription, grant, hasPro } = await HyloProSubscription.billingForGroup(g.id)
+          const { subscription, grant, hasPro, tier, features } = await HyloProSubscription.billingForGroup(g.id)
           const present = sub => sub && {
             id: sub.id,
             source: sub.get('source'),
@@ -1319,6 +1326,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
             needsPaymentUpdate: hasOpenSubscription && HyloProSubscription.NEEDS_PAYMENT_STRIPE_STATUSES.includes(subscription.get('status')),
             subscription: present(subscription),
             grant: present(grant),
+            tier,
+            features,
             plans: HyloProService.plans()
           }
         },
@@ -2426,6 +2435,42 @@ export default function makeModels (userId, isAdmin, apiClient) {
         createdAt: b => b.get('created_at'),
         updatedAt: b => b.get('updated_at'),
         dismissedCount: b => SiteBanner.dismissedCount(b.get('id'))
+      }
+    },
+
+    // A contribution to Hylo's Open Collective, as its owner sees it. No amounts (#1754).
+    SupporterContribution: {
+      model: OpenCollectiveOrder,
+      attributes: [
+        'id',
+        'frequency',
+        'status'
+      ],
+      relations: [
+        { attributedGroup: { alias: 'group' } }
+      ],
+      getters: {
+        createdAt: o => o.get('oc_created_at'),
+        lastChargedAt: o => o.get('last_charged_at'),
+        isIncognito: o => !!o.get('is_incognito'),
+        qualifies: o => orderQualifies(o.attributes)
+      }
+    },
+
+    SupporterGrant: {
+      model: SupporterGrant,
+      attributes: [
+        'id',
+        'note'
+      ],
+      relations: [
+        { user: { alias: 'user' } },
+        { group: { alias: 'group' } },
+        { grantedBy: { alias: 'grantedBy' } }
+      ],
+      getters: {
+        expiresAt: g => g.get('expires_at'),
+        createdAt: g => g.get('created_at')
       }
     }
   }

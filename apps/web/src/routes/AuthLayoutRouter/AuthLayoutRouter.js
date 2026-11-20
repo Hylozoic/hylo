@@ -97,6 +97,7 @@ import WelcomeWizardRouter from 'routes/WelcomeWizardRouter'
 import { VIEW_DRAFTS } from 'store/constants'
 import { isAtReturnToPath } from 'util/returnToPath'
 import Management from 'routes/Management'
+import SupportThanks from 'routes/SupportThanks/SupportThanks'
 import SiteBanners from 'components/SiteBanners/SiteBanners'
 import { getLocaleFromLocalStorage } from 'util/locale'
 import { isCompactLayoutDevice, isDrawerNavLayout, isPhoneDevice } from 'util/mobile'
@@ -1199,6 +1200,7 @@ export default function AuthLayoutRouter (props) {
                 {/* **** Management Routes (Admin Only) **** */}
                 <Route path='management/*' element={<Management />} />
                 {/* **** Other Routes **** */}
+                <Route path='support/thanks' element={<SupportThanks />} />
                 <Route path='welcome/*' element={<WelcomeWizardRouter />} />
                 <Route path='messages/:messageThreadId/*' element={<MessagesLayout />} />
                 <Route path='messages' element={<MessagesLayout />} />

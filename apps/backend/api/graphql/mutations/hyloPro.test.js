@@ -24,8 +24,8 @@ function stripeSubscription (attrs) {
 }
 
 const PRICES = [
-  { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-  { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 10000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+  { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+  { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 60000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
 ]
 
 describe('Hylo Pro mutations', () => {

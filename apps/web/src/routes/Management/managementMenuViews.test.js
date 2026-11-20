@@ -5,8 +5,10 @@ const labels = {
   'view-management-site-banners': 'Site Banners',
   'view-management-commons-requests': 'Commons Requests',
   'view-management-email-testers': 'Email Testers',
+  'view-management-supporters': 'Supporters',
   'view-management-paid-content': 'Paid Content',
-  'view-management-disputes-refunds': 'Disputes & Refunds'
+  'view-management-disputes-refunds': 'Disputes & Refunds',
+  'view-management-hylo-pro': 'Hylo Pro'
 }
 
 const t = key => labels[key] || key
@@ -20,11 +22,15 @@ describe('management menu views', () => {
       'Site Banners',
       'Commons Requests',
       'Email Testers',
+      'Supporters',
       'Paid Content',
-      'Disputes & Refunds'
+      'Disputes & Refunds',
+      'Hylo Pro'
     ])
     expect(views[0].link).toBe('/management/metrics')
+    expect(views.find(view => view.name === 'view-management-supporters').link).toBe('/management/supporters')
     expect(views.find(view => view.name === 'view-management-paid-content').type).toBe('text')
     expect(views.find(view => view.name === 'view-management-disputes-refunds').link).toBe('/management/paid-content/stripe-analytics')
+    expect(views.find(view => view.name === 'view-management-hylo-pro').link).toBe('/management/paid-content/hylo-pro')
   })
 })

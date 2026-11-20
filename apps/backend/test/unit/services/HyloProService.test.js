@@ -117,11 +117,21 @@ describe('HyloProService', () => {
       expect(row.get('source')).to.equal('stripe')
       expect(row.get('status')).to.equal('active')
       expect(row.get('interval')).to.equal('month')
+      expect(row.get('tier')).to.equal('pro')
       expect(row.get('stripe_customer_id')).to.equal('cus_pro_1')
       expect(row.get('stripe_price_id')).to.equal('price_month')
       expect(unix(row.get('current_period_end'))).to.equal(PERIOD_END)
       expect(row.get('cancel_at_period_end')).to.be.false
       expect(await group.hasPro()).to.be.true
+      expect(await group.hasProFeature('designedViews')).to.be.true
+      expect(await group.hasProFeature('recording')).to.be.false
+    })
+
+    it('maps the price lookup key to the tier, treating unknown prices as Pro', () => {
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_monthly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_yearly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'something_else' })).to.equal('pro')
+      expect(HyloProService.tierForPrice(null)).to.equal('pro')
     })
 
     it('applies the latest subscription state on later events, updating the same row', async () => {
@@ -271,8 +281,8 @@ describe('HyloProService', () => {
       expect(ids).to.deep.equal({ month: 'price_month', year: 'price_year' })
       expect(created.map(([kind]) => kind)).to.deep.equal(['product', 'price', 'price'])
       expect(created[0][1].id).to.equal('hylo_pro')
-      expect(created[1][1]).to.include({ unit_amount: 1000, currency: 'usd', lookup_key: 'hylo_pro_monthly_usd' })
-      expect(created[2][1]).to.include({ unit_amount: 10000, currency: 'usd', lookup_key: 'hylo_pro_yearly_usd' })
+      expect(created[1][1]).to.include({ unit_amount: 6000, currency: 'usd', lookup_key: 'hylo_pro_monthly_usd' })
+      expect(created[2][1]).to.include({ unit_amount: 60000, currency: 'usd', lookup_key: 'hylo_pro_yearly_usd' })
 
       await HyloProService.ensureProPrices()
       expect(created.length).to.equal(3)
@@ -284,7 +294,7 @@ describe('HyloProService', () => {
       stripeMock.prices = {
         list: async () => ({
           data: [
-            { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+            { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
             { id: 'price_y_old', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 9000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
           ]
         }),
@@ -297,14 +307,14 @@ describe('HyloProService', () => {
       const ids = await HyloProService.ensureProPrices()
       expect(ids).to.deep.equal({ month: 'price_m', year: 'price_y_new' })
       expect(created.length).to.equal(1)
-      expect(created[0]).to.include({ unit_amount: 10000, transfer_lookup_key: true })
+      expect(created[0]).to.include({ unit_amount: 60000, transfer_lookup_key: true })
     })
   })
 
   describe('ensurePortalConfiguration', () => {
     const PRICES = [
-      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 10000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 60000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
     ]
 
     function stubPortal (features) {
@@ -354,8 +364,8 @@ describe('HyloProService', () => {
 
   describe('createCheckoutSession', () => {
     const PRICES = [
-      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 10000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 60000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
     ]
     let calls, stripeSubscriptions, openSessions
 

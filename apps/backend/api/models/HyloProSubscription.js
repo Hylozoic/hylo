@@ -1,10 +1,26 @@
 /* eslint-disable camelcase */
 /* global Group, User */
 
+import {
+  HYLO_PRO_DEFAULT_TIER,
+  HYLO_PRO_TIERS,
+  higherProTier,
+  isProFeature,
+  noProFeatures,
+  resolveProFeatures
+} from '@hylo/shared'
+
 /**
  * A group's Hylo Pro entitlement: either a Stripe subscription on the Hylo platform account
  * (source 'stripe', kept in sync by webhooks — see HyloProService) or a manual grant by a
  * Hylo admin (source 'manual', optionally ending at expires_at).
+ *
+ * Each row gives a bundle of features: its `tier` ('pro', 'pro_plus' or 'custom', see the registry
+ * in packages/shared HyloProFeatures.js) plus per-row overrides in `features`
+ * (`{ "<featureKey>": true | false }` — true adds a feature outside the tier, false removes one).
+ * A group's features are computed on read from its active rows (featuresForGroup): the union of
+ * every active row's bundle. hasPro stays "any active row"; feature gates use
+ * Group.hasProFeature(key) instead.
  */
 
 const SOURCE_STRIPE = 'stripe'
@@ -32,6 +48,47 @@ const STRIPE_GRACE_MS = STRIPE_GRACE_DAYS * 24 * 60 * 60 * 1000
 function toDate (value) {
   if (!value) return null
   return value instanceof Date ? value : new Date(value)
+}
+
+function attrsOf (row) {
+  return typeof row.get === 'function' ? row.attributes : row
+}
+
+// A row's feature overrides as `{ [key]: boolean }` (the jsonb column may come back as an object
+// or, from a raw insert, a string); keys that are no longer registered are dropped
+function featureOverrides (row) {
+  if (!row) return {}
+  let value = attrsOf(row).features
+  if (typeof value === 'string') {
+    try { value = JSON.parse(value) } catch (e) { value = null }
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const overrides = {}
+  for (const key of Object.keys(value)) {
+    if (isProFeature(key) && typeof value[key] === 'boolean') overrides[key] = value[key]
+  }
+  return overrides
+}
+
+/**
+ * The features a set of rows gives at `now`, as `{ [key]: boolean }` over every registered feature:
+ * for each active row, its tier's features plus/minus its overrides; the union across rows.
+ * Works on models or plain row objects.
+ */
+function effectiveFeatures (rows, now = new Date()) {
+  const active = (rows || []).filter(row => isActive(row, now))
+  if (active.length === 0) return noProFeatures()
+  return resolveProFeatures(active.map(row => ({
+    tier: attrsOf(row).tier || HYLO_PRO_DEFAULT_TIER,
+    features: featureOverrides(row)
+  })))
+}
+
+// The highest tier among the rows active at `now`, or null when none is
+function effectiveTier (rows, now = new Date()) {
+  return (rows || [])
+    .filter(row => isActive(row, now))
+    .reduce((highest, row) => higherProTier(highest, attrsOf(row).tier || HYLO_PRO_DEFAULT_TIER), null)
 }
 
 /**
@@ -124,6 +181,21 @@ module.exports = bookshelf.Model.extend({
     return isActive(this, now)
   },
 
+  // 'pro', 'pro_plus' or 'custom'
+  tier: function () {
+    return this.get('tier') || HYLO_PRO_DEFAULT_TIER
+  },
+
+  // This row's overrides of its tier bundle, `{ [key]: boolean }` (empty when none)
+  featureOverrides: function () {
+    return featureOverrides(this)
+  },
+
+  // Every registered feature this row gives (its tier plus overrides), as `{ [key]: boolean }`, ignoring whether it is active
+  features: function () {
+    return resolveProFeatures([{ tier: this.tier(), features: this.featureOverrides() }])
+  },
+
   // When Pro access stops if nothing changes: a scheduled cancellation, the end of a manual grant, or null if it renews
   endsAt: function () {
     if (this.get('source') === SOURCE_MANUAL) return this.get('expires_at') || null
@@ -134,6 +206,8 @@ module.exports = bookshelf.Model.extend({
 }, {
   SOURCE_STRIPE,
   SOURCE_MANUAL,
+  TIERS: HYLO_PRO_TIERS,
+  DEFAULT_TIER: HYLO_PRO_DEFAULT_TIER,
   ACTIVE_STRIPE_STATUSES,
   OPEN_UNPAID_STRIPE_STATUSES,
   NEEDS_PAYMENT_STRIPE_STATUSES,
@@ -143,6 +217,9 @@ module.exports = bookshelf.Model.extend({
   isActive,
   isOpenStripeSubscription,
   whereActive,
+  effectiveFeatures,
+  effectiveTier,
+  featureOverrides,
 
   forGroup: function (groupId, opts = {}) {
     return this.query(q => {
@@ -161,12 +238,27 @@ module.exports = bookshelf.Model.extend({
   },
 
   /**
+   * The Pro features a group has now, `{ [key]: boolean }` over every registered feature: every
+   * feature of each active row's tier plus its overrides. All false for a group without Pro.
+   */
+  featuresForGroup: async function (groupId, now = new Date()) {
+    const rows = await bookshelf.knex('hylo_pro_subscriptions')
+      .where('group_id', groupId)
+      .modify(q => whereActive(q, now))
+      .select('source', 'status', 'tier', 'features', 'expires_at', 'current_period_start', 'current_period_end',
+        'cancel_at_period_end', 'cancel_at', 'ended_at')
+    return effectiveFeatures(rows, now)
+  },
+
+  /**
    * What the group's Billing page shows:
    * - subscription: the group's Stripe subscription — an open one (active, or unpaid/paused) first,
    *   else the most recent one (e.g. lapsed), or null. Shown even while a manual grant is active,
    *   so stewards can still see a failed payment and manage the subscription.
    * - grant: an active manual grant, or null
    * - hasPro: whether any row gives the group Pro
+   * - tier: the highest tier among the rows giving Pro, or null without Pro
+   * - features: `{ [key]: boolean }` over every registered feature (see featuresForGroup)
    */
   billingForGroup: async function (groupId, now = new Date()) {
     const rows = (await this.forGroup(groupId)).models
@@ -176,6 +268,12 @@ module.exports = bookshelf.Model.extend({
       stripeRows[0] ||
       null
     const grant = rows.find(row => row.get('source') === SOURCE_MANUAL && isActive(row, now)) || null
-    return { subscription, grant, hasPro: rows.some(row => isActive(row, now)) }
+    return {
+      subscription,
+      grant,
+      hasPro: rows.some(row => isActive(row, now)),
+      tier: effectiveTier(rows, now),
+      features: effectiveFeatures(rows, now)
+    }
   }
 })

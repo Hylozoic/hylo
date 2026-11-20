@@ -1,3 +1,5 @@
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
+
 export const MODULE_NAME = 'BillingTab'
 
 export const FETCH_PRO_BILLING = `${MODULE_NAME}/FETCH_PRO_BILLING`
@@ -31,6 +33,8 @@ export function fetchProBilling (groupId) {
             needsPaymentUpdate
             subscription {${SUBSCRIPTION_FIELDS}}
             grant {${SUBSCRIPTION_FIELDS}}
+            tier
+            features { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
             plans {
               interval
               unitAmount
