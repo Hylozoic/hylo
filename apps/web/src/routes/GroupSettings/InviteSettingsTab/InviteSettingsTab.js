@@ -165,7 +165,7 @@ function InviteLinkAccessIcon ({ grantsAccess, tooltip }) {
 function InviteLinkMeta ({ name, roles, t }) {
   if (!name && roles.length === 0) return null
   return (
-    <div className='flex flex-wrap items-center gap-1.5 text-xs text-foreground/60'>
+    <div className='flex flex-wrap items-center gap-1.5 text-xs text-foreground-muted'>
       {name && <span className='font-medium'>{name}</span>}
       {roles.length > 0 && (
         <>
@@ -220,7 +220,7 @@ function InviteLinkEditor ({ draft, onChange, onSave, onCancel, canAdminister, r
                   {role.emoji ? `${role.emoji} ` : ''}{role.name}
                   <button
                     type='button'
-                    className='text-foreground/60 hover:text-foreground'
+                    className='text-foreground-muted hover:text-foreground'
                     aria-label={t('Remove {{name}}', { name: role.name })}
                     onClick={() => onChange({ ...draft, grantedRoleIds: draft.grantedRoleIds.filter(id => id !== String(role.id)) })}
                   >
@@ -766,7 +766,7 @@ function InviteSettingsTab (props) {
             roles={activeRoles}
           />
         )}
-        {!!link.numJoinedUsers && <p className='text-xs text-foreground/50 m-0'>{t('{{count}} joined', { count: link.numJoinedUsers })}</p>}
+        {!!link.numJoinedUsers && <p className='text-xs text-foreground-muted m-0'>{t('{{count}} joined', { count: link.numJoinedUsers })}</p>}
       </div>
     )
   }
@@ -874,7 +874,7 @@ function InviteSettingsTab (props) {
           <h2 className='text-lg font-bold mt-0 mb-1 text-foreground'>
             {t('Invite people on Hylo')}
           </h2>
-          <span className='text-sm text-foreground/50'>
+          <span className='text-sm text-foreground-muted'>
             {isRoleGated && (
               <p className='text-sm text-accent bg-accent/10 border border-accent/30 rounded-md px-3 py-2'>
                 {t('Only members with one of the required roles will actually be able to join the space.')}{' '}
@@ -916,7 +916,7 @@ function InviteSettingsTab (props) {
         <h2 className='text-lg font-bold mb-1 text-foreground mt-4'>
           {t('Send Invites via email')}
         </h2>
-        <span className='text-sm text-foreground/50'>
+        <span className='text-sm text-foreground-muted'>
           {isSpace
             ? t('An invitation link will be sent to each email address to join this space. If they are not yet a member of {{name}} they will be asked to join that first.', { name: parentName || t('the group') })
             : t('An invitation link will be sent to each email address. They will still be shown any required questions or agreements you may have set to join this group.')}
@@ -952,7 +952,7 @@ function InviteSettingsTab (props) {
           </>
         )}
         {typeof inviteAllowance === 'number' && (
-          <p className='text-sm text-foreground/50'>{t('Invites left today: {{remaining}}', { remaining: inviteAllowance })}</p>
+          <p className='text-sm text-foreground-muted'>{t('Invites left today: {{remaining}}', { remaining: inviteAllowance })}</p>
         )}
         <div className={classes.sendInviteButton}>
           <div className={classes.sendInviteFeedback}>
@@ -984,10 +984,10 @@ function InviteSettingsTab (props) {
                 <div className='flex-1 min-w-0'>
                   <span className='block truncate'>
                     {invite.name
-                      ? <>{invite.name} <span className='text-foreground/50'>{invite.email}</span></>
+                      ? <>{invite.name} <span className='text-foreground-muted'>{invite.email}</span></>
                       : invite.email}
                   </span>
-                  <span className='text-foreground/50 text-sm'>
+                  <span className='text-foreground-muted text-sm'>
                     {TextHelpers.humanDate(invite.lastSentAt)}
                     {invite.creator?.name && (
                       <> · {t('Invited by {{name}}', { name: invite.creator.name })}</>
@@ -1002,7 +1002,7 @@ function InviteSettingsTab (props) {
             ))}
           </div>
           {pendingTotal > 0 && (
-            <div className='flex items-center justify-between text-sm text-foreground/60'>
+            <div className='flex items-center justify-between text-sm text-foreground-muted'>
               <span>{t('{{from}}-{{to}} of {{total}}', { from: 1, to: Math.min(pendingInvites.length, pendingTotal), total: pendingTotal })}</span>
               {pendingHasMore && (
                 <button type='button' className='text-selected' onClick={() => setPendingPageSize(size => size + PENDING_INVITES_PAGE_SIZE)}>{t('Load more')}</button>

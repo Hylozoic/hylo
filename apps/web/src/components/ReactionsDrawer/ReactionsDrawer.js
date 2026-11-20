@@ -172,7 +172,7 @@ export default function ReactionsDrawer ({
                   <ReactorAvatar avatarUrl={avatarFor(reaction.user)} name={reaction.user.name} />
                   <span className='flex min-w-0 flex-1 flex-col'>
                     <span className='truncate font-medium'>{isMe ? t('You') : reaction.user.name}</span>
-                    {isMe && <span className='text-sm text-foreground/60'>{t('Tap to remove')}</span>}
+                    {isMe && <span className='text-sm text-foreground-muted'>{t('Tap to remove')}</span>}
                   </span>
                   <span className='text-2xl leading-none'>{reaction.emojiFull}</span>
                 </>
