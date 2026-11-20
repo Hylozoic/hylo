@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "canny": {
+      "type": "http",
+      "url": "https://api.canny.io/api/mcp/v1"
+    }
+  }
+}
