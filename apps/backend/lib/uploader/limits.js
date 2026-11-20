@@ -1,8 +1,5 @@
-import { FREE_UPLOAD_LIMIT_BYTES, uploadLimitFor } from '@hylo/shared'
+import { FREE_UPLOAD_LIMIT_BYTES, UPLOAD_LIMIT_FEATURES, uploadLimitForGroups } from '@hylo/shared'
 import * as types from './types'
-
-// The Hylo Pro feature that raises a group's upload limit (packages/shared HyloProFeatures.js)
-export const LARGER_UPLOADS_FEATURE = 'largerUploads'
 
 /**
  * Group ids from a request param: an array, a comma-separated string or a single id.
@@ -56,14 +53,18 @@ async function memberGroupIds (userId, groupIds) {
 }
 
 /**
- * The per-file byte limit for an upload: the Pro limit when every group the upload is for has the
- * largerUploads feature, otherwise the free limit (also for uploads that aren't for any group).
+ * The per-file byte limit for an upload: each group gets the highest limit its Hylo Pro features
+ * give (free 50 MB, largerUploads 250 MB, higherUploadLimits 1 GB), and an upload for several
+ * groups gets the lowest of theirs. The free limit for uploads that aren't for any group.
  */
 export async function uploadLimitForRequest ({ userId, type, id, groupIds }) {
   const ids = await groupIdsForUpload({ userId, type, id, groupIds })
   if (ids.length === 0) return FREE_UPLOAD_LIMIT_BYTES
   const groups = await Group.where('id', 'in', ids).fetchAll()
   if (groups.length !== ids.length) return FREE_UPLOAD_LIMIT_BYTES
-  const features = await Promise.all(groups.map(group => group.hasProFeature(LARGER_UPLOADS_FEATURE)))
-  return uploadLimitFor({ largerUploads: features.every(Boolean) })
+  const groupsFeatures = await Promise.all(groups.map(async group => {
+    const has = await Promise.all(UPLOAD_LIMIT_FEATURES.map(key => group.hasProFeature(key)))
+    return Object.fromEntries(UPLOAD_LIMIT_FEATURES.map((key, i) => [key, has[i]]))
+  }))
+  return uploadLimitForGroups(groupsFeatures)
 }

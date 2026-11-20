@@ -1,5 +1,5 @@
 import Busboy from 'busboy'
-import { PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
+import { MAX_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
 import { upload } from '../../lib/uploader'
 import { uploadLimitForRequest } from '../../lib/uploader/limits'
 import { getMediaTypeFromMimetype } from '../models/media/util'
@@ -70,9 +70,9 @@ function setupBusboy (req, res, args, resolve) {
       headers: req.headers,
       limits: {
         files: 1,
-        // A ceiling: the limit that applies to this upload (free, or Hylo Pro for the group it's
-        // for) is enforced on the stream by lib/uploader, which rejects instead of truncating
-        fileSize: PRO_UPLOAD_LIMIT_BYTES + 1
+        // A ceiling: the limit that applies to this upload (free, or Hylo Pro / Pro Plus for the
+        // group it's for) is enforced on the stream by lib/uploader, which rejects instead of truncating
+        fileSize: MAX_UPLOAD_LIMIT_BYTES + 1
       }
     })
   } catch (err) {

@@ -1,6 +1,7 @@
 /**
  * Screenshots of the attachment size limit in the post editor (#1761): a group with the Hylo Pro
- * largerUploads feature gets a 1 GB limit, other groups keep 50 MB.
+ * largerUploads feature (Pro tier) gets a 250 MB limit, other groups keep 50 MB. (Pro Plus's
+ * higherUploadLimits gives 1 GB; that mapping is covered by unit tests.)
  *
  * Titled "capture screenshot" so the default e2e run skips it: the spec grants Pro to the seeded
  * private group with psql, so it needs E2E_DATABASE_URL, e.g.
@@ -59,12 +60,12 @@ test('capture screenshot upload limit', async ({ page }) => {
   sql(`INSERT INTO hylo_pro_subscriptions (group_id, source, status, tier, note) VALUES (${groupId}, 'manual', 'active', 'pro', '${NOTE}')`)
 
   try {
-    // Pro group: a 2 GB file is over the 1 GB limit
+    // Pro group: a 300 MB file is over the 250 MB limit
     const pro = await openPostEditor(page, PRO_GROUP)
     const status = pro.modal.getByTestId('attachment-drop-zone-status')
-    await dropFileOfSize(pro.description, { name: 'talk.mp4', type: 'video/mp4', size: 2 * 1024 * 1024 * 1024 })
-    await expect(status).toHaveText('Files must be smaller than 1 GB', uiTimeout)
-    await screenshot(pro.modal.getByTestId('attachment-drop-zone'), 'issue-1761-pro-group-1gb-limit')
+    await dropFileOfSize(pro.description, { name: 'talk.mp4', type: 'video/mp4', size: 300 * 1024 * 1024 })
+    await expect(status).toHaveText('Files must be smaller than 250 MB', uiTimeout)
+    await screenshot(pro.modal.getByTestId('attachment-drop-zone'), 'issue-1761-pro-group-250mb-limit')
 
     // Group without Pro: a 60 MB file is over the 50 MB limit
     const free = await openPostEditor(page, FREE_GROUP)

@@ -45,12 +45,12 @@ export const FILESTACK_ACCEPTED_MIME_TYPES = [
 
 export const ACCEPTED_ATTACHMENT_TYPES = ['csv', 'image', 'file']
 
-// Per-file limit for uploads that aren't for a group with Hylo Pro's largerUploads feature
+// Per-file limit for uploads that aren't for a group with Hylo Pro's larger upload limits
 // (hooks/useUploadLimit picks the limit for a group; packages/shared UploadLimits.js has the numbers)
 export const MAX_UPLOAD_FILE_SIZE = FREE_UPLOAD_LIMIT_BYTES
 
 /**
- * A limit for the UI, in the user's language: '50 MB', '1 GB' (French '50 Mo', '1 Go')
+ * A limit for the UI, in the user's language: '50 MB', '250 MB', '1 GB' (French '50 Mo', '1 Go')
  */
 export function formatUploadLimit (bytes, t) {
   const { size, unit } = uploadLimitParts(bytes)

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../test/setup'
 import factories from '../../test/setup/factories'
-import { FREE_UPLOAD_LIMIT_BYTES, PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
+import { FREE_UPLOAD_LIMIT_BYTES, PRO_PLUS_UPLOAD_LIMIT_BYTES, PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
 import { groupIdsForUpload, parseGroupIds, uploadLimitForRequest } from './limits'
 
 /* global HyloProSubscription */
@@ -17,17 +17,20 @@ describe('uploader limits', () => {
   })
 
   describe('uploadLimitForRequest', () => {
-    let member, outsider, proGroup, freeGroup, proPost
+    let member, outsider, proGroup, plusGroup, freeGroup, proPost
 
     before(async () => {
       await setup.clearDb()
       member = await factories.user().save()
       outsider = await factories.user().save()
       proGroup = await factories.group().save()
+      plusGroup = await factories.group().save()
       freeGroup = await factories.group().save()
       await member.joinGroup(proGroup)
+      await member.joinGroup(plusGroup)
       await member.joinGroup(freeGroup)
       await HyloProSubscription.forge({ group_id: proGroup.id, source: 'manual', status: 'active', tier: 'pro' }).save()
+      await HyloProSubscription.forge({ group_id: plusGroup.id, source: 'manual', status: 'active', tier: 'pro_plus' }).save()
       proPost = await factories.post({ user_id: member.id }).save()
       await proPost.groups().attach(proGroup.id)
     })
@@ -45,9 +48,16 @@ describe('uploader limits', () => {
       expect(await uploadLimitForRequest({ userId: member.id, type: 'comment', id: 'new', groupIds: String(proGroup.id) })).to.equal(PRO_UPLOAD_LIMIT_BYTES)
     })
 
-    it('gives the free limit to a group without Pro, and to a mix of Pro and non-Pro groups', async () => {
+    it('gives the Pro Plus limit to a group with higherUploadLimits', async () => {
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [plusGroup.id] })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'groupBanner', id: plusGroup.id })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    })
+
+    it('gives the free limit to a group without Pro, and the lowest limit to a mix of groups', async () => {
       expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
       expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [proGroup.id, freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [plusGroup.id, freeGroup.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [plusGroup.id, proGroup.id] })).to.equal(PRO_UPLOAD_LIMIT_BYTES)
     })
 
     it('ignores groups the user is not a member of, and groups that do not exist', async () => {
@@ -73,6 +83,13 @@ describe('uploader limits', () => {
       await member.joinGroup(group)
       await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', tier: 'pro', features: { largerUploads: false } }).save()
       expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [group.id] })).to.equal(FREE_UPLOAD_LIMIT_BYTES)
+    })
+
+    it('gives a Pro group with higherUploadLimits granted outside its tier the Pro Plus limit', async () => {
+      const group = await factories.group().save()
+      await member.joinGroup(group)
+      await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', tier: 'pro', features: { higherUploadLimits: true } }).save()
+      expect(await uploadLimitForRequest({ userId: member.id, type: 'post', id: 'new', groupIds: [group.id] })).to.equal(PRO_PLUS_UPLOAD_LIMIT_BYTES)
     })
   })
 })

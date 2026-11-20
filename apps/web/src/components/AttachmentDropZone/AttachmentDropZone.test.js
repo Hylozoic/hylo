@@ -1,6 +1,6 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import { FREE_UPLOAD_LIMIT_BYTES, PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
+import { FREE_UPLOAD_LIMIT_BYTES, PRO_PLUS_UPLOAD_LIMIT_BYTES, PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
 import useUploadFiles from 'hooks/useUploadFiles'
 import useUploadLimit from 'hooks/useUploadLimit'
 import AttachmentDropZone from './AttachmentDropZone'
@@ -68,9 +68,16 @@ describe('AttachmentDropZone', () => {
     fireEvent.drop(input, { dataTransfer: dragData([bigFile('big.mp4', 'video/mp4', 60 * 1024 * 1024)]) })
     await waitFor(() => expect(onAttachment).toHaveBeenCalledTimes(1))
 
+    fireEvent.drop(input, { dataTransfer: dragData([bigFile('huge.mp4', 'video/mp4', 300 * 1024 * 1024)]) })
+    expect(await screen.findByText('Files must be smaller than 250 MB')).toBeInTheDocument()
+    expect(mockUploadFiles).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the 1 GB limit when the groups have Hylo Pro Plus', async () => {
+    useUploadLimit.mockReturnValue(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    const { input } = renderZone({ groupIds: ['7'] })
     fireEvent.drop(input, { dataTransfer: dragData([bigFile('huge.mp4', 'video/mp4', 2 * 1024 * 1024 * 1024)]) })
     expect(await screen.findByText('Files must be smaller than 1 GB')).toBeInTheDocument()
-    expect(mockUploadFiles).toHaveBeenCalledTimes(1)
   })
 
   it('shows "Drop image here" while images are dragged over, and hides it on leave', () => {
