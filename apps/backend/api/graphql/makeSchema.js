@@ -156,6 +156,12 @@ import {
   setProposalOptions,
   setGroupViewHidden,
   setHomeView,
+  askGroupAssistant,
+  groupAssistant,
+  markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
+  updateGroupAssistantSettings,
+  updateGroupAssistantVoice,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -519,6 +525,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
   return {
     activity: (root, { id }) => fetchOne('Activity', id),
     checkContentAccess: (root, args, context) => checkContentAccess(context.currentUserId, args),
+    groupAssistant: (root, { groupId }, context) => groupAssistant({ userId: context.currentUserId, groupId }),
     checkInvitation: (root, { invitationToken, accessCode }) =>
       InvitationService.check(invitationToken, accessCode),
     comment: (root, { id }) => fetchOne('Comment', id),
@@ -770,6 +777,14 @@ export function makeMutations ({ fetchOne }) {
     setGroupViewHidden: (root, { id, hidden }, context) => setGroupViewHidden(context.currentUserId, id, hidden, context),
 
     setHomeView: (root, { viewId, groupId }, context) => setHomeView(context.currentUserId, viewId, groupId, context),
+    askGroupAssistant: (root, { groupId, text }, context) => askGroupAssistant({ userId: context.currentUserId, groupId, text }),
+    updateGroupAssistantSettings: (root, { groupId, settings }, context) =>
+      updateGroupAssistantSettings({ userId: context.currentUserId, groupId, settings }),
+    updateGroupAssistantVoice: (root, { groupId, text }, context) => updateGroupAssistantVoice({ userId: context.currentUserId, groupId, text }),
+    saveGroupAssistantVoiceNote: (root, { messageId, partIndex, text }, context) =>
+      saveGroupAssistantVoiceNote({ userId: context.currentUserId, messageId, partIndex, text }),
+    markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
+      markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 

@@ -45,6 +45,14 @@ export {
   reorderViewPost
 } from './group_views'
 export {
+  askGroupAssistant,
+  groupAssistant,
+  markGroupAssistantDraftPosted,
+  saveGroupAssistantVoiceNote,
+  updateGroupAssistantSettings,
+  updateGroupAssistantVoice
+} from './group_assistant'
+export {
   createSpace,
   updateSpace,
   archiveSpace,
