@@ -1,8 +1,8 @@
-import { execFile } from 'child_process'
-import path from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { GROUP_THEME_BORDER_WIDTHS, GROUP_THEME_RADII, isGroupThemeFontFamily } from '@hylo/shared'
 import { assertPublicUrl, isPrivateAddress, safeFetch, safeLookup } from './safeFetch'
+import { isClaudeConfigured, summarizeUsage } from './aiUsage'
+import { runInChildProcess } from './aiChildProcess'
 
 /**
  * Suggests a group theme from a website: a headless browser loads the page and
@@ -20,15 +20,6 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i
 
 export const DEFAULT_IMPORT_MODEL = 'claude-opus-5-5'
 
-// US dollars per million tokens, for the cost estimate shown to stewards.
-// Standard Anthropic API rates as of 2026-11; update when prices change.
-export const MODEL_PRICING = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1 },
-  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01 }
-}
-const CACHE_WRITE_MULTIPLIER = 1.25
-
 const PAGE_TIMEOUT_MS = 20000
 const SETTLE_TIMEOUT_MS = 5000
 const VIEWPORT = { width: 1280, height: 800 }
@@ -45,34 +36,7 @@ export function themeImportModel () {
 }
 
 export function isThemeImportConfigured () {
-  return !!process.env.CLAUDE_API_KEY
-}
-
-/**
- * Token counts and an estimated cost for one model response. The cost is null
- * for a model this file has no prices for.
- */
-export function summarizeUsage (model, usage = {}) {
-  const inputTokens = usage.input_tokens || 0
-  const outputTokens = usage.output_tokens || 0
-  const cacheReadInputTokens = usage.cache_read_input_tokens || 0
-  const cacheCreationInputTokens = usage.cache_creation_input_tokens || 0
-  const pricing = MODEL_PRICING[model] || null
-  const estimatedCostUsd = pricing
-    ? (inputTokens * pricing.input +
-        outputTokens * pricing.output +
-        cacheReadInputTokens * pricing.cacheRead +
-        cacheCreationInputTokens * pricing.input * CACHE_WRITE_MULTIPLIER) / 1e6
-    : null
-  return {
-    model,
-    inputTokens,
-    outputTokens,
-    cacheReadInputTokens,
-    cacheCreationInputTokens,
-    estimatedCostUsd,
-    pricePerMillionTokens: pricing ? { input: pricing.input, output: pricing.output } : null
-  }
+  return isClaudeConfigured()
 }
 
 function lookupIsPublic (hostname) {
@@ -368,34 +332,18 @@ export async function importThemeFromUrl (url, deps = {}) {
 }
 
 /**
- * importThemeFromUrl in a child process, which is how the API runs it.
- *
- * Neither Playwright nor the Anthropic SDK can run inside the API process:
- * config/bootstrap.js replaces the global Promise with Bluebird, and both
- * subclass Promise, which Bluebird refuses. The child (see
- * groupThemeImportProcess.js) gets only the environment variables it needs.
+ * importThemeFromUrl in a child process, which is how the API runs it (see
+ * aiChildProcess.js for why). The child gets only the environment variables
+ * it needs.
  */
 export function importThemeInChildProcess (url) {
   assertPublicUrl(url)
-  return new Promise((resolve, reject) => {
-    execFile(
-      process.execPath,
-      [path.join(__dirname, 'groupThemeImportProcess.js'), url],
-      {
-        env: pickEnv(IMPORT_ENV_KEYS),
-        cwd: path.join(__dirname, '..'),
-        timeout: IMPORT_TIMEOUT_MS,
-        maxBuffer: 4 * 1024 * 1024
-      },
-      (error, stdout) => {
-        let output = null
-        try {
-          output = JSON.parse(stdout)
-        } catch (e) {}
-        if (output?.ok) return resolve(output.result)
-        if (output?.error) return reject(new Error(output.error))
-        reject(new Error(error?.killed ? 'The site took too long to read' : 'The import could not be started'))
-      }
-    )
+  return runInChildProcess({
+    script: 'groupThemeImportProcess.js',
+    args: [url],
+    envKeys: IMPORT_ENV_KEYS,
+    timeoutMs: IMPORT_TIMEOUT_MS,
+    timeoutMessage: 'The site took too long to read',
+    startMessage: 'The import could not be started'
   })
 }

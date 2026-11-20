@@ -2,9 +2,9 @@ import {
   importThemeFromUrl,
   isAllowedBrowserRequest,
   normalizeSuggestion,
-  requestThemeSuggestion,
-  summarizeUsage
+  requestThemeSuggestion
 } from './groupThemeImport'
+import { summarizeUsage } from './aiUsage'
 
 const roles = {
   background: '#F4EFE6', card: '#ffffff', text: '#1b1b1b', primary: '#0a7f5a', accent: '#e0a030', selected: '#cfe8dc'
@@ -20,23 +20,6 @@ const suggestion = {
 }
 
 describe('groupThemeImport', () => {
-  describe('summarizeUsage', () => {
-    it('estimates the cost from token counts', () => {
-      const usage = summarizeUsage('claude-opus-5-5', { input_tokens: 3000, output_tokens: 1000 })
-      expect(usage.inputTokens).to.equal(3000)
-      expect(usage.outputTokens).to.equal(1000)
-      // 3000 * $4/M + 1000 * $20/M
-      expect(usage.estimatedCostUsd).to.be.closeTo(0.032, 1e-9)
-      expect(usage.pricePerMillionTokens).to.deep.equal({ input: 4, output: 20 })
-    })
-
-    it('gives no cost for a model without known prices', () => {
-      const usage = summarizeUsage('some-other-model', { input_tokens: 10, output_tokens: 10 })
-      expect(usage.estimatedCostUsd).to.equal(null)
-      expect(usage.pricePerMillionTokens).to.equal(null)
-    })
-  })
-
   describe('normalizeSuggestion', () => {
     it('keeps valid roles, radius, border width and fonts', () => {
       const result = normalizeSuggestion(suggestion)
