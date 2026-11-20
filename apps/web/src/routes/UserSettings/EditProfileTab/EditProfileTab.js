@@ -16,11 +16,11 @@ import { Switch } from 'components/ui/switch'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { DEFAULT_BANNER } from 'store/models/Me'
 import { ensureLocationIdIfCoordinate } from 'components/LocationInput/LocationInput.store'
-import SocialControl from './SocialControl'
 import Affiliation from 'components/Affiliation'
 import { AddAffiliation, Message } from '../UserGroupsTab/UserGroupsTab'
 import { createAffiliation, deleteAffiliation } from '../UserGroupsTab/UserGroupsTab.store'
 import { CREATE_AFFILIATION, DELETE_AFFILIATION } from 'store/constants'
+import ProfileLinksSection from './ProfileLinksSection'
 import { bgImageStyle, cn } from 'util/index'
 import { personUrl } from '@hylo/navigation'
 
@@ -33,7 +33,6 @@ function EditProfileTab ({
   updateUserSettings,
   fetchPending,
   fetchLocation,
-  unlinkAccount,
   setConfirm,
   t
 }) {
@@ -65,8 +64,7 @@ function EditProfileTab ({
 
     const {
       name, avatarUrl, bannerUrl, tagline, bio,
-      contactEmail, contactPhone, locationObject, location,
-      url, facebookUrl, twitterName, linkedinUrl
+      contactEmail, contactPhone, locationObject, location
     } = currentUser
 
     setEdits({
@@ -79,10 +77,6 @@ function EditProfileTab ({
       contactEmail: contactEmail || '',
       location: location || '',
       locationId: get('id', locationObject) || null,
-      url: url || '',
-      facebookUrl,
-      twitterName,
-      linkedinUrl,
       isProfilePublic: !!currentUser.isProfilePublic
     })
   }
@@ -155,15 +149,35 @@ function EditProfileTab ({
     setShowAddAffiliations(!showAddAffiliations)
   }, [showAddAffiliations])
 
+  // Writes the affiliation list onto Me so a later currentUser update does not drop a just-added affiliation.
+  const storeAffiliations = useCallback((items) => {
+    if (!currentUser?.id) return
+    dispatch({
+      type: CREATE_AFFILIATION,
+      payload: {
+        data: {
+          me: { id: currentUser.id, affiliations: { items } }
+        }
+      },
+      meta: {
+        extractModel: [{
+          getRoot: data => data.me,
+          modelName: 'Me'
+        }]
+      }
+    })
+  }, [currentUser?.id, dispatch])
+
   const saveAffiliation = useCallback(({ role, preposition, orgName, url }) => {
     setAffiliationAction(CREATE_AFFILIATION)
     dispatch(createAffiliation({ role, preposition, orgName, url }))
       .then(res => {
-        const affiliation = get(res, 'payload.data.createAffiliation')
+        const affiliation = get('payload.data.createAffiliation', res)
         if (affiliation) {
           setAffiliationSuccess(t('Your affiliation was added'))
           const updatedItems = [...affiliations, affiliation]
           setAffiliations(updatedItems)
+          storeAffiliations(updatedItems)
           setShowAddAffiliations(false)
           setAffiliationError('')
         }
@@ -172,7 +186,7 @@ function EditProfileTab ({
         setAffiliationError(e.message)
         setShowAddAffiliations(true)
       })
-  }, [affiliations, dispatch, t])
+  }, [affiliations, dispatch, storeAffiliations, t])
 
   const deleteAffiliationHandler = useCallback((affiliationId) => {
     setAffiliationAction(DELETE_AFFILIATION)
@@ -183,14 +197,15 @@ function EditProfileTab ({
           return
         }
 
-        const deletedAffiliationId = get(res, 'payload.data.deleteAffiliation')
+        const deletedAffiliationId = get('payload.data.deleteAffiliation', res)
         if (deletedAffiliationId) {
           setAffiliationSuccess(t('Your affiliation was deleted'))
           const updatedItems = affiliations.filter((a) => a.id !== deletedAffiliationId)
           setAffiliations([...updatedItems])
+          storeAffiliations(updatedItems)
         }
       })
-  }, [affiliations, dispatch, t])
+  }, [affiliations, dispatch, storeAffiliations, t])
 
   const canSave = changed && validateName(edits.name)
 
@@ -219,8 +234,8 @@ function EditProfileTab ({
 
   const {
     name, avatarUrl, bannerUrl, tagline, bio,
-    contactEmail, contactPhone, location, url,
-    facebookUrl, twitterName, linkedinUrl, isProfilePublic
+    contactEmail, contactPhone, location,
+    isProfilePublic
   } = edits
 
   const locationObject = currentUser.locationObject
@@ -303,12 +318,6 @@ function EditProfileTab ({
             locationObject={locationObject}
             type='location'
           />
-          <SettingsControl
-            id='urlField'
-            label={t('Website')}
-            onChange={updateSetting('url')}
-            value={url}
-          />
 
           <div className='border-t border-foreground/10 pt-6'>
             <SettingsControl
@@ -341,35 +350,10 @@ function EditProfileTab ({
           </div>
 
           <div className='border-t border-foreground/10 pt-6'>
-            <label className='text-sm font-medium text-foreground-muted mb-4 block'>{t('Social Accounts')}</label>
-            <div className='space-y-4'>
-              <SocialControl
-                label='Facebook'
-                provider='facebook'
-                value={facebookUrl}
-                updateSettingDirectly={() => updateSettingDirectly('facebookUrl')}
-                handleUnlinkAccount={() => unlinkAccount('facebook')}
-              />
-              <SocialControl
-                label='Twitter'
-                provider='twitter'
-                value={twitterName}
-                updateSettingDirectly={() => updateSettingDirectly('twitterName')}
-                handleUnlinkAccount={() => unlinkAccount('twitter')}
-              />
-              <SocialControl
-                label='LinkedIn'
-                provider='linkedin'
-                value={linkedinUrl}
-                updateSettingDirectly={() => updateSettingDirectly('linkedinUrl')}
-                handleUnlinkAccount={() => unlinkAccount('linkedin')}
-              />
-            </div>
+            <ProfileLinksSection profileLinks={currentUser?.profileLinks?.toRefArray?.() || currentUser?.profileLinks?.items || []} />
           </div>
 
           <div className='border-t border-foreground/10 pt-6'>
-            <h2 className='text-xl font-bold mb-4 text-foreground'>{t('Other Affiliations')}</h2>
-
             {affiliationAction && (affiliationError || affiliationSuccess) && (
               <Message errorMessage={affiliationError} successMessage={affiliationSuccess} reset={resetAffiliationMessage} />
             )}
@@ -384,7 +368,7 @@ function EditProfileTab ({
             )}
 
             {affiliations && affiliations.length === 0 && (
-              <p className='text-foreground/70 mb-3'>{t('Add your affiliations')}</p>
+              <p className='text-sm font-medium text-foreground/50 mb-4'>{t('Other Affiliations')}</p>
             )}
 
             {showAddAffiliations
@@ -443,7 +427,6 @@ EditProfileTab.propTypes = {
   updateUserSettings: PropTypes.func,
   fetchPending: PropTypes.bool,
   fetchLocation: PropTypes.func,
-  unlinkAccount: PropTypes.func,
   setConfirm: PropTypes.func,
   t: PropTypes.func
 }

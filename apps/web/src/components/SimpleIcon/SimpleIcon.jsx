@@ -1,5 +1,30 @@
 import React from 'react'
-import { siFacebook, siX } from 'simple-icons'
+import {
+  siBandcamp,
+  siBluesky,
+  siDiscord,
+  siEtsy,
+  siFacebook,
+  siGithub,
+  siInstagram,
+  siKofi,
+  siLinktree,
+  siMedium,
+  siMeetup,
+  siPatreon,
+  siPinterest,
+  siReddit,
+  siSoundcloud,
+  siSpotify,
+  siSubstack,
+  siTelegram,
+  siThreads,
+  siTiktok,
+  siTwitch,
+  siVimeo,
+  siX,
+  siYoutube
+} from 'simple-icons'
 
 /** LinkedIn was removed from simple-icons; keep the last published path locally. */
 const LINKEDIN_ICON = {
@@ -8,9 +33,31 @@ const LINKEDIN_ICON = {
 }
 
 const SOCIAL_ICONS = {
+  bandcamp: siBandcamp,
+  bluesky: siBluesky,
+  discord: siDiscord,
+  etsy: siEtsy,
   facebook: siFacebook,
+  github: siGithub,
+  instagram: siInstagram,
+  kofi: siKofi,
+  linkedin: LINKEDIN_ICON,
+  linktree: siLinktree,
+  medium: siMedium,
+  meetup: siMeetup,
+  patreon: siPatreon,
+  pinterest: siPinterest,
+  reddit: siReddit,
+  soundcloud: siSoundcloud,
+  spotify: siSpotify,
+  substack: siSubstack,
+  telegram: siTelegram,
+  threads: siThreads,
+  tiktok: siTiktok,
+  twitch: siTwitch,
   twitter: siX,
-  linkedin: LINKEDIN_ICON
+  vimeo: siVimeo,
+  youtube: siYoutube
 }
 
 /** Renders a brand icon from Simple Icons (or a local fallback when removed from the package). */

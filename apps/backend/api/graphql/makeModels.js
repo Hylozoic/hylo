@@ -21,6 +21,7 @@ import {
 } from './filters'
 import { LOCATION_DISPLAY_PRECISION } from '../../lib/constants'
 import { parseAcceptedPostTypes } from '../models/post/validatePostData'
+import { canEditPost } from '../models/post/postEditPermissions'
 import { listBlockingSpaces } from '../models/space/convertChatSpaceToDiscussion'
 import InvitationService from '../services/InvitationService'
 import {
@@ -186,13 +187,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
   const publicProfileAttribute = column => person =>
     person.get('is_profile_public') ? person.get(column) : null
+  // Url of the first profile link, which is the person's website.
+  async function firstProfileLinkUrl (person) {
+    const links = await person.profileLinks().fetch()
+    const first = links && links.models && links.models[0]
+    return first ? first.get('url') : null
+  }
   const anonymousPersonGetters = {
     ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'messageThreadId']),
     bio: publicProfileAttribute('bio'),
-    facebookUrl: publicProfileAttribute('facebook_url'),
-    linkedinUrl: publicProfileAttribute('linkedin_url'),
-    twitterName: publicProfileAttribute('twitter_name'),
-    url: publicProfileAttribute('url'),
+    url: async person => {
+      if (!person.get('is_profile_public')) return null
+      return firstProfileLinkUrl(person)
+    },
 
     // Total fields must stay as getters because _loadMany never calls the tap callback,
     // which would leave the standard .Total Promise hanging forever.
@@ -351,15 +358,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'hasRegistered',
         'intercomHash',
         'is_profile_public',
-        'linkedin_url',
         'location',
-        'facebook_url',
         'name',
         'new_notification_count',
         'tagline',
-        'twitter_name',
-        'updated_at',
-        'url'
+        'updated_at'
       ],
       relations: [
         'groups',
@@ -368,6 +371,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
+        { profileLinks: { querySet: true } },
         { groupInvitesPending: { querySet: true } },
         {
           joinRequests: {
@@ -410,6 +414,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
         pendingEmail: u => getPendingEmail(u),
+        url: firstProfileLinkUrl,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -545,15 +550,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'anonymous',
         'groupId',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'queue',
+        'category',
+        'resolved_at'
       ],
-      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group'],
+      relations: ['post', 'reporter', 'agreements', 'platformAgreements', 'group', 'comment', 'reportedUser', 'resolvedBy'],
       getters: {
-        anonymous: ma => ma.get('anonymous') === 'true'
+        anonymous: ma => ma.get('anonymous') === 'true',
+        commentId: ma => ma.get('comment_id'),
+        messageThreadId: ma => ma.get('message_thread_id'),
+        threadParticipants: ma => ma.threadParticipants()
       },
-      fetchMany: ({ first = 20, offset = 0, slug, sortBy }) =>
+      fetchMany: ({ first = 20, offset = 0, slug, sortBy, queue, status }) =>
         searchQuerySet('forModerationActions', {
-          first, offset, currentUserId: userId, slug, sortBy
+          first, offset, currentUserId: userId, slug, sortBy, queue, status
         })
     },
 
@@ -565,10 +576,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'bio',
         'is_profile_public',
-        'twitter_name',
-        'linkedin_url',
-        'facebook_url',
-        'url',
         'last_active_at',
         'tagline'
       ],
@@ -580,6 +587,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         contactPhone: p => userId ? p.get('contact_phone') : null,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
         location: p => (userId || p.get('is_profile_public')) ? p.get('location') : null,
+        url: firstProfileLinkUrl,
         locationObject: async p => {
           if (!userId && !p.get('is_profile_public')) return null
           await p.load('locationObject')
@@ -623,6 +631,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // locationObject only via getter above (redacted for anonymous)
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
+        { profileLinks: { querySet: true, filter: allowPublicProfileRelation } },
         { eventsAttending: { querySet: true } },
         // This fix is required for web and mobile, to avoid action posts showing up in member profiles
         {
@@ -753,6 +762,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'end_time',
         'flagged_groups',
         'fulfilled_at',
+        'group_admins_can_edit',
         'is_public',
         'link_preview_featured',
         'location',
@@ -770,6 +780,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'voting_method'
       ],
       getters: {
+        canEdit: p => canEditPost(userId, p),
         clickthrough: p => p.clickthroughForUser(userId),
         commenters: (p, { first }) => p.getCommenters(first, userId),
         completedAt: p => p.completedAtForUser(userId),
@@ -777,6 +788,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         details: p => p.details(userId),
         fundingRound: p => p.fundingRounds().fetchOne(),
         isAnonymousVote: p => p.get('anonymous_voting') === 'true',
+        isFollowing: async p => {
+          if (!userId) return false
+          const postUser = await PostUser.find(p.id, userId)
+          return !!(postUser && postUser.get('active') && postUser.get('following'))
+        },
         localId: p => p.getLocalId(),
         myReactions: p => userId ? p.reactionsForUser(userId).fetch() : [],
         myEventResponse: p =>
@@ -1627,6 +1643,26 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'text'
       ]
+    },
+
+    UserProfileLink: {
+      model: UserProfileLink,
+      attributes: [
+        'id',
+        'url',
+        'title',
+        'icon_url',
+        'sort_order',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [{ user: { alias: 'person' } }],
+      getters: {
+        iconUrl: upl => upl.get('icon_url'),
+        sortOrder: upl => upl.get('sort_order'),
+        createdAt: upl => upl.get('created_at'),
+        updatedAt: upl => upl.get('updated_at')
+      }
     },
 
     Affiliation: {

@@ -12,6 +12,7 @@ import {
   DEFAULT_SELECTED_POST_TYPES,
   CUSTOM_VIEW_DEFAULT_VIEW_MODE
 } from 'components/CustomViewForm/customViewFormConstants'
+import validateCustomViewForm from 'components/CustomViewForm/validateCustomViewForm'
 import HyloEditor from 'components/HyloEditor'
 import LucideIconPicker from 'components/LucideIconPicker/LucideIconPicker'
 import SwitchStyled from 'components/SwitchStyled'
@@ -57,6 +58,9 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
   const [showPostNoticesInChat, setShowPostNoticesInChat] = useState(group?.settings?.showPostNoticesInChat ?? true)
   const [showChatActivity, setShowChatActivity] = useState(view?.settings?.showChatActivity !== false)
   const [customForm, setCustomForm] = useState(() => customViewFormState(view))
+  const [showCustomErrors, setShowCustomErrors] = useState(false)
+  const customNameInputRef = useRef(null)
+  const customErrors = useMemo(() => validateCustomViewForm(customForm), [customForm])
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -88,6 +92,12 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
 
   const handleSave = useCallback(async () => {
     if (!view?.id || !group?.id) return
+    // Explain what blocks saving instead of leaving Save silently disabled (#1731)
+    if (view.type === 'custom' && Object.keys(customErrors).length > 0) {
+      setShowCustomErrors(true)
+      if (customErrors.name) customNameInputRef.current?.focus()
+      return
+    }
     setIsSaving(true)
     try {
       if (view.type === 'welcome') {
@@ -171,6 +181,7 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
     }
   }, [
     customForm,
+    customErrors,
     dispatch,
     view,
     group,
@@ -217,13 +228,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
       ? t('Edit Page')
       : displayNameForView(view, t, { spaceGroup: spaceGroupForLabel })
   const canBeHome = canSetAsHomeView(view)
-  const canSaveCustom = customForm.name.trim().length >= 2 && customForm.postTypes.length > 0
   const canSavePage = name.trim().length > 0
-  const saveDisabled = view.type === 'custom'
-    ? !canSaveCustom
-    : isPage
-      ? !canSavePage || isSaving
-      : isSaving
+  const saveDisabled = isPage ? !canSavePage || isSaving : isSaving
 
   // Portal above AuthLayout nav stacking so the dialog is not trapped behind GlobalNav.
   return createPortal(
@@ -363,6 +369,8 @@ export default function GroupViewSettingsModal ({ view, group, onClose }) {
               onSearchTextChange={value => updateCustomForm('searchText', value)}
               defaultViewMode={customForm.defaultViewMode}
               onDefaultViewModeChange={value => updateCustomForm('defaultViewMode', value)}
+              errors={showCustomErrors ? customErrors : {}}
+              nameInputRef={customNameInputRef}
             />
           )}
         </div>

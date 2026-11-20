@@ -1,6 +1,19 @@
 import React from 'react'
-import { render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { act, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { AnalyticsEvents } from '@hylo/shared'
+import orm from 'store/models'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
+import { AllTheProviders, render, screen } from 'util/testing/reactTestingLibraryExtended'
+import { updateProposalOutcome } from './PostHeader.store'
 import PostHeader, { TopicsLine } from './PostHeader'
+
+jest.mock('./PostHeader.store', () => ({
+  ...jest.requireActual('./PostHeader.store'),
+  updateProposalOutcome: jest.fn((postId, proposalOutcome) => ({ type: 'TEST_UPDATE_PROPOSAL_OUTCOME', meta: { postId, proposalOutcome } }))
+}))
+
+jest.mock('store/actions/trackAnalyticsEvent', () => jest.fn(() => ({ type: 'TEST_TRACK_ANALYTICS_EVENT' })))
 
 jest.mock('luxon', () => ({
   __esModule: true,
@@ -76,9 +89,46 @@ describe('PostHeader', () => {
 
     expect(screen.getByTestId('post-header-more-icon')).toBeInTheDocument()
   })
+
+  describe('follow menu', () => {
+    const renderMenu = (post) => {
+      const ormSession = orm.mutableSession(orm.getEmptyState())
+      ormSession.Me.create({ id: '1', name: 'Ada' })
+      render(
+        <PostHeader {...defaultProps} post={post} />,
+        { wrapper: AllTheProviders({ orm: ormSession.state }) }
+      )
+    }
+
+    it('offers Follow Post when the viewer is not following', async () => {
+      renderMenu(buildPost({ isFollowing: false }))
+      await userEvent.click(screen.getByTestId('post-header-more-icon'))
+      expect(screen.getByText('Follow Post')).toBeInTheDocument()
+    })
+
+    it('offers Unfollow Post when the viewer is following', async () => {
+      renderMenu(buildPost({ isFollowing: true }))
+      await userEvent.click(screen.getByTestId('post-header-more-icon'))
+      expect(screen.getByText('Unfollow Post')).toBeInTheDocument()
+    })
+  })
 })
 
 describe('PostHeader with announcement', () => {
+  describe('when someone other than the creator views a completed proposal (#1727)', () => {
+    const proposal = overrides => buildPost({ type: 'proposal', fulfilledAt: '2024-07-23T16:30:00Z', ...overrides })
+
+    it('lets them edit the outcome when the server says they can edit', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: true })} />)
+      expect(screen.getByPlaceholderText('Summarize the outcome')).toBeInTheDocument()
+    })
+
+    it('does not otherwise', () => {
+      render(<PostHeader {...defaultProps} expanded post={proposal({ canEdit: false })} />)
+      expect(screen.queryByPlaceholderText('Summarize the outcome')).not.toBeInTheDocument()
+    })
+  })
+
   it('renders announcement icon', () => {
     render(
       <PostHeader
@@ -121,5 +171,74 @@ describe('TopicsLine', () => {
 
     expect(screen.getByText('#one')).toHaveAttribute('href', '/search?t=%23one&groupSlug=hay')
     expect(screen.getByText('#two')).toHaveAttribute('href', '/search?t=%23two&groupSlug=hay')
+  })
+})
+
+function providersWithCreatorSignedIn () {
+  const ormSession = orm.mutableSession(orm.getEmptyState())
+  ormSession.Me.create({ id: 123, name: 'JJ' })
+  return AllTheProviders({ orm: ormSession.state })
+}
+
+describe('PostHeader proposal outcome', () => {
+  const completedProposal = buildPost({ type: 'proposal', proposalStatus: 'completed', fulfilledAt: null })
+
+  beforeEach(() => {
+    updateProposalOutcome.mockClear()
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('lets the author record an outcome once voting has completed on its own', () => {
+    render(<PostHeader {...defaultProps} post={completedProposal} expanded />, { wrapper: providersWithCreatorSignedIn() })
+    expect(screen.getByPlaceholderText('Summarize the outcome')).toBeInTheDocument()
+  })
+
+  it('does not offer the outcome while voting is still open', () => {
+    render(
+      <PostHeader {...defaultProps} post={buildPost({ type: 'proposal', proposalStatus: 'voting' })} expanded />,
+      { wrapper: providersWithCreatorSignedIn() }
+    )
+    expect(screen.queryByPlaceholderText('Summarize the outcome')).not.toBeInTheDocument()
+  })
+
+  it('saves the outcome once typing pauses rather than on every keystroke', () => {
+    jest.useFakeTimers()
+    render(<PostHeader {...defaultProps} post={completedProposal} expanded />, { wrapper: providersWithCreatorSignedIn() })
+    const input = screen.getByPlaceholderText('Summarize the outcome')
+
+    fireEvent.change(input, { target: { value: 'A' } })
+    fireEvent.change(input, { target: { value: 'Adopted' } })
+    expect(input).toHaveValue('Adopted')
+    expect(updateProposalOutcome).not.toHaveBeenCalled()
+
+    act(() => { jest.advanceTimersByTime(600) })
+    expect(updateProposalOutcome).toHaveBeenCalledTimes(1)
+    expect(updateProposalOutcome).toHaveBeenCalledWith(1, 'Adopted')
+  })
+
+  it('saves straight away when the field loses focus', () => {
+    render(<PostHeader {...defaultProps} post={completedProposal} expanded />, { wrapper: providersWithCreatorSignedIn() })
+    const input = screen.getByPlaceholderText('Summarize the outcome')
+
+    fireEvent.change(input, { target: { value: 'Adopted with changes' } })
+    fireEvent.blur(input)
+    expect(updateProposalOutcome).toHaveBeenCalledWith(1, 'Adopted with changes')
+  })
+})
+
+describe('PostHeader copy link', () => {
+  it('records that the post was shared', () => {
+    Object.assign(navigator, { clipboard: { writeText: jest.fn() } })
+    trackAnalyticsEvent.mockClear()
+    render(<PostHeader {...defaultProps} />)
+
+    fireEvent.click(screen.getByTestId('post-header-more-icon'))
+    fireEvent.click(screen.getByText('Copy Link'))
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalled()
+    expect(trackAnalyticsEvent).toHaveBeenCalledWith(AnalyticsEvents.POST_SHARED, expect.objectContaining({ postId: 1, source: 'copy_link' }))
   })
 })

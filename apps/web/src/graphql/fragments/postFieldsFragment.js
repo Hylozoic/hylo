@@ -79,6 +79,8 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   isAnonymousVote
   isPublic
   fulfilledAt
+  canEdit
+  groupAdminsCanEdit
   startTime
   endTime
   timezone
@@ -87,6 +89,7 @@ const postFieldsFragment = (withComments, withCompletion = false, withAllComplet
   projectManagementLink
   myEventResponse
   savedAt
+  isFollowing
   commentersTotal
   commentsTotal
   ${withComments

@@ -97,13 +97,16 @@ export default Post
 Post.modelName = 'Post'
 Post.fields = {
   id: attr(),
+  canEdit: attr(), // Whether the current user can edit (creator, or a group admin the creator allowed)
   commentersTotal: attr(),
   createdAt: attr(),
   details: attr(),
   donationsLink: attr(),
   endsAt: attr(),
   fulfilledAt: attr(),
+  groupAdminsCanEdit: attr(),
   groupsTotal: attr(),
+  isFollowing: attr(), // Whether the current user follows this post
   isPublic: attr(),
   linkPreviewFeatured: attr(),
   location: attr(),
@@ -176,7 +179,8 @@ export const POST_TYPES = {
     backgroundColor: 'rgba(0, 163, 227, .2)', // $color-link-water
     map: true,
     label: 'Discussion',
-    description: 'Talk about what\'s important with others'
+    // Matches the existing translation key, which has no apostrophe
+    description: 'Talk about whats important with others'
   },
   event: {
     primaryColor: [254, 72, 80, 255], // $color-medium-purple

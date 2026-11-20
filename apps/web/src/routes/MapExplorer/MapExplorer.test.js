@@ -54,6 +54,40 @@ describe('MapExplorer', () => {
     expect(screen.getByText(/Features:/)).toBeInTheDocument()
   })
 
+  describe('member layer', () => {
+    const renderAt = pathname => {
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({
+        pathname,
+        search: '',
+        state: {},
+        hash: '',
+        key: 'test-key'
+      })
+      return render(<MapExplorer {...defaultProps} />)
+    }
+
+    afterEach(() => {
+      require('react-router-dom').useLocation.mockRestore()
+    })
+
+    it('is offered on a group map', () => {
+      renderAt('/groups/garden-club/map')
+      expect(screen.getByText('Members')).toBeInTheDocument()
+    })
+
+    it('is not offered on the All My Groups map', () => {
+      renderAt('/all/map')
+      expect(screen.getByText('Discussions')).toBeInTheDocument()
+      expect(screen.queryByText('Members')).not.toBeInTheDocument()
+    })
+
+    it('is not offered on the public map', () => {
+      renderAt('/public/map')
+      expect(screen.getByText('Discussions')).toBeInTheDocument()
+      expect(screen.queryByText('Members')).not.toBeInTheDocument()
+    })
+  })
+
   it('renders the layers selector button', () => {
     render(
       <MapExplorer {...defaultProps} />
@@ -69,6 +103,7 @@ describe('MapExplorer', () => {
 
     expect(screen.getByTestId('map-drawer-close')).toBeInTheDocument()
     expect(screen.queryByTestId('drawer-toggle-button')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map-container').className).toContain('drawerOpen')
   })
 
   it('renders the MapDrawer when hideDrawer is false', () => {
@@ -92,5 +127,6 @@ describe('MapExplorer', () => {
     )
 
     expect(screen.queryByTestId('map-drawer')).not.toBeInTheDocument()
+    expect(screen.getByTestId('map-container').className).not.toContain('drawerOpen')
   })
 })

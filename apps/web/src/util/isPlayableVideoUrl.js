@@ -48,3 +48,13 @@ export function getVideoEmbedUrl (url) {
 export default function isPlayableVideoUrl (url) {
   return !!getVideoEmbedUrl(url)
 }
+
+const DIRECT_VIDEO_FILE = /\.(mp4|m4v|webm|mov|ogv)(\?|#|$)/i
+
+/**
+ * True for an uploaded video file (mp4 and the other types the file picker accepts).
+ * YouTube and Vimeo links are embeds, not files, so they stay false.
+ */
+export function isDirectVideoFileUrl (url) {
+  return typeof url === 'string' && DIRECT_VIDEO_FILE.test(url)
+}

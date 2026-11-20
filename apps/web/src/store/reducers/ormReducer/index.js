@@ -24,6 +24,8 @@ import {
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   PIN_POST_PENDING,
+  CREATE_USER_PROFILE_LINK,
+  DELETE_USER_PROFILE_LINK,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_GROUP_VIEWS,
   FETCH_MESSAGES_PENDING,
@@ -125,7 +127,8 @@ import {
   reconcileChatActivityNoticesAfterFetch,
   replaceOptimisticChatActivityNotice,
   snapshotChatActivityNotices,
-  upsertOptimisticChatActivityNotice
+  upsertOptimisticChatActivityNotice,
+  withdrawOptimisticChatFromNotice
 } from 'store/util/chatActivityNotice'
 import { membershipBadgeCountFromViews } from '@hylo/shared'
 import { findViewsForGroupBadge } from 'util/viewUnreadBadges'
@@ -241,7 +244,14 @@ function snapshotPinnedPost (post) {
 export default function ormReducer (state = orm.getEmptyState(), action) {
   const session = orm.session(state)
   const { payload, type, meta, error } = action
-  if (error) return state
+  if (error) {
+    // CREATE_POST_PENDING added the chat to its hour notice
+    if (type === CREATE_POST && meta?.type === 'chat') {
+      withdrawOptimisticChatFromNotice(session, { localId: meta.graphql?.variables?.localId })
+      return session.state
+    }
+    return state
+  }
 
   const {
     Comment,
@@ -262,7 +272,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    UserProfileLink
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
@@ -1007,6 +1018,24 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       me = Me.first()
       ProjectMember.create({ post: meta.id, member: me.id })
       clearCacheFor(Post, meta.id)
+      break
+    }
+
+    case CREATE_USER_PROFILE_LINK: {
+      const link = payload?.data?.createUserProfileLink
+      const me = Me.first()
+      if (me && link?.id && !me.profileLinks.filter({ id: link.id }).exists()) {
+        me.profileLinks.add(link.id)
+      }
+      break
+    }
+
+    case DELETE_USER_PROFILE_LINK: {
+      const linkId = payload?.data?.deleteUserProfileLink || meta?.id
+      if (linkId) {
+        const link = UserProfileLink.withId(linkId)
+        if (link) link.delete()
+      }
       break
     }
 

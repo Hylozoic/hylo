@@ -128,7 +128,13 @@ export async function joinGroup (groupId, userId, questionAnswers, accessCode, i
   })
 
   const wasMember = !!(await GroupMembership.forPair(userId, group.id).fetch())
-  const membership = await user.joinGroup(group, { questionAnswers, fromInvitation: hasValidInvitation })
+  const joinAttribution = hasValidInvitation
+    ? await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
+    : { analyticsSource: GroupMembership.JoinSource.OPEN }
+  const membership = await user.joinGroup(group, {
+    questionAnswers,
+    ...joinAttribution
+  })
   if (accessCode && inviteCheck?.grantAccess && inviteIsForThisGroup && !wasMember) {
     const link = await GroupInviteLink.findActiveByCode(accessCode)
     if (link && String(link.get('group_id')) === String(group.id)) {
@@ -326,7 +332,7 @@ export async function addMember (userId, groupId, assignAdministrator = false) {
     return { success: false, error: 'Group not found' }
   }
 
-  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator }, {})
+  await group.addMembers([userId], { assignAdministrator: !!assignAdministrator, analyticsSource: GroupMembership.JoinSource.ADMIN_ADD }, {})
   return { success: true }
 }
 

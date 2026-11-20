@@ -39,6 +39,18 @@
   }
 }
 
+/* Zoom +/- live in Mapbox's top-right control. The drawer overlays the map,
+   so slide that corner clear of the drawer (same width as MapDrawer). */
+.mapZoomControls {
+  :global(.mapboxgl-ctrl-top-right) {
+    transition: right .25s ease;
+  }
+
+  &.drawerOpen :global(.mapboxgl-ctrl-top-right) {
+    right: min(400px, max(330px, 40%));
+  }
+}
+
 .postTip {
   position: absolute;
   /* Above the deck.gl overlay, which is a Mapbox control at z-index 2. */

@@ -8,6 +8,8 @@ import {
   listBlockingSpaces
 } from '../../models/space/convertChatSpaceToDiscussion'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { track } from '../../../lib/analytics/track'
 
 // Space mutations — see docs/spaces-and-views-engineering-spec.md section 4.4 / 10
 
@@ -130,7 +132,7 @@ export async function createSpace (userId, { parentGroupId, name, slug, accepted
       system: true
     }, { transacting: trx })
     // No setupSystemRoles / assignAdministrator — spaces inherit roles from the parent
-    await space.addMembers([userId], { lastReadAt: new Date() }, { transacting: trx })
+    await space.addMembers([userId], { lastReadAt: new Date(), analyticsSource: GroupMembership.JoinSource.CREATOR }, { transacting: trx })
     await Group.setupSpaceViews(space.id, acceptedPostTypes, viewTypes, { transacting: trx })
 
     // Add a `type = 'space'` menu entry to the parent group's view list (spec section 2.5).
@@ -166,6 +168,7 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   const space = await requireSpaceManager(userId, id, 'update this space')
   const wasAutoAdd = !!space.getSetting('auto_add_members')
+  const wasPublished = space.get('status') === Group.Status.PUBLISHED
 
   const changes = {}
   if (name !== undefined && name.trim()) changes.name = name.trim()
@@ -217,6 +220,14 @@ export async function updateSpace (userId, { id, name, slug, acceptedPostTypes, 
 
   if (Object.keys(changes).length > 0) {
     await space.save(changes, { patch: true })
+  }
+  if (space.get('track_id') && changes.status === Group.Status.PUBLISHED && !wasPublished) {
+    track({
+      type: EVENT_TYPES.TRACK_PUBLISHED,
+      userId,
+      groupIds: [space.get('parent_id') || space.id],
+      object: { type: 'track', id: space.get('track_id') }
+    })
   }
 
   if (autoAddMembers && !wasAutoAdd) {
@@ -361,6 +372,7 @@ async function copyParentStewardsToChild (parentGroup, child, { transacting } = 
   if (newStewardIds.length > 0) {
     await child.addMembers(newStewardIds, {
       lastReadAt: new Date(),
+      analyticsSource: GroupMembership.JoinSource.SPACE,
       settings: {
         showJoinForm: false,
         agreementsAcceptedAt: new Date(),
@@ -523,10 +535,83 @@ export async function convertChatSpaceToDiscussion (userId, { spaceId, title, dr
 }
 
 /**
- * Convert a child group with exactly one parent into a space of that parent.
- * Sets type/parent_id, deactivates the relationship, unpins it from GlobalNav,
- * and turns a parent menu group view into a space view (or creates an off-menu
- * space view).
+ * Split this group's active relationships into its living parent, real child or
+ * peer links, and leftovers from deleted groups. Deleting a group sets
+ * groups.active = false and does not clear group_relationships, so a deleted
+ * parent, child, or peer still looks related.
+ */
+async function classifyRelationshipsForConversion (groupId) {
+  const rels = await GroupRelationship.query(q => {
+    q.where('group_relationships.active', true)
+      .where(function () {
+        this.where('group_relationships.parent_group_id', groupId)
+          .orWhere('group_relationships.child_group_id', groupId)
+      })
+  }).fetchAll()
+
+  const otherIds = []
+  const described = rels.models.map(rel => {
+    const parentId = rel.get('parent_group_id')
+    const childId = rel.get('child_group_id')
+    const groupIsChild = String(childId) === String(groupId)
+    const otherId = groupIsChild ? parentId : childId
+    otherIds.push(otherId)
+    return {
+      rel,
+      type: Number(rel.get('relationship_type')),
+      otherId,
+      groupIsChild
+    }
+  })
+
+  const others = otherIds.length > 0
+    ? await Group.query(q => q.whereIn('id', otherIds)).fetchAll()
+    : { models: [] }
+  const activeById = new Map(others.models.map(group => [String(group.id), group.get('active') !== false]))
+
+  const livingParents = []
+  const stale = []
+  let livingChildOrPeerCount = 0
+
+  for (const item of described) {
+    if (activeById.get(String(item.otherId)) !== true) {
+      stale.push(item)
+      continue
+    }
+    const isLivingParent = item.type === Group.RelationshipType.PARENT_CHILD && item.groupIsChild
+    if (isLivingParent) livingParents.push(item.rel)
+    else livingChildOrPeerCount += 1
+  }
+
+  return { livingParents, stale, livingChildOrPeerCount }
+}
+
+/**
+ * Delete group-menu rows on inactive parents that still point at this group.
+ */
+async function removeMenuViewsOnGroups (groupIds, childId, { transacting } = {}) {
+  if (groupIds.length === 0) return
+  const views = await GroupView.query(q => {
+    q.where({ linked_group_id: childId, type: GroupView.Type.GROUP })
+      .whereIn('group_id', groupIds)
+  }).fetchAll({ transacting })
+
+  const touched = new Set()
+  for (const view of views.models) {
+    touched.add(view.get('group_id'))
+    await view.destroy({ transacting })
+  }
+  for (const groupId of touched) {
+    await GroupView.syncMenuViewCount(groupId, { transacting })
+  }
+}
+
+/**
+ * Convert a child group with exactly one living parent into a space of that parent.
+ * Sets type/parent_id, deactivates the relationship, drops relationships and menu
+ * items left behind by deleted parents, children, or peers, unpins it from
+ * GlobalNav, and turns a parent menu group view into a space view (or creates
+ * an off-menu space view).
  */
 export async function convertGroupToSpace (userId, { id, parentGroupId }, context) {
   if (!userId) throw new GraphQLError('No userId passed into function')
@@ -554,32 +639,17 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     throw new GraphQLError("You don't have permission to convert this group")
   }
 
-  const parentRels = await GroupRelationship.where({
-    child_group_id: id,
-    active: true,
-    relationship_type: Group.RelationshipType.PARENT_CHILD
-  }).fetchAll()
+  const { livingParents, stale, livingChildOrPeerCount } = await classifyRelationshipsForConversion(id)
 
-  if (parentRels.length !== 1) {
+  if (livingParents.length !== 1) {
     throw new GraphQLError('Group must have exactly one parent to convert to a space')
   }
-  const relationship = parentRels.models[0]
+  const relationship = livingParents[0]
   if (String(relationship.get('parent_group_id')) !== String(parentGroupId)) {
     throw new GraphQLError('parentGroupId does not match the group\'s parent')
   }
 
-  const childCount = await GroupRelationship.where({
-    parent_group_id: id,
-    active: true,
-    relationship_type: Group.RelationshipType.PARENT_CHILD
-  }).count()
-  const peerCount = await GroupRelationship.query(q => {
-    q.where({ active: true, relationship_type: Group.RelationshipType.PEER_TO_PEER })
-      .where(function () {
-        this.where('parent_group_id', id).orWhere('child_group_id', id)
-      })
-  }).count()
-  if (Number(childCount) > 0 || Number(peerCount) > 0) {
+  if (livingChildOrPeerCount > 0) {
     throw new GraphQLError('Cannot convert a group that has child or peer groups to a space')
   }
 
@@ -600,9 +670,17 @@ export async function convertGroupToSpace (userId, { id, parentGroupId }, contex
     throw new GraphQLError('Cannot convert a group into a space of another space')
   }
 
+  const staleParentIds = stale
+    .filter(item => item.type === Group.RelationshipType.PARENT_CHILD && item.groupIsChild)
+    .map(item => item.otherId)
+
   await bookshelf.transaction(async trx => {
     await group.save({ type: 'space', parent_id: parentGroupId }, { patch: true, transacting: trx })
     await relationship.save({ active: false }, { transacting: trx })
+    for (const item of stale) {
+      await item.rel.save({ active: false }, { transacting: trx })
+    }
+    await removeMenuViewsOnGroups(staleParentIds, id, { transacting: trx })
     await convertChildGroupViewToSpaceView(parentGroupId, id, group.get('name'), { transacting: trx })
     await GroupView.syncMoreSpacesCount(parentGroupId, { transacting: trx })
     await GroupMembership.unpinGroupFromAllNavs(id, { transacting: trx })
@@ -668,6 +746,9 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       ((!!accessCode && inviteCheck.grantAccess) ||
         (!accessCode && await InvitationService.preApproves(await Invitation.find(invitationToken), space)))
 
+    const requiredRoles = space.get('required_roles')
+    const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
+
     if (!canAdministerParent) {
       if (space.get('paywall')) {
         throw new GraphQLError('This space requires purchased access to join')
@@ -675,9 +756,6 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
 
       // Check required roles regardless of invitation status.
       // Invite links do NOT bypass role gating — the invited person must hold the role.
-      const requiredRoles = space.get('required_roles')
-      const isRoleGated = Array.isArray(requiredRoles) && requiredRoles.length > 0
-
       if (isRoleGated) {
         const memberRoleIds = await bookshelf.knex('group_memberships_group_roles')
           .where({ user_id: userId, group_id: parentId, active: true })
@@ -691,7 +769,19 @@ export async function joinSpace (userId, spaceId, accessCode, invitationToken) {
       }
     }
 
-    membership = await user.joinGroup(space, { fromInvitation: hasValidInvitation })
+    // Only a join any parent member could make unaided counts as open. Joins let
+    // through by parent Administration or a required role stay direct.
+    const isOpenJoin = spaceStatus !== Group.Status.DRAFT &&
+      !space.get('paywall') &&
+      !isRoleGated &&
+      space.get('accessibility') === Group.Accessibility.OPEN
+    let joinAttribution = {}
+    if (hasValidInvitation) {
+      joinAttribution = await GroupMembership.inviteJoinAttribution({ accessCode, invitationToken })
+    } else if (isOpenJoin) {
+      joinAttribution = { analyticsSource: GroupMembership.JoinSource.OPEN }
+    }
+    membership = await user.joinGroup(space, joinAttribution)
     if (accessCode && inviteCheck?.grantAccess && hasValidInvitation) {
       const link = await GroupInviteLink.findActiveByCode(accessCode)
       if (link && String(link.get('group_id')) === String(spaceId)) {

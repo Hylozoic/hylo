@@ -7,6 +7,8 @@ import setupBridge from '../../lib/graphql-bookshelf-bridge'
 import { clearDataLoaderCaches } from '../../lib/graphql-bookshelf-bridge/util/initDataLoaders'
 import { presentQuerySet } from '../../lib/graphql-bookshelf-bridge/util'
 import mixpanel from '../../lib/mixpanel'
+import { readGroupMetrics, readPlatformMetrics } from '../../lib/analytics/readMetrics'
+import { readActivityCounts } from '../../lib/analytics/dailyCounts'
 import { createGroupScope } from '../../lib/scopes'
 import {
   saveDraft,
@@ -37,6 +39,9 @@ import {
   convertGroupToSpace,
   convertSpaceToChildGroup,
   createAffiliation,
+  createUserProfileLink,
+  updateUserProfileLink,
+  reorderUserProfileLinks,
   createComment,
   createFundingRound,
   createGroup,
@@ -69,6 +74,7 @@ import {
   reviewPublicListingRequest,
   publicListingRequests,
   deleteAffiliation,
+  deleteUserProfileLink,
   deleteComment,
   deleteFundingRound,
   deleteGroup,
@@ -91,6 +97,7 @@ import {
   findOrCreateLocation,
   findOrCreateThread,
   flagInappropriateContent,
+  followPost,
   fulfillPost,
   grantContentAccess,
   inviteGroupToGroup,
@@ -120,6 +127,9 @@ import {
   reactivateUser,
   rejoinGroup,
   recordClickthrough,
+  recordEvents,
+  metricPeople,
+  retentionExplore,
   recordStripePurchase,
   createGroupInviteLink,
   updateGroupInviteLink,
@@ -153,6 +163,7 @@ import {
   subscribe,
   swapProposalVote,
   unblockUser,
+  unfollowPost,
   unfulfillPost,
   unlinkAccount,
   unsavePost,
@@ -203,6 +214,8 @@ import {
   membershipChangeInvoicePreview
 } from './queries'
 import peopleTyping from './mutations/peopleTyping'
+import { leaveMessageThread } from './mutations/messageThread'
+import { reportToStaff, resolveStaffReport } from './mutations/moderation_actions'
 import InvitationService from '../services/InvitationService'
 import makeModels from './makeModels'
 import makeSubscriptions from './makeSubscriptions'
@@ -332,9 +345,14 @@ async function buildGraphqlSchema (req) {
     }
   }
 
+  const mergedResolvers = Object.assign(allResolvers, resolvers)
+  mergedResolvers.Group = Object.assign({}, mergedResolvers.Group, {
+    metrics: (group, args, context) => readGroupMetrics(group, args, context)
+  })
+
   const schema = createSchema({
     typeDefs: [schemaText],
-    resolvers: Object.assign(allResolvers, resolvers)
+    resolvers: mergedResolvers
   })
   schema[SCHEMA_LOADERS] = loaders
   return schema
@@ -479,7 +497,9 @@ export function makePublicQueries ({ fetchOne, fetchMany }) {
     post: (root, { id }) => fetchOne('Post', id, 'id', { isPublic: true }),
     posts: (root, args) => fetchMany('Post', Object.assign(args, { isPublic: true })),
     publicStripeOfferings: (root, { groupId }) => publicStripeOfferings(null, { groupId }),
-    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId })
+    publicStripeOffering: (root, { offeringId }) => publicStripeOffering(null, { offeringId }),
+    metricPeople: () => { throw new GraphQLError('Unauthorized') },
+    retentionExplore: () => { throw new GraphQLError('Unauthorized') }
   }
 }
 
@@ -565,6 +585,13 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
       return fetchOne('MessageThread', id)
     },
     moderationActions: (root, args) => fetchMany('ModerationAction', args),
+    // Reports to Hylo staff about people and conversations, for Management
+    staffReports: async (root, { first = 20, offset = 0, status = 'active' }, context) => {
+      if (!(await Admin.isSuperAdmin(context.currentUserId))) {
+        throw new GraphQLError('Unauthorized: Admin access required')
+      }
+      return fetchMany('ModerationAction', { first, offset, queue: ModerationAction.QUEUE_STAFF, status })
+    },
     notifications: async (root, { first, offset, resetCount, order = 'desc' }, context) => {
       const notifications = await fetchMany('Notification', { first, offset, order })
       resetCount && await User.resetNewNotificationCount(context.currentUserId)
@@ -574,6 +601,10 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     // you can query by id or email, with id taking preference
     person: (root, { id, email }) => fetchOne('Person', id || email, id ? 'id' : 'email'),
     platformAgreements: (root, args) => PlatformAgreement.fetchAll(args),
+    platformMetrics: (root, args, context) => readPlatformMetrics(context.currentUserId, args),
+    metricPeople,
+    retentionExplore,
+    activityCounts: (root, args, context) => readActivityCounts(context.currentUserId, args),
     post: (root, { id }) => fetchOne('Post', id),
     posts: (root, args) => fetchMany('Post', args),
     responsibilities: (root, args) => Responsibility.fetchAll(args),
@@ -639,6 +670,7 @@ export function makePublicMutations ({ fetchOne }) {
     sendEmailVerification,
     sendPasswordReset,
     register: register(fetchOne),
+    recordEvents,
     verifyEmail: verifyEmail(fetchOne),
     createStripeCheckoutSession: (root, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata }) => createStripeCheckoutSession(null, { groupId, offeringId, quantity, adjustableQuantity, successUrl, cancelUrl, metadata })
   }
@@ -697,6 +729,8 @@ export function makeMutations ({ fetchOne }) {
     recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
+
+    createUserProfileLink: (root, { data }, context) => createUserProfileLink(context.currentUserId, data),
 
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
@@ -783,6 +817,12 @@ export function makeMutations ({ fetchOne }) {
 
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
 
+    updateUserProfileLink: (root, { id, data }, context) => updateUserProfileLink(context.currentUserId, id, data),
+
+    reorderUserProfileLinks: (root, { ids }, context) => reorderUserProfileLinks(context.currentUserId, ids),
+
+    deleteUserProfileLink: (root, { id }, context) => deleteUserProfileLink(context.currentUserId, id),
+
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 
     deleteDraft: (root, { id }, context) => deleteDraft(context.currentUserId, id),
@@ -827,6 +867,8 @@ export function makeMutations ({ fetchOne }) {
 
     flagInappropriateContent: (root, { data }, context) => flagInappropriateContent(context.currentUserId, data),
 
+    followPost: (root, { postId }, context) => followPost(context.currentUserId, postId),
+
     fulfillPost: (root, { postId }, context) => fulfillPost(context.currentUserId, postId),
 
     inviteGroupToJoinParent: (root, { parentId, childId }, context) => inviteGroupToGroup(context.currentUserId, parentId, childId, GroupRelationshipInvite.TYPE.ParentToChild),
@@ -850,6 +892,12 @@ export function makeMutations ({ fetchOne }) {
     muteMessageThread: (root, { messageThreadId }, context) => muteMessageThread(context.currentUserId, messageThreadId),
 
     unmuteMessageThread: (root, { messageThreadId }, context) => unmuteMessageThread(context.currentUserId, messageThreadId),
+
+    leaveMessageThread: (root, { messageThreadId }, context) => leaveMessageThread(context.currentUserId, messageThreadId),
+
+    reportToStaff: (root, { data }, context) => reportToStaff({ userId: context.currentUserId, data }),
+
+    resolveStaffReport: (root, { id }, context) => resolveStaffReport({ userId: context.currentUserId, id }),
 
     leaveProject: (root, { id }, context) => leaveProject(id, context.currentUserId),
 
@@ -940,6 +988,8 @@ export function makeMutations ({ fetchOne }) {
     swapProposalVote: (root, { postId, removeOptionId, addOptionId }, context) => swapProposalVote({ userId: context.currentUserId, postId, removeOptionId, addOptionId }),
 
     unblockUser: (root, { blockedUserId }, context) => unblockUser(context.currentUserId, blockedUserId),
+
+    unfollowPost: (root, { postId }, context) => unfollowPost(context.currentUserId, postId),
 
     unfulfillPost: (root, { postId }, context) => unfulfillPost(context.currentUserId, postId),
 

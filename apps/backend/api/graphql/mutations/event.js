@@ -1,5 +1,7 @@
 import { GraphQLError } from 'graphql'
 import { values, includes } from 'lodash/fp'
+import { EVENT_TYPES } from '../../../lib/analytics/trackActivity'
+import { groupIdsForPost, track } from '../../../lib/analytics/track'
 
 export async function respondToEvent (userId, eventId, response) {
   if (!includes(response, values(EventInvitation.RESPONSE))) {
@@ -29,6 +31,10 @@ export async function respondToEvent (userId, eventId, response) {
     })
   }
 
+  if (['yes', 'interested'].includes(response)) {
+    recordRsvp(userId, event, eventInvitation)
+  }
+
   if (sendRsvp) {
     const eventChanges = (!wasGoing && EventInvitation.going(response))
       ? { new: true }
@@ -38,6 +44,21 @@ export async function respondToEvent (userId, eventId, response) {
   }
 
   return { success: true }
+}
+
+/** Records a yes or interested RSVP. A later change of the same invitation is a new time, so it is kept. */
+function recordRsvp (userId, event, invitation) {
+  groupIdsForPost(event.id).then(groupIds => {
+    track({
+      type: EVENT_TYPES.EVENT_RSVP,
+      userId,
+      groupIds,
+      object: { type: 'event_invitation', id: invitation.id },
+      targetUserId: event.get('user_id'),
+      postType: 'event',
+      occurredAt: invitation.get('updated_at') || invitation.get('created_at') || new Date()
+    })
+  }).catch(() => {})
 }
 
 export async function invitePeopleToEvent (userId, eventId, inviteeIds) {

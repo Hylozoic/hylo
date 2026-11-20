@@ -1,14 +1,14 @@
 import { createSelector } from 'reselect'
-import { filter, isFunction } from 'lodash'
-import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
+import { debounce, filter, isFunction } from 'lodash'
+import { Check, Play, CircleDashed, BookmarkCheck, Bookmark, Bell, BellOff, Pencil, Link2, Flag, Copy, Pin, PinOff, Trash2, Library, LibraryBig } from 'lucide-react'
 import { DateTime } from 'luxon'
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import { push } from 'redux-first-history'
 import { Link, useLocation } from 'react-router-dom'
-import { MAX_PINNED_POSTS_PER_VIEW, TextHelpers } from '@hylo/shared'
+import { AnalyticsEvents, MAX_PINNED_POSTS_PER_VIEW, TextHelpers } from '@hylo/shared'
 import { formatUserDatePair } from 'util/dateFormat'
 import Avatar from 'components/Avatar'
 import Dropdown from 'components/Dropdown'
@@ -34,6 +34,8 @@ import useCurrentPinnableView from 'hooks/useCurrentPinnableView'
 import { displayNameForView } from '@hylo/presenters/GroupViewPresenter'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import pinPostAction from 'store/actions/pinPost'
+import { followPost as followPostAction, unfollowPost as unfollowPostAction } from 'store/actions/followPost'
+import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { cn } from 'util/index'
 import {
   unfulfillPost as unfulfillPostAction,
@@ -112,6 +114,8 @@ function PostHeader (props) {
     timezone,
     fulfilledAt,
     savedAt,
+    isFollowing,
+    canEdit: canEditFromServer,
     groups: postGroups = []
   } = post
 
@@ -135,7 +139,8 @@ function PostHeader (props) {
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')
     : groupModerationUrl
   const isCreator = currentUser && creator && currentUser.id === creator.id
-  const canEdit = isCreator
+  // Other group admins can edit too when the creator allowed it (#1727); the server decides
+  const canEdit = isCreator || !!canEditFromServer
   const canFlag = !isCreator
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const pinnableView = useCurrentPinnableView()
@@ -260,10 +265,28 @@ function PostHeader (props) {
     }
   }, [unsavePostProp, id, dispatch])
 
-  const updateProposalOutcome = useCallback((proposalOutcome) => {
-    if (!isCreator) return
-    dispatch(updateProposalOutcomeAction(id, proposalOutcome))
-  }, [isCreator, id, dispatch])
+  // Typed locally and saved once typing pauses (or the field loses focus)
+  const [proposalOutcomeInput, setProposalOutcomeInput] = useState(proposalOutcome || '')
+  useEffect(() => {
+    setProposalOutcomeInput(proposalOutcome || '')
+  }, [proposalOutcome])
+  const saveProposalOutcome = useMemo(() => debounce((outcome) => {
+    if (!canEdit) return
+    dispatch(updateProposalOutcomeAction(id, outcome))
+  }, 600), [canEdit, id, dispatch])
+  useEffect(() => () => saveProposalOutcome.flush(), [saveProposalOutcome])
+  const handleProposalOutcomeChange = useCallback((event) => {
+    setProposalOutcomeInput(event.target.value)
+    saveProposalOutcome(event.target.value)
+  }, [saveProposalOutcome])
+
+  const followPost = useCallback(() => {
+    dispatch(followPostAction(id))
+  }, [id, dispatch])
+
+  const unfollowPost = useCallback(() => {
+    dispatch(unfollowPostAction(id))
+  }, [id, dispatch])
 
   const flagPostFunc = () =>
     canFlag ? () => { setFlaggingVisible(true) } : undefined
@@ -303,6 +326,7 @@ function PostHeader (props) {
 
   const copyLink = () => {
     navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${postUrl}`)
+    dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_SHARED, { postId: id, type, source: 'copy_link' }))
   }
 
   const creatorUrl = personUrl(creator.id, routeParams.groupSlug)
@@ -349,6 +373,7 @@ function PostHeader (props) {
       copyLinkItem,
       { icon: pinned ? <PinOff className='w-4 h-4 text-foreground' /> : <Pin className={cn('w-4 h-4', pinDisabled ? 'text-foreground/40' : 'text-foreground')} />, label: pinned ? t('Unpin from View') : t('Pin to View'), onClick: canPin ? handlePinPost : undefined, disabled: pinDisabled, tooltip: pinTooltip },
       { icon: savedAt ? <BookmarkCheck className='w-4 h-4 text-foreground' /> : <Bookmark className='w-4 h-4 text-foreground' />, label: savedAt ? t('Unsave Post') : t('Save Post'), onClick: savedAt ? unsavePost : savePost },
+      { icon: isFollowing ? <BellOff className='w-4 h-4 text-foreground' /> : <Bell className='w-4 h-4 text-foreground' />, label: isFollowing ? t('Unfollow Post') : t('Follow Post'), onClick: isFollowing ? unfollowPost : followPost },
       { icon: <Flag className='w-4 h-4 text-foreground' />, label: t('Flag'), onClick: flagPostFunc() },
       { icon: <Copy className='w-4 h-4 text-foreground' />, label: t('Duplicate'), onClick: duplicatePost },
       addToCollectionItem,
@@ -492,14 +517,16 @@ function PostHeader (props) {
         />
       )}
       {
-        canEdit && expanded && fulfilledAt && type === 'proposal' && (
+        canEdit && expanded && type === 'proposal' && (fulfilledAt || proposalStatus === PROPOSAL_STATUS_COMPLETED) && (
           <div className='bg-muted text-muted-foreground text-sm flex flex-col gap-2 justify-between m-2 p-2 border border-dashed rounded'>
             <input
               type='text'
               className='pl-3 h-9 w-full outline-none border-none rounded disabled:text-gray-400 placeholder:text-gray-300'
-              placeholder='Summarize the outcome'
-              value={proposalOutcome || ''}
-              onChange={e => updateProposalOutcome(e.target.value)}
+              placeholder={t('Summarize the outcome')}
+              aria-label={t('Summarize the outcome')}
+              value={proposalOutcomeInput}
+              onChange={handleProposalOutcomeChange}
+              onBlur={() => saveProposalOutcome.flush()}
             />
           </div>
         )

@@ -41,3 +41,14 @@ export async function unmuteMessageThread (userId, messageThreadId) {
   await postUser.updateAndSave({ muted_at: null })
   return { success: true }
 }
+
+/**
+ * Leave a direct message conversation. The viewer stops following it, it drops
+ * out of their inbox, and they get no more notifications from it. Messaging the
+ * same people again starts a new conversation.
+ */
+export async function leaveMessageThread (userId, messageThreadId) {
+  const { post } = await findParticipantPostUser(userId, messageThreadId)
+  await post.removeFollowers([userId])
+  return { success: true }
+}

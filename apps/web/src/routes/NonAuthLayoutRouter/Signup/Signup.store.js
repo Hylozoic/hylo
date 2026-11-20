@@ -1,5 +1,6 @@
 import { get } from 'lodash/fp'
 import { AnalyticsEvents } from '@hylo/shared'
+import { getAnonymousId } from 'util/anonymousId'
 
 export const MODULE_NAME = 'Signup'
 export const REGISTER = `${MODULE_NAME}/REGISTER`
@@ -54,6 +55,7 @@ export function verifyEmail (email, code, token) {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -95,8 +97,8 @@ export function register (name, password) {
     type: REGISTER,
     graphql: {
       query: `
-        mutation Register ($name: String!, $password: String!) {
-          register(name: $name, password: $password) {
+        mutation Register ($name: String!, $password: String!, $anonymousId: String) {
+          register(name: $name, password: $password, anonymousId: $anonymousId) {
             me {
               id
               email
@@ -106,6 +108,7 @@ export function register (name, password) {
               settings {
                 alreadySeenTour
                 toursSeen
+                hideRsvpCalendarPrompt
                 colorScheme
                 dmNotifications
                 commentNotifications
@@ -127,7 +130,8 @@ export function register (name, password) {
       `,
       variables: {
         name,
-        password
+        password,
+        anonymousId: getAnonymousId()
       }
     },
     meta: {

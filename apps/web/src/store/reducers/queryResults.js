@@ -110,7 +110,7 @@ export default function (state = {}, action) {
           state = replaceIdInQueryResults(state, `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}`, root.id)
         }
       }
-      return matchNewPostIntoQueryResults(state, root)
+      return matchNewPostIntoQueryResults(state, root, { viewId: type === RECEIVE_POST ? null : meta?.viewId })
 
     case FIND_OR_CREATE_THREAD:
       root = payload.data.findOrCreateThread
@@ -254,12 +254,14 @@ export default function (state = {}, action) {
   return state
 }
 
-export function matchNewPostIntoQueryResults (state, { id, isPublic, type, groups = [], topics = [] }) {
+export function matchNewPostIntoQueryResults (state, post, { viewId } = {}) {
+  const { id, isPublic, type, groups = [], topics = [] } = post
   /* about this:
       we add the post id into queryResult sets that are based on time of
       creation because we know that the post just created is the latest
-      so we can prepend it. we have to match the different variations which
-      can be implicit or explicit about sorting by 'updated'.
+      so we can prepend it. The templates below cover the map queries;
+      FETCH_POSTS lists are matched on their own params further down.
+      `viewId` is the collection view the post was created into, if any.
   */
   const queriesToMatch = []
 
@@ -277,9 +279,6 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
       queriesToMatch.push({ context: 'public' })
     }
   }
-
-  const groupSlugs = groups.map(g => g.slug).filter(Boolean)
-  const parentIds = groups.map(g => g.parentId).filter(Boolean).map(String)
 
   // Group streams
   const updatedState = reduce((memo, group) => {
@@ -359,44 +358,93 @@ export function matchNewPostIntoQueryResults (state, { id, isPublic, type, group
 
     return reduce((innerMemo, params) => {
       innerMemo = prependIdForCreate(innerMemo, FETCH_POSTS_MAP, params, id)
-      innerMemo = prependIdForCreate(innerMemo, FETCH_POSTS_MAP_DRAWER, params, id)
-      return prependIdForCreate(innerMemo, FETCH_POSTS, params, id)
+      return prependIdForCreate(innerMemo, FETCH_POSTS_MAP_DRAWER, params, id)
     }, memo, queriesToMatch)
   }, state, groups)
 
-  // Typed views (`types` array), All Activity, and group/space chat rooms are
-  // not covered by the explicit queriesToMatch list: their keys carry params
-  // (`first`, `groupId`) the templates above omit.
-  // Move an existing id to the front when the same chat_activity hour bucket is updated.
+  // Stream lists (FETCH_POSTS) are matched by reading each cached query's own
+  // params, so every view — My Posts, group/space streams, common views,
+  // custom views, collections, chat rooms — gets the post only when its
+  // filters would have returned it from the server.
   return mapValues(updatedState, (results, key) => {
     if (!results?.ids) return results
     const keyObject = JSON.parse(key)
     if (keyObject.type !== FETCH_POSTS) return results
-    const params = keyObject.params || {}
-    if (!groupSlugs.includes(params.slug) && !(params.groupId && parentIds.includes(String(params.groupId)))) return results
-
-    if (type === 'chat') {
-      if (params.filter !== 'chat') return results
-      if (params.search) return results
-      if (params.types && !params.types.includes('chat')) return results
-      if (params.topic && !topics.some(t => String(t.id) === String(params.topic))) return results
-      return moveIdToFront(results, id)
-    }
-
-    const matchesTypes = params.types?.includes(type)
-    // Show chat activity ON → filter is all+notices (includes chat_activity cards)
-    const isAllActivityWithNotices = params.filter === 'all+notices'
-    // Show chat activity OFF → no filter and no types, same as the server's
-    // blank / "all" streamTypes query. Notices must not land here.
-    const isAllActivityWithoutNotices = type !== 'chat_activity' &&
-      (!params.filter || params.filter === 'all') &&
-      !params.types?.length &&
-      !params.topic &&
-      !params.topics?.length &&
-      !params.forCollection
-    if (!matchesTypes && !isAllActivityWithNotices && !isAllActivityWithoutNotices) return results
-    return moveIdToFront(results, id)
+    const match = matchNewPostToPostsQuery(post, keyObject.params || {}, { viewId })
+    if (match === MATCH_PREPEND) return moveIdToFront(results, id)
+    // Lists whose order can't be worked out here (e.g. by start time or
+    // collection order) are flagged so the view refetches its first page.
+    if (match === MATCH_REFETCH) return { ...results, stale: true }
+    return results
   })
+}
+
+const MATCH_PREPEND = 'prepend'
+const MATCH_REFETCH = 'refetch'
+
+// Mirrors the backend's filterAndSortPosts streamTypes
+const STREAM_POST_TYPES = ['discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource']
+const NOTICE_POST_TYPES = ['chat_activity']
+// Sorts where a just-created post is first
+const NEWEST_FIRST_SORTS = [undefined, 'created', 'updated', 'id']
+
+function postTypeMatchesQuery (type, { filter, types }) {
+  if (filter === 'all+notices') return STREAM_POST_TYPES.includes(type) || NOTICE_POST_TYPES.includes(type)
+  if (types?.length) return types.includes(type)
+  if (!filter || filter === 'all' || filter === 'all+welcome') return STREAM_POST_TYPES.includes(type)
+  if (filter === 'chat') return type === 'chat' || STREAM_POST_TYPES.includes(type)
+  return filter === type
+}
+
+/**
+ * Decides whether a new post belongs in a FETCH_POSTS result set with these params.
+ * Returns MATCH_PREPEND (it goes first), MATCH_REFETCH (it belongs but the position
+ * is unknown) or null (the query wouldn't return it).
+ */
+export function matchNewPostToPostsQuery (post, params, { viewId } = {}) {
+  const { type, creator, isPublic, groups = [], topics = [], startTime, endTime, fulfilledAt } = post
+
+  switch (params.context) {
+    case 'groups': {
+      const inGroup = groups.some(g => g.slug && g.slug === params.slug)
+      const inChildGroup = params.groupId && params.childPostInclusion !== 'no' &&
+        groups.some(g => g.parentId && String(g.parentId) === String(params.groupId))
+      if (!inGroup && !inChildGroup) return null
+      break
+    }
+    case 'all':
+    case 'my':
+      break
+    case 'public':
+      if (!isPublic) return null
+      break
+    default:
+      return null
+  }
+
+  // Person-relative lists: only "created by" can be known for a brand new post
+  if (params.mentionsOf || params.interactedWithBy || params.savedBy || params.announcementsOnly) return null
+  if (params.createdBy && !params.createdBy.map(String).includes(String(creator?.id))) return null
+  if (params.context === 'my' && !params.createdBy) return null
+
+  if (params.search) return null
+  if (!postTypeMatchesQuery(type, params)) return null
+
+  const wantedTopics = [params.topic, ...(params.topics || [])].filter(Boolean).map(String)
+  if (wantedTopics.length && !topics.some(t => wantedTopics.includes(String(t.id)))) return null
+
+  if (params.activePostsOnly && (fulfilledAt || (endTime && new Date(endTime) < new Date()))) return null
+
+  // Collection views only hold posts created into them (createPost's viewId); they're appended by order
+  if (params.forCollection) return String(params.forCollection) === String(viewId) ? MATCH_REFETCH : null
+
+  // Same window as the backend: end_time >= afterTime and start_time < beforeTime
+  if (params.afterTime && !(endTime && new Date(endTime) >= new Date(params.afterTime))) return null
+  if (params.beforeTime && !(startTime && new Date(startTime) < new Date(params.beforeTime))) return null
+
+  if (params.rsvpResponse || params.afterTime || params.beforeTime) return MATCH_REFETCH
+  if (!NEWEST_FIRST_SORTS.includes(params.sortBy)) return MATCH_REFETCH
+  return MATCH_PREPEND
 }
 
 export function matchNewTopicIntoQueryResults (state, { id, isDefault, groupTopics }) {

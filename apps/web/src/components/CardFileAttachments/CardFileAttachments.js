@@ -2,6 +2,7 @@ import React from 'react'
 import { filter } from 'lodash/fp'
 import { cn } from 'util/index'
 import Icon from 'components/Icon'
+import { isDirectVideoFileUrl } from 'util/isPlayableVideoUrl'
 import classes from './CardFileAttachments.module.scss'
 
 export default function CardFileAttachments ({
@@ -21,6 +22,19 @@ export default function CardFileAttachments ({
 export function CardFileAttachment ({
   fileAttachment = {}
 }) {
+  if (isDirectVideoFileUrl(fileAttachment.url)) {
+    return (
+      <video
+        className='w-full max-h-[480px] rounded-lg bg-black mb-1'
+        controls
+        playsInline
+        preload='metadata'
+        src={fileAttachment.url}
+        onClick={event => event.stopPropagation()}
+      />
+    )
+  }
+
   return (
     <a
       className='rounded-lg bg-midground p-2 flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:shadow-xl text-foreground mb-1'

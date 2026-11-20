@@ -12,6 +12,7 @@ import HasSettings from './mixins/HasSettings'
 import { findThread } from './post/findOrCreateThread'
 import { generateHyloJWT } from '../../lib/HyloJWT'
 import ical from 'ical-generator'
+import { withStandardConference } from './event/mixin'
 import Frontend from '../services/Frontend'
 
 // Join table for groupRoles(). The view has no id column; Bookshelf joins it on
@@ -32,6 +33,12 @@ module.exports = bookshelf.Model.extend(merge({
 
   affiliations: function () {
     return this.hasMany(Affiliation).where('is_active', true)
+  },
+
+  profileLinks: function () {
+    return this.hasMany(UserProfileLink).query(q => {
+      q.orderBy('sort_order').orderBy('id')
+    })
   },
 
   blockedUsers: function () {
@@ -73,6 +80,8 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     if (scope.includes('profile')) {
+      const links = await this.profileLinks().fetch()
+      const firstLink = links.models[0]
       returnData = Object.assign(returnData, {
         birthdate: null,
         family_name: null,
@@ -86,7 +95,7 @@ module.exports = bookshelf.Model.extend(merge({
         preferred_username: null,
         profile: Frontend.Route.profile(this),
         updated_at: this.get('updated_at'),
-        website: this.get('url'),
+        website: firstLink ? firstLink.get('url') : null,
         zoneinfo: null
       })
     }
@@ -353,18 +362,25 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM tag_follows WHERE user_id = ${this.id};
     DELETE FROM user_external_data WHERE user_id = ${this.id};
     DELETE FROM user_post_relevance WHERE user_id = ${this.id};
+    DELETE FROM activity_days WHERE user_id = ${this.id};
+    DELETE FROM activity_events WHERE user_id = ${this.id};
+    DELETE FROM user_day_activity WHERE user_id = ${this.id};
+    DELETE FROM user_milestones WHERE user_id = ${this.id};
+    DELETE FROM anonymous_events WHERE user_id = ${this.id};
+    DELETE FROM user_profile_links WHERE user_id = ${this.id};
+    UPDATE activity_events SET target_user_id = NULL WHERE target_user_id = ${this.id};
     DELETE FROM posts_tags WHERE post_id in (select id from posts WHERE user_id = ${this.id});
     DELETE FROM reactions WHERE user_id = ${this.id};
 
     UPDATE users SET
     active = false,
+    analytics_anonymous_id = NULL,
     settings = NULL,
     name = 'Deleted User',
     avatar_url = NULL,
     bio = NULL,
     banner_url = NULL,
     location = NULL,
-    url = NULL,
     tagline = NULL,
     location_id = NULL,
     contact_email = NULL,
@@ -372,9 +388,6 @@ module.exports = bookshelf.Model.extend(merge({
     email = '${uuidv4()}@hylo.com',
     first_name = NULL,
     last_name = NULL,
-    twitter_name = NULL,
-    linkedin_url = NULL,
-    facebook_url = NULL,
     work = NULL,
     intention = NULL,
     extra_info = NULL
@@ -389,13 +402,15 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
-  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], transacting = null } = {}) {
+  joinGroup: async function (group, { assignAdministrator = false, questionAnswers = [], analyticsSource = null, analyticsProperties = null, transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
+        analyticsSource,
+        analyticsProperties,
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
@@ -434,22 +449,6 @@ module.exports = bookshelf.Model.extend(merge({
     const saneAttrs = omit(attrs, 'settings')
 
     if (typeof saneAttrs.name === 'string') saneAttrs.name = saneAttrs.name.trim()
-
-    if (!isEmpty(saneAttrs.twitter_name)) {
-      if (saneAttrs.twitter_name.match(/^\s*$/)) {
-        saneAttrs.twitter_name = null
-      } else if (saneAttrs.twitter_name.match(/^@/)) {
-        saneAttrs.twitter_name = saneAttrs.twitter_name.substring(1)
-      }
-    }
-    const urlAttrs = ['url', 'facebook_url', 'linkedin_url']
-
-    urlAttrs.forEach(key => {
-      const normalized = addProtocol(saneAttrs[key])
-      if (!isEmpty(normalized)) {
-        saneAttrs[key] = normalized
-      }
-    })
 
     if (attrs.settings) this.addSetting(attrs.settings)
 
@@ -533,8 +532,8 @@ module.exports = bookshelf.Model.extend(merge({
     // tags and password, which are used later)
     const whitelist = pick(changes, [
       'avatar_url', 'banner_url', 'bio', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
-      'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
+      'extra_info', 'intention', 'is_profile_public', 'location', 'location_id',
+      'name', 'password', 'settings', 'tagline', 'work',
       'new_notification_count', 'calendar_token'
     ])
 
@@ -556,8 +555,8 @@ module.exports = bookshelf.Model.extend(merge({
         // Save the updated fields to send a Zapier trigger for, before we save and lose the changes
         const changedForTrigger = pick(this.changed, [
           'avatar_url', 'bio', 'contact_email', 'contact_phone',
-          'facebook_url', 'linkedin_url', 'location', 'location_id',
-          'name', 'tagline', 'twitter_name', 'url'
+          'location', 'location_id',
+          'name', 'tagline'
         ])
 
         await this.save(Object.assign({ updated_at: new Date() }, this.changed), { patch: true, transacting })
@@ -617,18 +616,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   unlinkAccount (provider) {
-    const fieldName = {
-      facebook: 'facebook_url',
-      linkedin: 'linkedin_url',
-      twitter: 'twitter_name'
-    }[provider]
-
-    if (!fieldName) throw new Error(`${provider} not a supported provider`)
-
-    return Promise.join(
-      LinkedAccount.query().where({ user_id: this.id, provider_key: provider }).del(),
-      this.save({ [fieldName]: null })
-    )
+    return LinkedAccount.query().where({ user_id: this.id, provider_key: provider }).del()
   },
 
   getMessageThreadWith (userId) {
@@ -793,7 +781,7 @@ module.exports = bookshelf.Model.extend(merge({
         .then(async (user) => {
           await Promise.join(
             account && LinkedAccount.create(user.id, account, { transacting }),
-            group && group.addMembers([user.id], { assignAdministrator: !!assignAdministrator }, { transacting }),
+            group && group.addMembers([user.id], { assignAdministrator: !!assignAdministrator, analyticsSource: GroupMembership.JoinSource.ADMIN_ADD }, { transacting }),
             group && user.markInvitationsUsed(group.id, transacting)
           )
           return user
@@ -987,6 +975,8 @@ module.exports = bookshelf.Model.extend(merge({
       const initialGroup = memberships?.models[0]?.relations?.group
       Email.sendWelcomeEmail({
         email: user.get('email'),
+        // In the person's language (the template has a version for each locale)
+        locale: user.getLocale(),
         data: {
           member_name: user.get('name'),
           group_name: initialGroup?.get('name'),
@@ -1053,7 +1043,7 @@ module.exports = bookshelf.Model.extend(merge({
 
     // Write the combined calendar file to S3 (inline require so tests can patch exports.writeStringToS3)
     await require('../../lib/uploader/storage').writeStringToS3(
-      cal.toString(),
+      withStandardConference(cal.toString()),
       user.getRsvpCalendarPath(), {
         ContentType: 'text/calendar'
       })
@@ -1090,14 +1080,4 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
 
   return User.isEmailUnique(attrs.email, oldEmail, { transacting })
     .then(unique => unique || Promise.reject(new GraphQLError('duplicate-email')))
-}
-
-export function addProtocol (url) {
-  if (isEmpty(url)) return url
-  const regex = /^(http:\/\/|https:\/\/)/
-  if (regex.test(url)) {
-    return url
-  } else {
-    return 'https://' + url
-  }
 }

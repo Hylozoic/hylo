@@ -3,7 +3,7 @@
 import root from 'root-path'
 import setup from '../../setup'
 import factories from '../../setup/factories'
-import { expectEqualQuery, mockify, spyify, unspyify } from '../../setup/helpers'
+import { expectEqualQuery, joinEventProperties, latestJoinEvent, mockify, spyify, unspyify } from '../../setup/helpers'
 
 export function myGroupIdsSqlFragment (userId) {
   return `(select "groups"."id" from "group_memberships"
@@ -247,6 +247,83 @@ describe('Group', function () {
       await freshGroup.refresh()
       expect(freshGroup.get('num_members')).to.equal(1)
       expect(await GroupMembership.hasActiveMembership(user.id, freshGroup.id)).to.be.true
+    })
+
+    describe('join attribution', function () {
+      it('records the source, invitation and inviter on the join event', async function () {
+        await group.addMembers([u2.id], {
+          analyticsSource: GroupMembership.JoinSource.EMAIL_INVITE,
+          analyticsProperties: { invitationId: '12', invitedById: u1.id }
+        })
+        const properties = joinEventProperties(await latestJoinEvent(u2.id, group.id))
+        expect(properties.source).to.equal('email_invite')
+        expect(properties.invitationId).to.equal('12')
+        expect(String(properties.invitedById)).to.equal(String(u1.id))
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.get('settings')).to.not.have.any.keys('joinSource', 'invitationId', 'invitedById')
+      })
+
+      it('keeps settings a caller passes and still records the source', async function () {
+        await group.addMembers([u2.id], {
+          analyticsSource: GroupMembership.JoinSource.AUTO_ADD,
+          settings: { showJoinForm: false }
+        })
+        const membership = await GroupMembership.forPair(u2, group).fetch()
+        expect(membership.getSetting('showJoinForm')).to.equal(false)
+        expect(joinEventProperties(await latestJoinEvent(u2.id, group.id)).source).to.equal('auto_add')
+      })
+
+      it('records direct when no source is given', async function () {
+        await group.addMembers([u2.id])
+        const properties = joinEventProperties(await latestJoinEvent(u2.id, group.id))
+        expect(properties.source).to.equal('direct')
+        expect(properties).to.not.have.any.keys('invitationId', 'invitedById')
+      })
+
+      it('does not change the source of someone who is already an active member', async function () {
+        await group.addMembers([u2.id], { analyticsSource: GroupMembership.JoinSource.INVITE_LINK })
+        await latestJoinEvent(u2.id, group.id)
+        await group.addMembers([u2.id], { analyticsSource: GroupMembership.JoinSource.OPEN })
+        await new Promise(resolve => setTimeout(resolve, 50))
+        const events = await bookshelf.knex('activity_events').where({
+          event_type: 'group_joined',
+          user_id: u2.id,
+          group_id: group.id
+        })
+        expect(events).to.have.length(1)
+        expect(joinEventProperties(events[0]).source).to.equal('invite_link')
+      })
+
+      it('records the new source when a membership is reactivated', async function () {
+        await group.addMembers([u2.id], {
+          analyticsSource: GroupMembership.JoinSource.EMAIL_INVITE,
+          analyticsProperties: { invitationId: '12', invitedById: u1.id }
+        })
+        await group.removeMembers([u2.id])
+        await group.addMembers([u2.id], { analyticsSource: GroupMembership.JoinSource.INVITE_LINK })
+        let properties = {}
+        for (let attempt = 0; attempt < 25; attempt++) {
+          properties = joinEventProperties(await latestJoinEvent(u2.id, group.id))
+          if (properties.source === 'invite_link') break
+          await new Promise(resolve => setTimeout(resolve, 20))
+        }
+        expect(properties.source).to.equal('invite_link')
+        expect(properties.reactivated).to.equal(true)
+        expect(properties.invitationId).to.not.exist
+      })
+
+      it('records creator for the person who creates a group', async function () {
+        const creator = await factories.user().save()
+        const created = await Group.create(creator.id, { name: 'Attribution', slug: `attribution-${Date.now()}` })
+        expect(joinEventProperties(await latestJoinEvent(creator.id, created.id)).source).to.equal('creator')
+      })
+
+      it('records join_request when a join request is accepted', async function () {
+        const requester = await factories.user().save()
+        const joinRequest = await JoinRequest.create({ userId: requester.id, groupId: group.id })
+        await joinRequest.accept(u1.id)
+        expect(joinEventProperties(await latestJoinEvent(requester.id, group.id)).source).to.equal('join_request')
+      })
     })
   })
 
@@ -676,6 +753,70 @@ describe('Group', function () {
     })
   })
 
+  describe('Murmurations publishing', function () {
+    const murmurationsPosts = groupId => Queue.classMethod.__spy.calls
+      .filter(([model, method, data]) => model === 'Group' && method === 'publishToMurmurations' && String(data.groupId) === String(groupId))
+
+    let group, user
+
+    beforeEach(async function () {
+      mockify(Queue, 'classMethod', () => Promise.resolve())
+      user = await factories.user().save()
+      group = await factories.group({
+        visibility: Group.Visibility.PUBLIC,
+        settings: { publish_murmurations_profile: true }
+      }).save()
+    })
+
+    afterEach(function () {
+      unspyify(Queue, 'classMethod')
+    })
+
+    it('re-posts a group that still publishes its profile', async function () {
+      await group.update({ name: 'Renamed' }, user.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('re-posts a group that turns its profile off, so the index drops it', async function () {
+      await group.update({ settings: { publish_murmurations_profile: false } }, user.id)
+      expect(group.hasMurmurationsProfile()).to.be.false
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('re-posts a group that stops being public', async function () {
+      await group.update({ visibility: Group.Visibility.PROTECTED }, user.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+
+    it('does not post a group that never published a profile', async function () {
+      const privateGroup = await factories.group({ visibility: Group.Visibility.PROTECTED }).save()
+      await privateGroup.update({ name: 'Still private' }, user.id)
+      expect(murmurationsPosts(privateGroup.id).length).to.equal(0)
+    })
+
+    it('re-posts a published group when it is deactivated', async function () {
+      await Group.deactivate(group.id)
+      expect(murmurationsPosts(group.id).length).to.equal(1)
+    })
+  })
+
+  describe('skills', function () {
+    it('lists the skills members have, not the ones they are learning', async function () {
+      const group = await factories.group().save()
+      const member = await factories.user().save()
+      await group.addMembers([member.id])
+      const has = await new Skill({ name: `has-skill-${Date.now()}` }).save()
+      const learning = await new Skill({ name: `learning-skill-${Date.now()}` }).save()
+      await bookshelf.knex('skills_users').insert([
+        { skill_id: has.id, user_id: member.id, type: Skill.Type.HAS },
+        { skill_id: learning.id, user_id: member.id, type: Skill.Type.LEARNING }
+      ])
+
+      const skills = await group.skills().fetch()
+      expect(skills.pluck('name')).to.deep.equal([has.get('name')])
+    })
+  })
+
   describe('selectIdsForMember', function () {
     it('produces the expected query clause', function () {
       const query = Post.query(q => {
@@ -955,6 +1096,7 @@ describe('Group', function () {
 
       const addedMembership = await GroupMembership.forPair(neverJoined, space).fetch()
       expect(addedMembership.get('active')).to.be.true
+      expect(joinEventProperties(await latestJoinEvent(neverJoined.id, space.id)).source).to.equal('auto_add')
       expect(addedMembership.getSetting('postNotifications')).to.equal('all')
       expect(addedMembership.getSetting('digestFrequency')).to.equal('daily')
       expect(addedMembership.getSetting('sendEmail')).to.equal(true)

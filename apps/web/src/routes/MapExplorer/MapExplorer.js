@@ -341,9 +341,10 @@ function MapExplorer (props) {
     setBaseLayerStyle('satellite-streets-v12')
   }
 
-  const possibleFeatureTypes = useMemo(() => context === 'public'
-    ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group']
-    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group'], [context])
+  // Members can only be loaded for a single group
+  const possibleFeatureTypes = useMemo(() => context === 'groups'
+    ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group']
+    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group'], [context])
 
   const groupPending = useSelector(state => state.pending[FETCH_FOR_GROUP])
   const pendingPostsMap = useSelector(state => state.pending[FETCH_POSTS_MAP])
@@ -854,7 +855,7 @@ function MapExplorer (props) {
 
       {/* isolate: the deck.gl overlay lives in a Mapbox control (z-index 2). Without a
           stacking context here that canvas paints over the map menus. */}
-      <div className='flex-1 h-full relative isolate' data-testid='map-container'>
+      <div className={cn('flex-1 h-full relative isolate', classes.mapZoomControls, { [classes.drawerOpen]: !hideDrawer })} data-testid='map-container'>
         {mapTourInvitation}
         <Map
           baseLayerStyle={baseLayerStyle}

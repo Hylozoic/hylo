@@ -4,7 +4,7 @@ import '../../setup'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import factories from '../../setup/factories'
-import { mockify, unspyify, wait } from '../../setup/helpers'
+import { joinEventProperties, latestJoinEvent, mockify, unspyify, wait } from '../../setup/helpers'
 import { times } from 'lodash'
 import { ICalEventStatus, ICalCalendarMethod } from 'ical-generator'
 import setup from '../../setup'
@@ -122,43 +122,6 @@ describe('User', function () {
   describe('#setSanely', function () {
     it("doesn't assume that any particular field is set", function () {
       new User().setSanely({})
-    })
-
-    it('sanitizes twitter usernames', function () {
-      let user = new User()
-
-      user.setSanely({twitter_name: '@user'})
-      expect(user.get('twitter_name')).to.equal('user')
-
-      user.setSanely({twitter_name: ' '})
-      expect(user.get('twitter_name')).to.be.null
-    })
-
-    it("doesn't add url, facebook_url or linkedin_url if not provided", function () {
-      let user = new User()
-
-      user.setSanely({})
-
-      expect(user.get('url')).to.equal(undefined)
-      expect(user.get('facebook_url')).to.equal(undefined)
-      expect(user.get('linkedin_url')).to.equal(undefined)
-    })
-
-    it('adds protocol to url, facebook_url and linkedin_url', function () {
-      let user = new User()
-
-      user.setSanely({
-        url: 'myawesomesite.com',
-        facebook_url: 'www.facebook.com/user/123',
-        linkedin_url: 'linkedin.com/user/123'
-      })
-
-      expect(user.get('url')).to.equal('https://myawesomesite.com')
-      expect(user.get('facebook_url')).to.equal('https://www.facebook.com/user/123')
-      expect(user.get('linkedin_url')).to.equal('https://linkedin.com/user/123')
-
-      user.setSanely({linkedin_url: 'http://linkedin.com/user/123'})
-      expect(user.get('linkedin_url')).to.equal('http://linkedin.com/user/123')
     })
 
     it('preserves existing settings keys', () => {
@@ -363,7 +326,6 @@ describe('User', function () {
           expect(user.id).to.exist
           expect(user.get('active')).to.be.true
           expect(user.get('name')).to.equal('Linked In User')
-          expect(user.get('linkedin_url')).to.equal('https://www.linkedin.com/in/foobar')
           expect(user.get('avatar_url')).to.equal(catPic)
 
           return Promise.join(
@@ -376,6 +338,15 @@ describe('User', function () {
               .then(membership => expect(membership).to.exist)
           )
         })
+    })
+
+    it('records admin_add as the join source when created with a group', async () => {
+      const user = await User.create({
+        email: 'with-group@bar.com',
+        group,
+        name: 'With Group'
+      })
+      expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('admin_add')
     })
 
     it('allows inactive users without a name (email verification stub)', function () {
@@ -468,6 +439,23 @@ describe('User', function () {
       const invitation = await invite(group.id)
       await sender.sanelyDeleteUser({ sessionId: 'session' })
       expect((await Invitation.find(invitation.id)).get('expired_by_id')).to.be.null
+    })
+  })
+
+  describe('#sanelyDeleteUser', () => {
+    before(() => mockify(Queue, 'classMethod', () => Promise.resolve()))
+    after(() => unspyify(Queue, 'classMethod'))
+
+    it('deletes that user\'s profile links', async () => {
+      const user = await factories.user().save()
+      await UserProfileLink.create({
+        userId: user.id,
+        url: 'https://example.com/site',
+        title: 'Site'
+      })
+      await user.sanelyDeleteUser({ sessionId: 'session' })
+      const remaining = await UserProfileLink.findByUser(user.id)
+      expect(remaining.length).to.equal(0)
     })
   })
 
@@ -651,6 +639,18 @@ describe('User', function () {
         phone_number: user.get('contact_phone'),
         phone_number_verified: false
       })
+    })
+
+    it('uses the first profile link as the website claim', async () => {
+      const linked = await User.create({
+        active: true,
+        email: 'linked@mojo.org',
+        name: 'Linked'
+      })
+      await UserProfileLink.create({ userId: linked.id, url: 'https://first.example', title: null })
+      await UserProfileLink.create({ userId: linked.id, url: 'https://second.example', title: 'Second' })
+      const claims = await linked.claims('userinfo', 'profile')
+      expect(claims.website).to.equal('https://first.example')
     })
   })
 

@@ -22,7 +22,9 @@ export default function CustomViewFormFields ({
   searchText,
   onSearchTextChange,
   defaultViewMode,
-  onDefaultViewModeChange
+  onDefaultViewModeChange,
+  errors = {},
+  nameInputRef
 }) {
   const { t } = useTranslation()
 
@@ -30,7 +32,17 @@ export default function CustomViewFormFields ({
     <div className='flex flex-col gap-3'>
       <div className='flex flex-col gap-1'>
         <label className='text-sm text-foreground/70'>{t('Name')}</label>
-        <Input value={name} onChange={e => onNameChange(e.target.value)} placeholder={t('Name')} />
+        <Input
+          ref={nameInputRef}
+          value={name}
+          onChange={e => onNameChange(e.target.value)}
+          placeholder={t('Name')}
+          aria-invalid={errors.name ? true : undefined}
+          data-testid='custom-view-name'
+        />
+        {errors.name && (
+          <p className='text-sm text-destructive' role='alert'>{t('Give this view a name of at least 2 characters')}</p>
+        )}
       </div>
 
       <div className='flex flex-col gap-1'>
@@ -43,6 +55,9 @@ export default function CustomViewFormFields ({
         onPostTypesChange={onPostTypesChange}
         options={CUSTOM_STREAM_POST_TYPE_PILLS}
       />
+      {errors.postTypes && (
+        <p className='text-sm text-destructive -mt-2' role='alert'>{t('Choose at least one post type')}</p>
+      )}
 
       <div className='flex flex-col gap-1'>
         <label className='text-sm text-foreground/70'>{t('Topics')}</label>
