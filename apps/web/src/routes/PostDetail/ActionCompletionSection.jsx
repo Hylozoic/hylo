@@ -268,6 +268,7 @@ export default function ActionCompletionSection ({ post, currentUser }) {
           <UploadAttachmentButton
             className='inline-block'
             type='postCompletion'
+            groupIds={post.groups?.map(g => g.id).filter(Boolean)}
             attachmentType='all'
             allowMultiple
             onSuccess={(response) => setCompletionResponse(prev => prev.concat(response))}

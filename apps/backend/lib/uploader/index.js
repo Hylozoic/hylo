@@ -1,9 +1,11 @@
 /* eslint-disable indent, object-curly-spacing */
 import getFileType from 'file-type'
+import { GraphQLError } from 'graphql'
 import mime from 'mime-types'
 import request from 'request'
 import sharp from 'sharp'
 import { PassThrough } from 'stream'
+import { FREE_UPLOAD_LIMIT_BYTES, uploadLimitLabel } from '@hylo/shared'
 import { safeFetch } from '../safeFetch'
 
 import { createConverterStream } from './converter'
@@ -47,8 +49,18 @@ function isSvgFilename (filename) {
   return typeof filename === 'string' && /\.svg(\?|$)/i.test(filename)
 }
 
+// The error an upload over its limit rejects with (a 'Validation error' so the controller answers 422)
+export function fileTooLargeError (maxBytes) {
+  return new GraphQLError(`Validation error: File is larger than the ${uploadLimitLabel(maxBytes)} upload limit`)
+}
+
+/**
+ * Stores a file on S3 from a URL or a stream. `maxBytes` is the per-file limit for this upload
+ * (lib/uploader/limits.js picks it from the group's Hylo Pro features); a source that sends more
+ * than that is cut off and the upload rejects with fileTooLargeError.
+ */
 export function upload (args) {
-  let { type, id, userId, url, stream, onProgress, filename } = args
+  let { type, id, userId, url, stream, onProgress, filename, maxBytes = FREE_UPLOAD_LIMIT_BYTES } = args
   if (url) {
     url = originalFilestackUrl(url)
     if (isSvgFilename(filename)) {
@@ -65,11 +77,18 @@ export function upload (args) {
     .then(() => url
       ? safeFetch(encodeURI(url), { headers: REMOTE_FETCH_HEADERS }).then(response => {
           if (!response.ok) throw new Error(`Download failed (${response.status})`)
+          // Don't start copying a file that is already known to be over the limit
+          const contentLength = Number(response.headers.get('content-length'))
+          if (contentLength > maxBytes) {
+            response.body.destroy()
+            throw fileTooLargeError(maxBytes)
+          }
           return response.body
         })
       : stream)
     .then(source => {
       let passthrough, converter, storage, didSetup, sourceHasError
+      let receivedBytes = 0
       if (!filename) filename = url
       function setupStreams (data, resolve, reject) {
         didSetup = true
@@ -135,6 +154,17 @@ export function upload (args) {
         source.on('data', data => {
           if (sourceHasError) return
 
+          receivedBytes += data.length
+          if (receivedBytes > maxBytes) {
+            // Ignore the rest of the source and drop what S3 has so far. A download is ours to
+            // cut off; a request body is left to drain, so the 422 reaches the client cleanly
+            sourceHasError = true
+            reject(fileTooLargeError(maxBytes))
+            if (storage && storage.upload) storage.upload.abort()
+            if (url && typeof source.destroy === 'function') source.destroy()
+            return
+          }
+
           if (!didSetup) {
             try {
               setupStreams(data, resolve, reject)
@@ -142,7 +172,12 @@ export function upload (args) {
               reject(err)
             }
           }
-          if (passthrough) passthrough.write(data)
+          // Honour backpressure: a source faster than S3 (a CDN download of a large file) must
+          // not pile the difference up in memory
+          if (passthrough && !passthrough.write(data) && typeof source.pause === 'function') {
+            source.pause()
+            passthrough.once('drain', () => source.resume())
+          }
         })
 
         source.on('error', err => {

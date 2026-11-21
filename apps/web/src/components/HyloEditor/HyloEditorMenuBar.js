@@ -70,12 +70,12 @@ function setVideo (editor) {
   }
 }
 
-export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id, onInsertEmoji }) {
+export default function HyloEditorMenuBar ({ className, editor, extendedMenu, type, id, groupIds, onInsertEmoji }) {
   const [linkModalOpen, setLinkModalOpen] = useState(false)
   const [linkPopoverMode, setLinkPopoverMode] = useState('add')
   const { t } = useTranslation()
   // Images dropped or pasted into a page/welcome editor go where they're dropped, like the Image button
-  useInlineImageDrop(editor, { type, id, enabled: extendedMenu })
+  useInlineImageDrop(editor, { type, id, groupIds, enabled: extendedMenu })
 
   if (!editor) return null
 
@@ -183,6 +183,7 @@ export default function HyloEditorMenuBar ({ className, editor, extendedMenu, ty
         <UploadAttachmentButton
           type={type}
           id={id}
+          groupIds={groupIds}
           attachmentType='image'
           onSuccess={(attachment) => editor.commands.setImage({
             src: attachment.url,

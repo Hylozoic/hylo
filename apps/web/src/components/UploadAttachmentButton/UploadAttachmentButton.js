@@ -8,6 +8,7 @@ import {
 } from 'client/filestack'
 import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
 import Icon from 'components/Icon'
+import useUploadLimit from 'hooks/useUploadLimit'
 import uploadAttachment from 'store/actions/uploadAttachment'
 import { cn } from 'util/index'
 
@@ -16,6 +17,7 @@ import classes from './UploadAttachmentButton.module.scss'
 export default function UploadAttachmentButton ({
   type,
   id = ID_FOR_NEW,
+  groupIds, // the groups the attachment is for: sets the size limit (Hylo Pro) and is sent with the upload
   attachmentType,
   onInitialUpload, // If set then we won't upload the file to the server, we'll call this instead
   onSuccess,
@@ -31,6 +33,7 @@ export default function UploadAttachmentButton ({
   const [loading, setLoading] = useState(false)
   const { t } = useTranslation()
   const dispatch = useDispatch()
+  const maxSize = useUploadLimit(groupIds)
 
   const uploadAttachmentComplete = response => {
     if (!response) {
@@ -48,7 +51,7 @@ export default function UploadAttachmentButton ({
       // If set then we won't upload the file to the server, we'll call this instead
       onInitialUpload(attachment)
     } else {
-      const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment))
+      const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment, { groupIds }))
       return uploadAttachmentComplete(uploadedAttachment)
     }
   }
@@ -75,6 +78,7 @@ export default function UploadAttachmentButton ({
     filestackPicker({
       attachmentType,
       maxFiles: allowMultiple ? 10 : 1,
+      maxSize,
       onFileSelected: () => {
         onLoadingChange?.(true)
       },
@@ -101,6 +105,7 @@ export default function UploadAttachmentButton ({
 UploadAttachmentButton.propTypes = {
   type: PropTypes.string.isRequired,
   id: PropTypes.string,
+  groupIds: PropTypes.array,
   attachmentType: PropTypes.string, // for useFilestackLibrary
   onInitialUpload: PropTypes.func,
   onSuccess: PropTypes.func,

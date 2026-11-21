@@ -18,6 +18,7 @@ const activeToggleIconClasses = 'text-[#0DC39F]'
 
 export default function ActionsBar ({
   id,
+  groupIds,
   addAttachment,
   announcementSelected,
   canMakeAnnouncement,
@@ -55,6 +56,7 @@ export default function ActionsBar ({
         <UploadAttachmentButton
           type='post'
           id={id}
+          groupIds={groupIds}
           attachmentType='image'
           onSuccess={(attachment) => {
             dispatch(addAttachment('post', id, attachment))
@@ -72,6 +74,7 @@ export default function ActionsBar ({
         <UploadAttachmentButton
           type='post'
           id={id}
+          groupIds={groupIds}
           attachmentType='file'
           onSuccess={(attachment) => {
             dispatch(addAttachment('post', id, attachment))

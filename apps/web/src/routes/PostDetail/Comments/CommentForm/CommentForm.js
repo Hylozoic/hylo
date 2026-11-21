@@ -217,6 +217,7 @@ const CommentForm = forwardRef(function CommentForm ({
       <AttachmentDropZone
         type='comment'
         id='new'
+        groupIds={groupIds}
         onAttachment={addAttachmentAction}
         disabled={!currentUser}
         className='w-full'
@@ -284,6 +285,7 @@ const CommentForm = forwardRef(function CommentForm ({
                   <UploadAttachmentButton
                     type='comment'
                     id='new'
+                    groupIds={groupIds}
                     allowMultiple
                     onSuccess={addAttachmentAction}
                     customRender={renderProps => (
@@ -306,8 +308,8 @@ const CommentForm = forwardRef(function CommentForm ({
           </div>
           {currentUser && (
             <>
-              <AttachmentManager type='comment' id='new' attachmentType='image' />
-              <AttachmentManager type='comment' id='new' attachmentType='file' />
+              <AttachmentManager type='comment' id='new' groupIds={groupIds} attachmentType='image' />
+              <AttachmentManager type='comment' id='new' groupIds={groupIds} attachmentType='file' />
             </>
           )}
         </div>

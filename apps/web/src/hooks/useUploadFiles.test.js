@@ -40,6 +40,17 @@ describe('useUploadFiles', () => {
     expect(failed).toHaveLength(0)
   })
 
+  it('sends the groups the upload is for, so the server applies their upload limit', async () => {
+    const png = new window.File(['x'], 'photo.png', { type: 'image/png' })
+    uploadFile.mockResolvedValue({ url: 'https://cdn/abc', filename: 'photo.png', mimetype: 'image/png', handle: 'abc' })
+    mockDispatch.mockResolvedValue({ payload: { url: 'https://s3/photo.png', attachmentType: 'image' } })
+
+    const { result } = renderHook(() => useUploadFiles({ type: 'post', groupIds: ['7', '8'] }))
+    await result.current([png])
+
+    expect(mockDispatch.mock.calls[0][0].payload.api.params).toEqual({ type: 'post', id: 'new', url: 'https://cdn/abc', filename: 'photo.png', groupIds: ['7', '8'] })
+  })
+
   it('keeps going after a failure and reports it, whether the upload rejects or returns an error', async () => {
     const a = new window.File(['x'], 'a.pdf', { type: 'application/pdf' })
     const b = new window.File(['x'], 'b.pdf', { type: 'application/pdf' })
