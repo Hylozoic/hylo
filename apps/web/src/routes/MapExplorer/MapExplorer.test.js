@@ -54,6 +54,40 @@ describe('MapExplorer', () => {
     expect(screen.getByText(/Features:/)).toBeInTheDocument()
   })
 
+  describe('member layer', () => {
+    const renderAt = pathname => {
+      jest.spyOn(require('react-router-dom'), 'useLocation').mockReturnValue({
+        pathname,
+        search: '',
+        state: {},
+        hash: '',
+        key: 'test-key'
+      })
+      return render(<MapExplorer {...defaultProps} />)
+    }
+
+    afterEach(() => {
+      require('react-router-dom').useLocation.mockRestore()
+    })
+
+    it('is offered on a group map', () => {
+      renderAt('/groups/garden-club/map')
+      expect(screen.getByText('Members')).toBeInTheDocument()
+    })
+
+    it('is not offered on the All My Groups map', () => {
+      renderAt('/all/map')
+      expect(screen.getByText('Discussions')).toBeInTheDocument()
+      expect(screen.queryByText('Members')).not.toBeInTheDocument()
+    })
+
+    it('is not offered on the public map', () => {
+      renderAt('/public/map')
+      expect(screen.getByText('Discussions')).toBeInTheDocument()
+      expect(screen.queryByText('Members')).not.toBeInTheDocument()
+    })
+  })
+
   it('renders the layers selector button', () => {
     render(
       <MapExplorer {...defaultProps} />

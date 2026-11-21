@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { joinEventProperties, latestJoinEvent } from '../../../test/setup/helpers'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import {
   createFundingRound,
@@ -395,6 +396,7 @@ describe('joinFundingRound', () => {
     const membership = await GroupMembership.forPair(user.id, space).fetch()
     expect(membership).to.exist
     expect(membership.get('active')).to.equal(true)
+    expect(joinEventProperties(await latestJoinEvent(user.id, space.id)).source).to.equal('funding_round')
   })
 
   it('does not allocate tokens when joining before voting', async () => {
