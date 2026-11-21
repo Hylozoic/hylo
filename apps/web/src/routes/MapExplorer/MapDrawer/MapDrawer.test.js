@@ -124,6 +124,17 @@ describe('MapDrawer', () => {
     expect(screen.queryByText('in River')).not.toBeInTheDocument()
   })
 
+  it('labels a legacy project post as a project', () => {
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        posts={[{ id: 1, title: 'Old project', type: 'project', creator: { id: 3, name: 'Ada' }, groups: [] }]}
+      />
+    )
+    // Without its own entry the pill falls back to the raw type, 'project'
+    expect(screen.getByText('Project')).toBeInTheDocument()
+  })
+
   it('updates filters when searching', () => {
     const onUpdateFilters = jest.fn()
     render(<MapDrawer {...defaultMinProps} onUpdateFilters={onUpdateFilters} topics={[{ id: 3, name: 'DOAs' }]} />)

@@ -26,7 +26,8 @@ export const FEATURE_TYPES = {
   project: {
     primaryColor: [252, 128, 0, 255],
     backgroundColor: 'rgba(252, 128, 0, .2)',
-    map: true
+    map: true,
+    label: 'Project'
   },
   member: {
     primaryColor: [201, 88, 172, 255],
