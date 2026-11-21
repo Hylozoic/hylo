@@ -1024,6 +1024,8 @@ type Group {
   agreements: AgreementQuerySet
   # The columns of this Group's or Space's Tasks board, in board order. The default columns are created the first time a member asks for them
   taskStatuses: [TaskStatus]
+  # One column of this Group's or Space's Tasks board, for loading more of its tasks. Null when the column is on another board
+  taskStatus(id: ID): TaskStatus
   # Recent activity on this Group's or Space's tasks, oldest first, for the daily summary. Members only.
   # sinceDaysAgo: how many days back to look (default 1, at most 14)
   taskEvents(sinceDaysAgo: Int): [TaskEvent]

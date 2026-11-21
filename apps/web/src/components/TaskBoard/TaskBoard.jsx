@@ -19,11 +19,12 @@ import {
   createTaskStatus,
   deleteTaskStatus,
   fetchTaskBoard,
+  fetchTaskColumnPage,
   moveTask,
   updateTaskStatus
 } from 'store/actions/taskActions'
 import { cn } from 'util/index'
-import { boardProgress, columnOfTask, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
+import { appendColumnPage, boardProgress, columnOfTask, columnPageOffset, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
 import TaskColumn, { COLUMN_DROP_PREFIX } from './TaskColumn'
 import { TaskCardFace } from './TaskCard'
 
@@ -185,10 +186,31 @@ export default function TaskBoard ({ group, routeParams, currentUser, canManageC
       load()
       return
     }
-    setColumns(current => current.map(c => c.id === column.id
-      ? { ...c, tasks: [...c.tasks, task], tasksTotal: (c.tasksTotal || 0) + 1 }
-      : c))
+    setColumns(current => current.map(c => {
+      if (c.id !== column.id) return c
+      // A new task goes to the very bottom of the column; when part of the column isn't
+      // loaded yet, it is shown at the end but kept out of the next page's offset
+      const partial = (c.tasksTotal || 0) > c.tasks.length
+      return { ...c, tasks: [...c.tasks, partial ? { ...task, addedBelow: true } : task], tasksTotal: (c.tasksTotal || 0) + 1 }
+    }))
   }, [dispatch, groupId, load])
+
+  /** "Load more": adds the column's next page of cards. */
+  const handleLoadMore = useCallback(async (column) => {
+    try {
+      const result = await dispatch(fetchTaskColumnPage({
+        groupId,
+        taskStatusId: column.id,
+        offset: columnPageOffset(column),
+        assigneeId: mineOnly ? currentUser?.id : null
+      }))
+      const page = result?.payload?.data?.group?.taskStatus
+      if (result?.error || !page) throw new Error('page failed to load')
+      setColumns(current => appendColumnPage(current, column.id, page))
+    } catch (e) {
+      load()
+    }
+  }, [dispatch, groupId, mineOnly, currentUser?.id, load])
 
   const handleRename = useCallback(async (column, name) => {
     setColumns(current => current.map(c => c.id === column.id ? { ...c, name } : c))
@@ -290,6 +312,7 @@ export default function TaskBoard ({ group, routeParams, currentUser, canManageC
                   onSetCategory={category => handleSetCategory(column, category)}
                   onDelete={() => handleDeleteColumn(column)}
                   onAddTask={title => handleAddTask(column, title)}
+                  onLoadMore={() => handleLoadMore(column)}
                   onOpenTask={handleOpenTask}
                   onToggleDone={handleToggleDone}
                 />

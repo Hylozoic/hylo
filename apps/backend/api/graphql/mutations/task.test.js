@@ -319,6 +319,20 @@ describe('tasks', () => {
       expect(column.mineTotal).to.equal(1)
       expect(one.id).to.exist
 
+      // "Load more": the next page of one column, read through its own group only
+      const otherColumn = (await columns(otherGroup.id))[0] || (await TaskStatus.ensureForGroup(otherGroup.id))[0]
+      const { executionResult: page } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") {
+          next: taskStatus(id: "${ordering.id}") { id tasksTotal tasks(first: 1, offset: 1) { title } }
+          elsewhere: taskStatus(id: "${otherColumn.id}") { id }
+        } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(page.errors).to.not.exist
+      expect(page.data.group.next.tasks.map(t => t.title)).to.deep.equal(['board one'])
+      expect(page.data.group.next.tasksTotal).to.equal(2)
+      expect(page.data.group.elsewhere).to.equal(null)
+
       const statuses = task.groups[0].taskStatuses
       expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
       expect(statuses.map(s => s.order)).to.deep.equal(statuses.map((s, i) => i))

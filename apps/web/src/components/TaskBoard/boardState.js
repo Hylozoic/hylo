@@ -22,7 +22,8 @@ export function moveTaskOnBoard (columns, taskId, toColumnId, toIndex) {
   const from = columnOfTask(columns, taskId)
   const to = columns.find(column => column.id === toColumnId)
   if (!from || !to) return columns
-  const task = from.tasks.find(t => t.id === taskId)
+  // A moved card takes a place among the loaded cards, so it is no longer one added below them
+  const { addedBelow, ...task } = from.tasks.find(t => t.id === taskId)
   const sameColumn = from.id === to.id
 
   return columns.map(column => {
@@ -39,6 +40,34 @@ export function moveTaskOnBoard (columns, taskId, toColumnId, toIndex) {
       if (!sameColumn) tasksTotal = (tasksTotal || 0) + 1
     }
     return { ...column, tasks, tasksTotal }
+  })
+}
+
+/**
+ * How many of a column's cards come from its loaded pages, i.e. the offset of the next page.
+ * Cards added while the column wasn't fully loaded sit at the very bottom on the server, after
+ * the cards not loaded yet, so they are left out (they carry `addedBelow`).
+ */
+export function columnPageOffset (column) {
+  return column.tasks.filter(task => !task.addedBelow).length
+}
+
+/**
+ * Returns the columns with the next page of one column's cards added after its loaded ones
+ * (and before any it added below them). Cards already on the column are not repeated.
+ */
+export function appendColumnPage (columns, columnId, { tasks = [], tasksTotal } = {}) {
+  return columns.map(column => {
+    if (column.id !== columnId) return column
+    const loaded = column.tasks.filter(task => !task.addedBelow)
+    const below = column.tasks.filter(task => task.addedBelow)
+    const known = new Set(column.tasks.map(task => task.id))
+    const fresh = tasks.filter(task => !known.has(task.id))
+    return {
+      ...column,
+      tasks: [...loaded, ...fresh, ...below],
+      tasksTotal: tasksTotal ?? column.tasksTotal
+    }
   })
 }
 
