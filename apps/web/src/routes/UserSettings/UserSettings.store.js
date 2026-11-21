@@ -288,23 +288,6 @@ export function updateAllMemberships (settings) {
   }
 }
 
-export function registerStripeAccount (authorizationCode) {
-  return {
-    type: REGISTER_STRIPE_ACCOUNT,
-    graphql: {
-      query: `mutation ($authorizationCode: String) {
-        registerStripeAccount(authorizationCode: $authorizationCode) {
-          success
-        }
-      }`,
-      variables: { authorizationCode }
-    },
-    meta: {
-      authorizationCode
-    }
-  }
-}
-
 export function exportUserAccount () {
   return {
     type: EXPORT_USER_ACCOUNT,

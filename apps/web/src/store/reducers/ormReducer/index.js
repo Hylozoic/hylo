@@ -37,7 +37,6 @@ import {
   LEAVE_GROUP,
   LEAVE_GROUP_PENDING,
   LEAVE_PROJECT_PENDING,
-  PROCESS_STRIPE_TOKEN_PENDING,
   REACT_ON_POST_PENDING,
   REACT_ON_COMMENT_PENDING,
   RECORD_CLICKTHROUGH_PENDING,
@@ -1040,15 +1039,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         projectMember.delete()
         clearCacheFor(Post, meta.id)
       }
-      break
-    }
-
-    case PROCESS_STRIPE_TOKEN_PENDING: {
-      post = Post.withId(meta.postId)
-      const totalContributions = Number(post.totalContributions) + Number(meta.amount)
-      post.update({
-        totalContributions
-      })
       break
     }
 

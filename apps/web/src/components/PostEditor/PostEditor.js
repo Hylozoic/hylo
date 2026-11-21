@@ -25,7 +25,6 @@ import LocationInput from 'components/LocationInput'
 import HyloEditor from 'components/HyloEditor'
 import Loading from 'components/Loading'
 import PostTypeSelect from 'components/PostTypeSelect'
-import Switch from 'components/Switch'
 import ToField from 'components/ToField'
 import MemberSelector from 'components/MemberSelector'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select'
@@ -44,7 +43,6 @@ import TimezoneSelect from 'components/TimezoneSelect/TimezoneSelect'
 import PublicToggle from 'components/PublicToggle'
 import AnonymousVoteToggle from './AnonymousVoteToggle/AnonymousVoteToggle'
 import SliderInput from 'components/SliderInput/SliderInput'
-import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import useEventCallback from 'hooks/useEventCallback'
 import fetchAllMyGroupsSpaces from 'store/actions/fetchAllMyGroupsSpaces'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -1075,10 +1073,6 @@ function PostEditorInner ({
     }
   }, [])
 
-  const handleToggleContributions = useCallback(() => {
-    setCurrentPost(prev => ({ ...prev, acceptContributions: !prev.acceptContributions }))
-  }, [setCurrentPost])
-
   const handleStartTimeChange = (pickerStart) => {
     const tz = getPostTimezone()
     const startTime = DateTimeHelpers.fromPickerDate(pickerStart, tz)
@@ -1580,7 +1574,6 @@ function PostEditorInner ({
       ? t('Where is the event taking place?')
       : t('Where is your {{type}} located?', { type: currentPost.type })
   const locationLabel = currentPost.type === 'event' ? t('Venue') : t('Location')
-  const hasStripeAccount = get('hasStripeAccount', currentUser)
 
   /**
    * Handles the To field container click, focusing the actual ToField
@@ -2099,33 +2092,6 @@ function PostEditorInner ({
               className='w-full outline-none border-none bg-transparent placeholder:text-foreground/50'
             />
           </div>
-        </div>
-      )}
-      {currentPost.type === 'project' && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-        <div className='flex items-center border-2 border-transparent transition-all'>
-          <div className='text-sm text-foreground/80 whitespace-nowrap mr-4'>{t('Accept Contributions')}</div>
-          {hasStripeAccount && (
-            <div className='w-full flex items-center'>
-              <Switch
-                value={currentPost.acceptContributions}
-                onClick={handleToggleContributions}
-                className='mr-[55px]'
-              />
-              {!currentPost.acceptContributions && (
-                <div className='text-[13px] leading-[19px] text-foreground/60'>
-                  {t('If you turn Accept Contributions on, people will be able to send money to your Stripe connected account to support this project.')}
-                </div>
-              )}
-            </div>
-          )}
-          {!hasStripeAccount && (
-            <div className='w-full text-[13px] leading-[19px] text-foreground/60'>
-              {t(`To accept financial contributions for this project, you have
-              to connect a Stripe account. Go to`)}
-              <a href='/settings/payment'>{t('Settings')}</a>{' '}{t('to set it up.')}
-              {t('(Remember to save your changes before leaving this form)')}
-            </div>
-          )}
         </div>
       )}
       {currentPost.type === 'project' && (

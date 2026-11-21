@@ -13,7 +13,8 @@ import { groupUrl } from '@hylo/navigation'
 import MenuLink from './MenuLink'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
+import { isHyloProEnabled } from 'config/featureFlags'
+import getMe from 'store/selectors/getMe'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { GROUP_TYPES } from 'store/models/Group'
 import { cn } from 'util/index'
@@ -30,7 +31,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
   const canAdminister = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADMINISTRATION, groupId: group?.id }))
   const canAddMembers = useSelector(state => hasResponsibilityForGroup(state, { responsibility: RESP_ADD_MEMBERS, groupId: group?.id }))
   const isSpace = group?.type === GROUP_TYPES.space || !!group?.parentId
-  const hyloProEnabled = useSelector(getHyloProEnabled)
+  const hyloProEnabled = isHyloProEnabled(useSelector(getMe))
 
   // XXX: hacky way to track the view we were at before opening the settings menu. also see locationHistory.js
   const previousLocation = useSelector(state => get('locationHistory.currentLocation', state))

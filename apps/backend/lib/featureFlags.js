@@ -7,11 +7,8 @@
   everywhere else, and every other flag is off.
 */
 
-// Members sending invitations: the 'everyone' and 'roles' invite policies,
-// and the limited invite access they give
-export const MEMBER_INVITES = 'MEMBER_INVITES'
-
-const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES]
+// Add each flag as an exported name constant; list it here to turn it on outside production
+const ON_OUTSIDE_PRODUCTION = []
 const NON_PRODUCTION_ENVIRONMENTS = ['development', 'test', 'staging']
 
 export function isFeatureEnabled (name) {
