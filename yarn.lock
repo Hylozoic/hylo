@@ -13788,6 +13788,7 @@ __metadata:
     performance-now: "npm:^2.1.0"
     pg: "npm:^8.4.1"
     pg-format: "npm:^1.0.4"
+    playwright: "npm:1.58.2"
     pluralize: "npm:^8.0.0"
     pretty-data: "npm:^0.40.0"
     promirepl: "npm:^1.0.1"

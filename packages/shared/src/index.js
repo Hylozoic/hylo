@@ -4,6 +4,7 @@ import * as Validators from './Validators'
 import * as LocationHelpers from './LocationHelpers'
 import * as OfferingHelpers from './OfferingHelpers'
 import * as ViewHelpers from './viewHelpers'
+import * as GroupThemeHelpers from './GroupThemeHelpers'
 
 export * from './constants'
 export * from './OfferingHelpers'
@@ -11,6 +12,7 @@ export * from './viewHelpers'
 export * from './LocaleHelpers'
 export * from './HyloProFeatures'
 export * from './CurrencyHelpers'
+export * from './GroupThemeHelpers'
 
 export {
   TextHelpers,
@@ -18,5 +20,6 @@ export {
   Validators,
   LocationHelpers,
   OfferingHelpers,
-  ViewHelpers
+  ViewHelpers,
+  GroupThemeHelpers
 }

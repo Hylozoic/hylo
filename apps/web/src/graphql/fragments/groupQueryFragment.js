@@ -39,6 +39,7 @@ export default function groupQueryFragment () {
       showSuggestedSkills
       showWelcomePage
       layout
+      theme
       autoAddMembers
     }
     slug
