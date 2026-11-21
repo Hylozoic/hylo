@@ -107,8 +107,6 @@ import { setMembershipLastViewedAt, toggleNavMenu } from './AuthLayoutRouter.sto
 import { Toaster } from 'components/ui/sonner'
 import useGroupViews from 'hooks/useGroupViews'
 import useGroupTheme from 'hooks/useGroupTheme'
-import { GROUP_THEMES } from 'config/featureFlags'
-import { hasFeature } from 'store/models/Me'
 import useNewAppVersion from 'hooks/useNewAppVersion'
 import useMobileHardwareBack from 'hooks/useMobileHardwareBack'
 import shouldLandOnWelcome from 'util/shouldLandOnWelcome'
@@ -201,8 +199,11 @@ export default function AuthLayoutRouter (props) {
   const dispatch = useDispatch()
   const currentGroup = useSelector(state => getGroupForSlug(state, currentGroupSlug))
   const currentGroupMembership = useSelector(state => getMyGroupMembership(state, currentGroupSlug))
-  // A group's own theme covers its menu, the main column and dialogs; the global nav keeps the viewer's theme
-  const { globalNavStyle: globalNavThemeStyle } = useGroupTheme(hasFeature(GROUP_THEMES) ? currentGroup : null)
+  // A group's own theme covers its menu, the main column and dialogs; the global nav keeps the viewer's theme.
+  // Only a group with the groupThemes Pro feature can save a theme, and a saved one keeps showing if that
+  // lapses. Inside a space (/groups/:groupSlug/spaces/:spaceSlug) currentGroup is the parent, so spaces
+  // show their parent group's theme.
+  const { globalNavStyle: globalNavThemeStyle } = useGroupTheme(currentGroup)
   const currentGroupHasRetainedAccess = isRetainedAccessGroup(currentGroup)
   const groupViews = useGroupViews(currentGroup)
   const onWelcomePath = Boolean(

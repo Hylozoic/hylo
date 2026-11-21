@@ -1,4 +1,5 @@
 import { get, pick } from 'lodash/fp'
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
 
 export const MODULE_NAME = 'GroupSettings'
 
@@ -93,7 +94,7 @@ export function fetchGroupSettings (slug) {
             autoAddMembers
             theme
           }
-          hasPro
+          proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
           type
           parentId
           slug
@@ -295,7 +296,7 @@ export function updateGroupSettings (id, changes) {
             autoAddMembers
             theme
           }
-          hasPro
+          proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
           agreements {
             items {
               id

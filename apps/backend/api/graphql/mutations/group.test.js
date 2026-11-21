@@ -753,7 +753,7 @@ describe('mutations/group', () => {
         .to.be.rejectedWith(/Invalid theme: Invalid fontBody/)
     })
 
-    describe('without Hylo Pro', () => {
+    describe('without the groupThemes Pro feature', () => {
       const theme = { light: { background: '150 22% 86%' } }
 
       it('refuses to save a theme', async () => {
@@ -792,6 +792,19 @@ describe('mutations/group', () => {
           group_id: group.id, source: 'manual', status: 'active', expires_at: new Date(Date.now() - 86400000)
         }).save()
         await expect(updateGroupTheme(admin.id, group.id, theme)).to.be.rejectedWith(/part of Hylo Pro/)
+      })
+
+      it('refuses a Pro plan that leaves out groupThemes, with the feature error code', async () => {
+        await removePro()
+        await HyloProSubscription.forge({
+          group_id: group.id, source: 'manual', status: 'active', features: { groupThemes: false }
+        }).save()
+        const error = await updateGroupTheme(admin.id, group.id, theme).catch(err => err)
+        expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_FEATURE_REQUIRED', feature: 'groupThemes' })
+        expect(await savedSettings()).to.not.have.property('theme')
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', {
+          isConfigured: () => true, withinLimit: async () => true, importTheme: async () => ({})
+        })).to.be.rejectedWith(/doesn't include groupThemes/)
       })
     })
 

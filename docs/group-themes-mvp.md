@@ -25,7 +25,6 @@ What slice 1 contains:
 | `apps/web/src/hooks/useGroupTheme.js` | Sets the group's tokens on `<body>` while the group is on screen; returns the viewer's theme as a style for the global nav |
 | `apps/web/src/routes/AuthLayoutRouter/AuthLayoutRouter.js` | Calls the hook; wraps `GlobalNav` and `TopNav` in a `display: contents` div carrying the viewer's theme |
 | `apps/web/tailwind.config.js` | `rounded-sm/md/lg/xl` now read `--radius` (default `0.5rem`) |
-| `apps/web/src/config/featureFlags.js` | `GROUP_THEMES` flag, on outside production |
 | Group queries (`groupDetailsFragment`, `groupQueryFragment`, `MeQuery`, `fetchForGroup`) | Select `settings.theme` |
 | `apps/backend/api/graphql/schema.graphql` | `theme: JSON` on `type GroupSettings` (read only) |
 
@@ -62,8 +61,8 @@ Stored at `groups.settings.theme`:
 - Mutation: `importGroupThemeFromUrl(groupId: ID, url: String): JSON` in `apps/backend/api/graphql/mutations/group.js`; the work is in `apps/backend/lib/groupThemeImport.js`, run in a child process (`groupThemeImportProcess.js`) because the API's global Bluebird Promise breaks Playwright and the Anthropic SDK.
 - A headless Chromium (Playwright) loads the page and measures the colors, fonts, corners and borders it uses, and takes a screenshot of the first screen. Claude then picks the six color roles for light and dark, a radius, a border width and two Google Fonts. The answer is checked (hex colors, known options, plain font names that Google Fonts actually serves) before it reaches the editor, which derives the rest of the tokens as it does for hand-picked colors.
 - The response includes the model, token counts and an estimated cost, which the editor shows per import and as a running total for the visit. Prices live in `MODEL_PRICING` in `groupThemeImport.js` and need updating when Anthropic's prices change.
-- Setup: `CLAUDE_API_KEY` in the backend's environment (`apps/backend/.env` locally). Optional `GROUP_THEME_IMPORT_MODEL` (default `claude-opus-5-5`). The server needs Playwright's Chromium installed (`yarn playwright install chromium` in `apps/backend`); production hosting for the browser is not set up yet.
-- Limits: Hylo Pro, Administration responsibility, 20 imports per group per hour, public http(s) addresses only (private and internal addresses are refused for the page and for everything it loads).
+- Setup: `CLAUDE_API_KEY` in the backend's environment (`apps/backend/.env` locally). Optional `GROUP_THEME_IMPORT_MODEL` (default `claude-opus-5-5`). The server needs Playwright's Chromium installed (`yarn playwright install chromium` in `apps/backend`); production hosting for the browser is not set up yet (tracked in #1796; see the options in PR #1781).
+- Limits: the `groupThemes` Hylo Pro feature, Administration responsibility, 20 imports per group per hour, public http(s) addresses only (private and internal addresses are refused for the page and for everything it loads).
 - Known gap: the hostname check runs before the browser resolves the name itself, so a DNS answer that changes in between is not caught.
 
 ## Things already learned the hard way
@@ -94,13 +93,13 @@ Work in this order. Each task should land with tests and, for UI, Playwright scr
 - Tests: permission, validation, replace semantics, clearing.
 
 ### 3. Appearance tab (web)
-In `apps/web/src/routes/GroupSettings/AppearanceTab/AppearanceTab.js`, below the existing layout picker, behind the `GROUP_THEMES` flag:
+In `apps/web/src/routes/GroupSettings/AppearanceTab/AppearanceTab.js`, below the existing layout picker (see section 5 for when it is offered):
 - Start from a preset: the app's existing themes in `themes/index.js` (forest, ocean, desert, and so on) make good starting points.
 - Edit a small set of roles first: background, card, text, primary button, accent, selected. Derive the rest. A color picker that converts to HSL triples is enough.
 - Corner radius picker.
 - Light and dark, with a toggle for which one is being edited.
 - **Live preview** before saving: apply the draft with the same `groupThemeCssVars` path the hook uses.
-- **Contrast warnings** from `checkGroupThemeContrast`, shown next to the offending pair. Block save on failures, or require an explicit override; decide with Aaron.
+- **Contrast warnings** from `checkGroupThemeContrast`, shown next to the offending pair. Failures block saving unless the steward ticks "Save anyway" (decided, Q-19).
 - Save, reset to default, and revert to last saved.
 - Add strings to all six locale files in `apps/web/public/locales/`.
 
@@ -110,10 +109,10 @@ In `apps/web/src/routes/GroupSettings/AppearanceTab/AppearanceTab.js`, below the
 - Define the missing `tertiary` color.
 
 ### 5. Gate behind Hylo Pro (done)
-- Saving or changing a theme (`updateGroupTheme` with a theme) and importing one (`importGroupThemeFromUrl`) need `group.hasPro()`: an active Hylo Pro subscription or grant. The error carries the code `HYLO_PRO_REQUIRED`.
-- When Pro lapses, a saved theme keeps showing, cannot be changed, and can still be cleared (`updateGroupTheme` with null). This is a default pending a product decision.
-- Without Pro, the editor still works as a try-out with live preview; Save and Import are disabled and a notice links to the Billing tab (when the `HYLO_PRO` flag is on).
-- Spaces cannot have Hylo Pro, so they cannot have themes.
+- Themes are the `groupThemes` Hylo Pro feature (`packages/shared/src/HyloProFeatures.js`). Saving or changing a theme (`updateGroupTheme` with a theme) and importing one (`importGroupThemeFromUrl`) call `HyloProService.requireProFeature(group, 'groupThemes')`. The error code is `HYLO_PRO_REQUIRED` for a group without Pro and `HYLO_PRO_FEATURE_REQUIRED` for a Pro plan that leaves the feature out.
+- When the feature lapses, a saved theme keeps showing, cannot be changed, and can still be cleared (`updateGroupTheme` with null), the same as designed views.
+- The web checks `useProFeature(group, 'groupThemes')`. The editor is offered to groups with the feature, to groups with a saved theme (so a lapsed group can remove it), and, where Hylo Pro can be bought (the `HYLO_PRO` flag, or Hylo staff), to every group as a try-out: live preview works, Save and Import are disabled and a notice links to the Billing tab. A saved theme is applied with no flag.
+- Spaces have no theme of their own. Inside a space (`/groups/:groupSlug/spaces/:spaceSlug`) the current group is the parent, so the parent's theme applies.
 
 ## Out of scope for the MVP
 
@@ -124,7 +123,6 @@ In `apps/web/src/routes/GroupSettings/AppearanceTab/AppearanceTab.js`, below the
 
 ## Open questions for Aaron and the Product Circle
 
-- Should a contrast failure block saving, or only warn?
 - Can a member opt out of group themes?
 - Does cross-posted content take the style of the group it's viewed in? (Proposed: yes; this is what the current implementation does.)
 - Should the sandbox demo ship with a themed group?

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Sparkles } from 'lucide-react'
 import useAppearance from 'hooks/useAppearance'
+import useProFeature from 'hooks/useProFeature'
 import getMe from 'store/selectors/getMe'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
 import { groupUrl } from '@hylo/navigation'
@@ -115,9 +116,9 @@ export default function GroupThemeEditor ({ group }) {
   const currentUser = useSelector(getMe)
   const { theme: viewerThemeName } = getAppearanceFromSettings(currentUser?.settings)
   const { effectiveColorScheme } = useAppearance()
-  // Themes are a Hylo Pro feature. Without Pro, stewards can still try the editor
+  // Themes are the groupThemes Hylo Pro feature. Without it, stewards can still try the editor
   // and preview a theme, but only the server-side check actually protects saving.
-  const hasPro = !!group?.hasPro
+  const hasGroupThemes = useProFeature(group, 'groupThemes')
   const hyloProEnabled = useSelector(getHyloProEnabled)
 
   const savedKey = JSON.stringify(sanitizeGroupTheme(group?.settings?.theme) || null)
@@ -151,7 +152,7 @@ export default function GroupThemeEditor ({ group }) {
   const issueCount = issues.light.length + issues.dark.length
   const { theme: themeToSave, valid } = useMemo(() => prepareThemeForSave(draft), [draft])
   const contrastAllowsSave = canSaveWithContrastIssues({ issueCount, override })
-  const canSave = hasPro && dirty && valid && contrastAllowsSave && !saving
+  const canSave = hasGroupThemes && dirty && valid && contrastAllowsSave && !saving
 
   // The page follows the scheme being edited, so stewards see what they change.
   // This is a preview only: the viewer's own setting is not touched and comes
@@ -221,7 +222,7 @@ export default function GroupThemeEditor ({ group }) {
         {t("Give this group its own colors, corner radius and border width. The global navigation keeps each member's own theme.")}
       </p>
 
-      {!hasPro && (
+      {!hasGroupThemes && (
         <div className='mb-6 flex items-start gap-2 rounded-lg border-2 border-accent/40 bg-accent/10 p-4 text-sm' data-testid='group-theme-pro-notice'>
           <Sparkles className='h-4 w-4 mt-0.5 shrink-0 text-accent' />
           <div>
@@ -240,7 +241,7 @@ export default function GroupThemeEditor ({ group }) {
         </div>
       )}
 
-      <GroupThemeImport groupId={group.id} disabled={!hasPro} onImport={result => edit(applyImportedTheme(draft, result))} />
+      <GroupThemeImport groupId={group.id} disabled={!hasGroupThemes} onImport={result => edit(applyImportedTheme(draft, result))} />
 
       <div className='mb-6'>
         <label className='text-sm font-medium mb-2 block'>{t('Start from a preset')}</label>

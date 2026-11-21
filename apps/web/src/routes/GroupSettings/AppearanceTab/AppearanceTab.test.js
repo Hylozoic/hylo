@@ -25,8 +25,8 @@ jest.mock('hooks/useAppearance', () => () => ({ effectiveColorScheme: 'light' })
 
 const savedTheme = { light: { background: '150 22% 86%' }, radius: 'xl' }
 
-function renderTab (theme = null, { hasPro = true } = {}) {
-  const group = { id: '42', slug: 'my-group', hasPro, settings: { layout: 'two-column', theme } }
+function renderTab (theme = null, { hasGroupThemes = true } = {}) {
+  const group = { id: '42', slug: 'my-group', proFeatures: { groupThemes: hasGroupThemes }, settings: { layout: 'two-column', theme } }
   return render(<AppearanceTab group={group} updateGroupSettings={jest.fn()} />)
 }
 
@@ -35,23 +35,30 @@ const saveButton = () => screen.getByRole('button', { name: 'Save theme' })
 
 describe('AppearanceTab group theme editor', () => {
   beforeEach(() => {
-    featureFlag.mockImplementation(key => key === 'GROUP_THEMES' ? 'on' : undefined)
+    featureFlag.mockImplementation(key => key === 'HYLO_PRO' ? 'on' : undefined)
     mockDispatch.mockReset()
     mockDispatch.mockResolvedValue({ type: UPDATE_GROUP_THEME, payload: {} })
     window.confirm = jest.fn(() => true)
   })
 
-  it('is hidden when the GROUP_THEMES flag is off', () => {
+  it('is shown below the layout picker when the group has the groupThemes Pro feature', () => {
     featureFlag.mockReturnValue(undefined)
     renderTab()
+    expect(screen.getByTestId('group-theme-editor')).toBeInTheDocument()
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it('is hidden without groupThemes or a saved theme where Hylo Pro cannot be bought', () => {
+    featureFlag.mockReturnValue(undefined)
+    renderTab(null, { hasGroupThemes: false })
     expect(screen.getByText('Two Column')).toBeInTheDocument()
     expect(screen.queryByTestId('group-theme-editor')).not.toBeInTheDocument()
   })
 
-  it('is shown below the layout picker when the flag is on', () => {
-    renderTab()
-    expect(screen.getByTestId('group-theme-editor')).toBeInTheDocument()
-    expect(saveButton()).toBeDisabled()
+  it('is shown to a group whose Pro lapsed with a theme saved, so it can remove it', () => {
+    featureFlag.mockReturnValue(undefined)
+    renderTab(savedTheme, { hasGroupThemes: false })
+    expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
   })
 
   it('loads a preset into the draft, previews it on the page and saves it', async () => {
@@ -193,9 +200,9 @@ describe('AppearanceTab group theme editor', () => {
     })
   })
 
-  describe('without Hylo Pro', () => {
+  describe('without the groupThemes Pro feature', () => {
     it('lets a steward try a theme but not save or import one', () => {
-      renderTab(null, { hasPro: false })
+      renderTab(null, { hasGroupThemes: false })
       expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent('Group themes are part of Hylo Pro')
 
       fireEvent.click(screen.getByTestId('group-theme-preset-snow'))
@@ -208,7 +215,7 @@ describe('AppearanceTab group theme editor', () => {
     })
 
     it('still lets a group reset a theme it saved while it had Pro', async () => {
-      renderTab(savedTheme, { hasPro: false })
+      renderTab(savedTheme, { hasGroupThemes: false })
       expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
       fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
       await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
