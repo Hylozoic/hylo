@@ -65,6 +65,8 @@ git checkout -b <issue-number>-short-description
 
 ### 4. Test your work
 
+**Before you push, follow the worker instructions in `.claude/agents/hylo-worker.md`** (verification, screenshots, PR steps). Run the full backend suite (`cd apps/backend && yarn test`) and the full web suite (`cd apps/web && yarn test --watchAll=false`), not only the suites you touched, and record the result in the PR test plan. If a suite cannot run on your machine (for example it needs the test database), say so in the test plan instead of leaving it out.
+
 **Unit tests:**
 ```bash
 cd apps/web && yarn test --watchAll=false --testPathPattern=<relevant-pattern>
