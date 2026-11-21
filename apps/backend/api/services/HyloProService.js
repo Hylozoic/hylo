@@ -19,6 +19,11 @@
  *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so concurrent, retried or
  *   out-of-order events always leave the latest state. Only subscriptions whose customer matches the
  *   group's hylo_pro_customers row are synced.
+ * - resyncSubscriptions runs from the hourly cron job and re-syncs 1/24 of the groups each hour, so
+ *   every Pro subscription is checked against Stripe once a day even if a webhook was missed.
+ * - Refunds and disputes of Pro payments (charge.refunded, charge.dispute.*) are recorded in
+ *   stripe_logs with their own log types (hylo_pro_refund, hylo_pro_dispute), apart from the
+ *   Connect refund/dispute rows that drive groups' dispute-rate alerts.
  */
 
 const Stripe = require('stripe')
@@ -54,6 +59,23 @@ const PRO_EVENT_TYPES = new Set([
   'invoice.paid',
   'invoice.payment_failed'
 ])
+
+// Refund and dispute events about a payment. Pro payments are found by their customer (see handleChargeEvent).
+const CHARGE_EVENT_TYPES = new Set([
+  'charge.refunded',
+  'charge.dispute.created',
+  'charge.dispute.updated',
+  'charge.dispute.closed',
+  'charge.dispute.funds_withdrawn',
+  'charge.dispute.funds_reinstated'
+])
+
+// stripe_logs.log_type for Pro payments; Connect rows use 'refund' and 'dispute'
+const LOG_TYPE_REFUND = 'hylo_pro_refund'
+const LOG_TYPE_DISPUTE = 'hylo_pro_dispute'
+
+// The scheduled re-sync runs hourly and takes one of this many slices of the groups each time
+const RESYNC_SLOTS = 24
 
 // Error code for "this group already has a subscription"; the web shows its own translated message
 const ALREADY_SUBSCRIBED = 'HYLO_PRO_ALREADY_SUBSCRIBED'
@@ -132,6 +154,19 @@ function portalFeaturesMatch (actual, wanted) {
     sorted(actual.subscription_update?.default_allowed_updates) === sorted(wanted.subscription_update.default_allowed_updates)
 }
 
+// Inserts a stripe_logs row, or updates the one with the same log_type and external_id
+async function upsertStripeLog (row, { transacting } = {}) {
+  const knex = transacting || bookshelf.knex
+  const now = new Date()
+  const { log_type: logType, external_id: externalId, ...changes } = row
+  const [saved] = await knex('stripe_logs')
+    .insert({ ...row, created_at: now, updated_at: now })
+    .onConflict(['log_type', 'external_id'])
+    .merge({ ...changes, updated_at: now })
+    .returning('*')
+  return saved
+}
+
 function billingUrl (group) {
   return `${Frontend.Route.groupSettings(group)}/billing`
 }
@@ -142,6 +177,9 @@ module.exports = {
   INTERVALS,
   CURRENCY,
   ALREADY_SUBSCRIBED,
+  LOG_TYPE_REFUND,
+  LOG_TYPE_DISPUTE,
+  RESYNC_SLOTS,
   alreadySubscribedError,
 
   // Plans in display order, for the Billing page
@@ -449,6 +487,180 @@ module.exports = {
     }
 
     return this.syncSubscriptionById(subscriptionId)
+  },
+
+  /**
+   * True for a platform-account (non-Connect) refund or dispute event. Whether the payment was for
+   * Pro is only known once handleChargeEvent has looked up its customer.
+   */
+  isChargeEvent (event) {
+    return !!event && !event.account && CHARGE_EVENT_TYPES.has(event.type)
+  },
+
+  /**
+   * Records a refund or dispute of a Hylo Pro payment (see isChargeEvent) in stripe_logs, so Hylo
+   * staff can see it. A payment is a Pro payment when its customer is a group's Hylo Pro customer
+   * (hylo_pro_customers): that customer is only used for Pro. The charge or dispute is re-read from
+   * Stripe under a lock, so retried and out-of-order events leave the latest state, one row per
+   * charge (refunds) or per dispute.
+   *
+   * Neither changes the subscription: a refund made in the Stripe dashboard doesn't cancel it, and
+   * cancelling sends its own subscription events.
+   *
+   * @returns {Promise<object|null>} the stripe_logs row, or null if the payment isn't a Pro payment
+   */
+  async handleChargeEvent (event) {
+    if (!this.isChargeEvent(event)) return null
+    const object = event.data?.object
+    if (!object?.id) return null
+
+    if (event.type === 'charge.refunded') {
+      // Not a Pro customer: skip without calling Stripe (most platform charges aren't Pro)
+      const customerId = idOf(object.customer)
+      if (!customerId || !await this.groupIdForCustomer(customerId)) return null
+      return withLock(`hylo_pro_charge:${object.id}`, async trx => {
+        const charge = await stripe.charges.retrieve(object.id, { expand: ['refunds'] })
+        return this.recordRefund(charge, { transacting: trx })
+      })
+    }
+
+    return withLock(`hylo_pro_dispute:${object.id}`, async trx => {
+      const dispute = await stripe.disputes.retrieve(object.id, { expand: ['charge'] })
+      return this.recordDispute(dispute, { transacting: trx })
+    })
+  },
+
+  async groupIdForCustomer (customerId, { transacting } = {}) {
+    if (!customerId) return null
+    const knex = transacting || bookshelf.knex
+    const row = await knex('hylo_pro_customers').where({ stripe_customer_id: customerId }).first('group_id')
+    return row ? row.group_id : null
+  },
+
+  // Upserts the hylo_pro_refund row for a charge (one per charge; amount is the total refunded so far)
+  async recordRefund (charge, { transacting } = {}) {
+    const customerId = idOf(charge.customer)
+    const groupId = await this.groupIdForCustomer(customerId, { transacting })
+    if (!groupId) return null
+    const refunds = charge.refunds?.data || []
+    return upsertStripeLog({
+      group_id: groupId,
+      log_type: LOG_TYPE_REFUND,
+      external_id: charge.id,
+      charge_id: charge.id,
+      amount: charge.amount_refunded,
+      currency: charge.currency || CURRENCY,
+      // Stripe lists refunds newest first
+      reason: refunds[0]?.reason || null,
+      status: charge.refunded ? 'refunded' : 'partially_refunded',
+      metadata: {
+        stripe_customer_id: customerId,
+        charge_amount: charge.amount,
+        refund_ids: refunds.map(refund => refund.id)
+      }
+    }, { transacting })
+  },
+
+  // Upserts the hylo_pro_dispute row for a dispute (dispute.charge expanded)
+  async recordDispute (dispute, { transacting } = {}) {
+    const charge = typeof dispute.charge === 'object' ? dispute.charge : null
+    const customerId = idOf(charge?.customer)
+    const groupId = await this.groupIdForCustomer(customerId, { transacting })
+    if (!groupId) return null
+    return upsertStripeLog({
+      group_id: groupId,
+      log_type: LOG_TYPE_DISPUTE,
+      external_id: dispute.id,
+      charge_id: idOf(dispute.charge),
+      amount: dispute.amount,
+      currency: dispute.currency || CURRENCY,
+      reason: dispute.reason || null,
+      status: dispute.status,
+      metadata: { stripe_customer_id: customerId }
+    }, { transacting })
+  },
+
+  /**
+   * The scheduled re-sync (hourly cron): re-syncs every group whose hylo_pro_customers id falls in
+   * `slot` (id % slots), so with the default 24 slots and slot = the UTC hour each group is checked
+   * once a day. For each group it asks Stripe for the customer's subscriptions, then syncs any that
+   * are new to us or not over yet, and any row of ours that isn't over yet — which also catches a
+   * subscription Stripe no longer has. A failure for one group is logged and the run goes on; on a
+   * Stripe rate limit the run stops, and those groups are checked again the next day. Calls are
+   * made one at a time, a few per group, far below Stripe's rate limits. Safe to run again: each
+   * sync just writes Stripe's current state.
+   *
+   * @returns {Promise<{ customers: number, synced: number, failed: number, rateLimited: boolean }>}
+   */
+  async resyncSubscriptions ({ slot, slots = RESYNC_SLOTS } = {}) {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= slots) {
+      throw new Error(`Hylo Pro re-sync slot must be an integer from 0 to ${slots - 1}, got ${slot}`)
+    }
+    const customers = await bookshelf.knex('hylo_pro_customers')
+      .whereRaw('id % ? = ?', [slots, slot])
+      .orderBy('id')
+      .select('group_id', 'stripe_customer_id')
+
+    const result = { customers: customers.length, synced: 0, failed: 0, rateLimited: false }
+    for (const customer of customers) {
+      try {
+        result.synced += await this.resyncCustomer(customer)
+      } catch (error) {
+        if (error.type === 'StripeRateLimitError') {
+          console.warn(`Hylo Pro re-sync hit Stripe's rate limit at group ${customer.group_id}; stopping this run`)
+          result.rateLimited = true
+          break
+        }
+        result.failed++
+        console.error(`Hylo Pro re-sync failed for group ${customer.group_id}:`, error.message)
+      }
+    }
+    return result
+  },
+
+  // Re-syncs one group's subscriptions (see resyncSubscriptions). Returns how many were synced.
+  async resyncCustomer ({ group_id: groupId, stripe_customer_id: customerId }) {
+    const listed = []
+    let startingAfter
+    do {
+      const page = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'all',
+        limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {})
+      })
+      listed.push(...page.data)
+      startingAfter = page.has_more && page.data.length > 0 ? page.data[page.data.length - 1].id : null
+    } while (startingAfter)
+
+    const rows = await bookshelf.knex('hylo_pro_subscriptions')
+      .where({ group_id: groupId, source: HyloProSubscription.SOURCE_STRIPE })
+      .whereNotNull('stripe_subscription_id')
+      .select('stripe_subscription_id', 'status')
+    const statusById = new Map(rows.map(row => [row.stripe_subscription_id, row.status]))
+    const isOver = status => HyloProSubscription.TERMINAL_STRIPE_STATUSES.includes(status)
+
+    const ids = new Set()
+    for (const subscription of listed) {
+      if (!proMetadataOf(subscription)) continue
+      // Over in Stripe and already recorded as over: it can't change any more
+      if (isOver(subscription.status) && statusById.get(subscription.id) === subscription.status) continue
+      ids.add(subscription.id)
+    }
+    for (const row of rows) {
+      if (!isOver(row.status)) ids.add(row.stripe_subscription_id)
+    }
+
+    let synced = 0
+    for (const id of ids) {
+      try {
+        if (await this.syncSubscriptionById(id)) synced++
+      } catch (error) {
+        if (error.code !== 'resource_missing') throw error
+        console.warn(`Hylo Pro subscription ${id} no longer exists in Stripe`)
+      }
+    }
+    return synced
   },
 
   /**
