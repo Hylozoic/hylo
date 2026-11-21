@@ -6,8 +6,9 @@ import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGr
  * Group themes against the real backend: an Administrator saves a theme from
  * Group Settings > Appearance, the group renders it after a reload (so it came
  * back through the group queries), the global nav keeps the viewer's theme,
- * leaving the group removes it, and "Reset to default" clears it. Themes need
- * Hylo Pro, so the first test checks the editor without it and the second runs
+ * a space inside the group shows the group's theme, leaving the group removes
+ * it, and "Reset to default" clears it. Themes need the groupThemes Hylo Pro
+ * feature, so the first test checks the editor without Pro and the second runs
  * with a grant written for this spec.
  * Requires the E2E seed's Administrator role for the login user on e2e-public-group.
  */
@@ -15,6 +16,8 @@ import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGr
 test.describe.configure({ timeout: 180000, mode: 'serial' })
 
 const GROUP_SLUG = 'e2e-public-group'
+// Seeded space under GROUP_SLUG (seed-e2e-baseline.js)
+const SPACE_SLUG = 'e2e-test-space'
 const PRO_NOTE = 'e2e group theme spec'
 const uiTimeout = { timeout: 60000 }
 
@@ -87,6 +90,13 @@ test.describe('group theme', () => {
     expect(navBackground).not.toBe('')
     expect(navBackground).not.toBe(groupBackground)
     await page.screenshot({ path: 'e2e-screenshots/group-theme-real-2-themed-group.png' })
+
+    // Spaces have no theme of their own: inside one, the parent group's theme stays on
+    await page.goto(`/groups/${GROUP_SLUG}/spaces/${SPACE_SLUG}`)
+    await waitPastRootSessionLoading(page)
+    await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
+    await expect.poll(() => bodyVar(page, '--background'), uiTimeout).toBe(groupBackground)
+    await page.screenshot({ path: 'e2e-screenshots/group-theme-real-2b-themed-space.png' })
 
     // Leaving the group removes its tokens
     await page.goto('/my/posts')
