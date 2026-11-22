@@ -1,3 +1,4 @@
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
 import { get } from 'lodash/fp'
 import { FETCH_FOR_GROUP } from 'store/constants'
 
@@ -45,7 +46,9 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
       autoAddMembers
     }
     hasPro
+    proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
     assistantEnabled
+    assistantForMe
     slug
     type
     status

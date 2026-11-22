@@ -36,6 +36,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   }
   hasPro
   assistantEnabled
+  assistantForMe
   slug
   type
   status

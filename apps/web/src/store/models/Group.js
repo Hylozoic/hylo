@@ -210,6 +210,8 @@ Group.fields = {
   geoShape: attr(),
   hasPro: attr(),
   assistantEnabled: attr(),
+  // { consent, summarize, answerMembers } for the viewer: see assistantForMe in schema.graphql
+  assistantForMe: attr(),
   groupToGroupJoinQuestions: many('GroupToGroupJoinQuestion'),
   groupRoles: attr(),
   groupViews: attr(),

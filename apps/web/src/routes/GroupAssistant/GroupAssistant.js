@@ -16,6 +16,7 @@ import { askGroupAssistant, fetchGroupAssistant, markGroupAssistantDraftPosted, 
 import { hasFeature } from 'store/models/Me'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getMe from 'store/selectors/getMe'
+import useProFeature from 'hooks/useProFeature'
 import AssistantMessage from './AssistantMessage'
 import AxlAvatar from './AxlAvatar'
 import { draftAsHtml, stewardNamesLine } from './util'
@@ -35,6 +36,7 @@ export default function GroupAssistant () {
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
   const currentUser = useSelector(getMe)
   const groupId = group?.id
+  const hasAssistantFeature = useProFeature(group, 'groupAssistant')
   const { setHeaderDetails } = useViewHeader()
 
   const [assistant, setAssistant] = useState(null)
@@ -132,7 +134,7 @@ export default function GroupAssistant () {
 
   const settingsUrl = groupUrl(groupSlug, 'settings/assistant')
   const notice = loadError ||
-    (!assistant.hasPro && t('The Group Assistant is part of Hylo Pro.')) ||
+    (!(hasAssistantFeature || assistant.hasFeature) && t('The Group Assistant is part of Hylo Pro.')) ||
     (!assistant.settings.enabled && t('The Group Assistant is turned off for this group.'))
   if (notice) {
     return (
@@ -146,8 +148,8 @@ export default function GroupAssistant () {
 
   const readable = assistant.spaces.filter(space => assistant.settings.readableGroupIds.includes(space.id))
   const suggestions = [
-    t('What needs a steward right now?'),
-    t('Which posts have no reply yet?'),
+    ...(assistant.settings.followUps ? [t('What needs a steward right now?'), t('Which posts have no reply yet?')] : []),
+    ...(assistant.settings.shareLoad ? [t('Who is carrying the load?')] : []),
     t('Help me with a conflict'),
     t('Draft a welcome for new members')
   ]

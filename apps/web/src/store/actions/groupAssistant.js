@@ -112,3 +112,59 @@ export function markGroupAssistantDraftPosted ({ messageId, partIndex, postId, c
     meta: { messageId }
   }
 }
+
+export const SET_GROUP_ASSISTANT_CONSENT = 'SET_GROUP_ASSISTANT_CONSENT'
+export const SUMMARIZE_GROUP_CHAT = 'SUMMARIZE_GROUP_CHAT'
+export const ASK_GROUP_QUESTION = 'ASK_GROUP_QUESTION'
+
+/**
+ * A member's own answer to the Group Assistant's data-sharing agreement.
+ * payload.data.setGroupAssistantConsent: { consent: 'accepted' | 'declined' }.
+ * The ORM reducer updates the group's assistantForMe.consent.
+ */
+export function setGroupAssistantConsent (groupId, accepted) {
+  return {
+    type: SET_GROUP_ASSISTANT_CONSENT,
+    graphql: {
+      query: `mutation SetGroupAssistantConsent ($groupId: ID!, $accepted: Boolean!) {
+        setGroupAssistantConsent(groupId: $groupId, accepted: $accepted)
+      }`,
+      variables: { groupId, accepted }
+    },
+    meta: { groupId, accepted }
+  }
+}
+
+/**
+ * "Catch me up": a summary of a group's or space's chat since sincePostId.
+ * payload.data.summarizeGroupChat: { text, messagesRead, notShared }
+ */
+export function summarizeGroupChat (groupId, sincePostId) {
+  return {
+    type: SUMMARIZE_GROUP_CHAT,
+    graphql: {
+      query: `mutation SummarizeGroupChat ($groupId: ID!, $sincePostId: ID) {
+        summarizeGroupChat(groupId: $groupId, sincePostId: $sincePostId)
+      }`,
+      variables: { groupId, sincePostId }
+    },
+    meta: { groupId }
+  }
+}
+
+/**
+ * A member asks the Group Assistant about the group.
+ * payload.data.askGroupQuestion: { text, posts: [{ id, title }] }
+ */
+export function askGroupQuestion (groupId, text) {
+  return {
+    type: ASK_GROUP_QUESTION,
+    graphql: {
+      query: `mutation AskGroupQuestion ($groupId: ID!, $text: String!) {
+        askGroupQuestion(groupId: $groupId, text: $text)
+      }`,
+      variables: { groupId, text }
+    },
+    meta: { groupId }
+  }
+}

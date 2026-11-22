@@ -7,6 +7,7 @@ import { groupUrl } from '@hylo/navigation'
 import Loading from 'components/Loading'
 import { Switch } from 'components/ui/switch'
 import fetchForGroup from 'store/actions/fetchForGroup'
+import useProFeature from 'hooks/useProFeature'
 import { fetchGroupAssistant, updateGroupAssistantSettings, updateGroupAssistantVoice } from 'store/actions/groupAssistant'
 import { cn } from 'util/index'
 import AxlAvatar from './AxlAvatar'
@@ -78,6 +79,8 @@ export default function GroupAssistantSettingsTab ({ group }) {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const groupId = group?.id
+  // Q-82: the group's Hylo Pro plan must include the assistant, not just any Pro
+  const hasAssistantFeature = useProFeature(group, 'groupAssistant')
 
   useEffect(() => {
     if (!groupId) return
@@ -93,7 +96,9 @@ export default function GroupAssistantSettingsTab ({ group }) {
 
   if (!assistant) return error ? <p className='text-accent' role='alert'>{error}</p> : <Loading />
 
-  const { settings, spaces, hasPro } = assistant
+  const { settings, spaces, consent } = assistant
+  // The server is the authority (it checks again on every save); either source unlocks the card
+  const hasPro = hasAssistantFeature || !!assistant.hasFeature
   const save = async change => {
     const before = assistant
     // Shown at once; put back if the server refuses
@@ -124,10 +129,10 @@ export default function GroupAssistantSettingsTab ({ group }) {
     : { enabled: on })
 
   const abilities = [
-    ['followUps', t('Suggest things for stewards to follow up on'), t('Unanswered requests and people who haven’t been welcomed. Only stewards see these.'), true],
-    ['shareLoad', t('Share the load'), t('When the same few people answer most requests, suggest others who have offered to help. Only stewards see these.'), true],
-    ['summarize', t('Summarize busy chats'), t('Anyone can ask for a summary of what they missed.'), true],
-    ['answerMembers', t('Answer members’ questions'), t('Using your group’s posts, agreements, and About page. It says when it doesn’t know.'), true]
+    ['followUps', t('Suggest things for stewards to follow up on'), t('Unanswered requests and people who haven’t been welcomed. Only stewards see these.')],
+    ['shareLoad', t('Share the load'), t('When the same few people answer most requests, suggest others who have offered to help. Only stewards see these.')],
+    ['summarize', t('Summarize busy chats'), t('Members get a “Catch me up” button in the chats of the spaces Axl can read.')],
+    ['answerMembers', t('Answer members’ questions'), t('Members can ask Axl on the group’s About page. It answers from your group’s posts, agreements, and About page, and says when it doesn’t know.')]
   ]
 
   return (
@@ -140,7 +145,7 @@ export default function GroupAssistantSettingsTab ({ group }) {
             <span className='text-[10.5px] font-bold uppercase tracking-wide text-foreground/60 bg-foreground/10 px-1.5 py-0.5 rounded'>{t('Beta')}</span>
           </h2>
           <p className='m-0 mt-1 text-sm text-foreground/70'>
-            {t('Axl is a private assistant for this group’s stewards. It only reads the spaces you choose, and your group’s content is never used to train AI models. It drafts and suggests; a steward decides.')}
+            {t('Axl is an assistant for this group’s stewards. It only reads the spaces you choose, and only from members who agreed to share. It drafts and suggests; a steward decides.')}
           </p>
         </div>
       </div>
@@ -159,13 +164,18 @@ export default function GroupAssistantSettingsTab ({ group }) {
         <label className='flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/20 bg-card p-3'>
           <span className='min-w-0'>
             <span className='block text-sm font-bold text-foreground'>{settings.enabled ? t('Assistant is on') : t('Assistant is off')}</span>
-            <span className='block text-xs text-foreground/60'>{settings.enabled ? t('Turning it off hides it from the group menu and stops all reading.') : t('Turning it on shows it to stewards in the group menu.')}</span>
+            <span className='block text-xs text-foreground/60'>{settings.enabled ? t('Turning it off hides it from the group menu, stops all reading and takes its agreement out of your group agreements.') : t('Turning it on adds an agreement about sharing with a third-party AI to your group agreements, and tells your members. Axl only reads the posts and details of members who agree.')}</span>
           </span>
           <Switch checked={settings.enabled} onCheckedChange={turnOn} disabled={saving || !hasPro} data-testid='assistant-enabled' aria-label={t('Group Assistant')} />
         </label>
 
         {settings.enabled && (
           <>
+            {consent && (
+              <p className='m-0 text-sm text-foreground/80' data-testid='assistant-consent-count'>
+                {t('{{agreed}} of {{members}} members have agreed to share with Axl. Nothing of anyone else is read.', consent)}
+              </p>
+            )}
             <div>
               <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('Spaces it can read')}</h3>
               <p className='m-0 mb-2 text-xs text-foreground/60'>{t('Axl reads nothing outside this list, and never direct messages.')}</p>
@@ -203,7 +213,7 @@ export default function GroupAssistantSettingsTab ({ group }) {
 
             <div>
               <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('What it can do')}</h3>
-              <p className='m-0 mb-2 text-xs text-foreground/60'>{t('These are saved now and take effect as each ability is released.')}</p>
+              <p className='m-0 mb-2 text-xs text-foreground/60'>{t('Each takes effect at once.')}</p>
               <div className='flex flex-col gap-2'>
                 {abilities.map(([key, label, help]) => (
                   <label key={key} className='flex items-center justify-between gap-4 rounded-lg border-2 border-foreground/15 bg-card p-3'>
@@ -226,7 +236,7 @@ export default function GroupAssistantSettingsTab ({ group }) {
 
             <div>
               <h3 className='m-0 mb-1 text-sm font-bold text-foreground'>{t('Where it runs')}</h3>
-              <p className='m-0 text-xs text-foreground/60'>{t('A hosted model that keeps nothing.')}</p>
+              <p className='m-0 text-xs text-foreground/60'>{t('Claude, a model hosted by Anthropic. Anthropic does not train its models on what is sent through its API, and deletes it within 30 days unless a request is flagged for misuse.')}</p>
             </div>
 
             <Link to={groupUrl(group.slug, 'assistant')} className='self-start text-sm font-bold text-selected' data-testid='assistant-open'>
