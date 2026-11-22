@@ -77,10 +77,13 @@ describe('tasks', () => {
       expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(String(review.id))
     })
 
-    it('turns a new post sent with the old project type into a task', async () => {
-      const post = await newTask(steward.id, { type: 'project' })
-      expect(post.get('type')).to.equal('task')
-      expect((await placementIn(post.id, group.id)).statusName).to.equal('To do')
+    it('keeps a new post sent with the project type (an older client) a project, off the board', async () => {
+      const post = await newTask(steward.id, { type: 'project', memberIds: [member.id] })
+      const saved = await Post.find(post.id)
+      expect(saved.get('type')).to.equal('project')
+      expect(saved.get('task_category')).to.not.exist
+      expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(null)
+      expect((await saved.members().fetch()).map(m => m.id)).to.deep.equal([member.id])
     })
 
     it('leaves an existing project post a project when it is edited', async () => {
