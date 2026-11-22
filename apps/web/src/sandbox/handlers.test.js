@@ -10,6 +10,7 @@ import {
   createTaskStatus,
   deleteTaskStatus,
   fetchTaskBoard,
+  fetchTaskColumnPage,
   fetchTaskEvents,
   fetchTaskStatuses,
   moveTask,
@@ -520,6 +521,14 @@ describe('sandbox GraphQL handlers', () => {
         expect(placement.statusCategory).toBe(status.category)
         expect(post.taskCategory).toBe(status.category)
       }
+    })
+
+    it('pages one column for "Load more"', () => {
+      const [todo] = board()
+      const page = run(fetchTaskColumnPage({ groupId: SIMPLE_GROUP_ID, taskStatusId: todo.id, offset: 1 })).data.group.taskStatus
+      expect(page.tasksTotal).toBe(3)
+      expect(titles(page)).toEqual(titles(todo).slice(1))
+      expect(run(fetchTaskColumnPage({ groupId: SIMPLE_GROUP_ID, taskStatusId: 'nope', offset: 0 })).data.group.taskStatus).toBe(null)
     })
 
     it('shows only my tasks when asked for one assignee', () => {

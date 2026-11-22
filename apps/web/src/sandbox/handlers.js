@@ -156,6 +156,9 @@ function handleQuery (operationName, rootField, variables, seed, query) {
     case 'FetchTaskStatuses':
       return { data: { group: presentTaskBoard(seed, variables) } }
 
+    case 'FetchTaskColumnPage':
+      return { data: { group: presentTaskColumnPage(seed, variables) } }
+
     case 'FetchTaskEvents':
       return { data: { group: presentTaskEvents(seed, variables) } }
 
@@ -1146,6 +1149,25 @@ function presentTaskBoard (seed, variables, { withTasks } = {}) {
     }
   })
   return { id: group.id, taskStatuses }
+}
+
+/** One column's next page of cards ("Load more"): `first` cards after the first `offset`. */
+function presentTaskColumnPage (seed, variables) {
+  const group = findGroup(seed, variables)
+  if (!group) return null
+  const status = taskStatusesFor(seed, group.id).find(s => String(s.id) === String(variables.taskStatusId))
+  if (!status) return { id: group.id, taskStatus: null }
+  let tasks = tasksInStatus(seed, group.id, status.id)
+  if (variables.assigneeId) tasks = tasks.filter(post => isAssignedTo(post, variables.assigneeId))
+  const offset = variables.offset || 0
+  return {
+    id: group.id,
+    taskStatus: {
+      id: status.id,
+      tasksTotal: tasks.length,
+      tasks: tasks.slice(offset, offset + (variables.first || tasks.length)).map(presentBoardCard)
+    }
+  }
 }
 
 function presentTaskEvents (seed, variables) {
