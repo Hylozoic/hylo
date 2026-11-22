@@ -1,4 +1,4 @@
-import { boardProgress, dueInfo, isProjectSpace, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
+import { appendColumnPage, boardProgress, columnPageOffset, dueInfo, isProjectSpace, locateTask, moveTaskOnBoard, toggleDoneTarget } from './boardState'
 
 const task = id => ({ id: String(id), title: `Task ${id}` })
 const board = () => [
@@ -85,5 +85,29 @@ describe('isProjectSpace', () => {
     expect(isProjectSpace({ type: 'space', homeRoute: '/chat' })).toBe(false)
     expect(isProjectSpace({ type: 'group', homeRoute: '/tasks' })).toBe(false)
     expect(isProjectSpace(null)).toBe(false)
+  })
+})
+
+describe('paging a column', () => {
+  // A column of 5 with 2 loaded, plus a card added while the rest wasn't loaded yet
+  const partial = () => [
+    { id: 'todo', category: 'todo', tasksTotal: 6, tasks: [task(1), task(2), { ...task(9), addedBelow: true }] },
+    { id: 'done', category: 'done', tasksTotal: 0, tasks: [] }
+  ]
+
+  it('counts only the loaded cards towards the next page', () => {
+    expect(columnPageOffset(partial()[0])).toBe(2)
+  })
+
+  it('adds the next page after the loaded cards and before the added ones, without repeats', () => {
+    const next = appendColumnPage(partial(), 'todo', { tasks: [task(2), task(3), task(4)], tasksTotal: 6 })
+    expect(ids(next, 'todo')).toEqual(['1', '2', '3', '4', '9'])
+    expect(next[0].tasksTotal).toBe(6)
+  })
+
+  it('treats a moved card as loaded where it was dropped', () => {
+    const next = moveTaskOnBoard(partial(), '9', 'todo', 0)
+    expect(ids(next, 'todo')).toEqual(['9', '1', '2'])
+    expect(columnPageOffset(next[0])).toBe(3)
   })
 })

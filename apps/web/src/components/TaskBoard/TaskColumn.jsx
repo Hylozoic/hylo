@@ -144,6 +144,7 @@ export default function TaskColumn ({
   onSetCategory,
   onDelete,
   onAddTask,
+  onLoadMore,
   onOpenTask,
   onToggleDone
 }) {
@@ -152,6 +153,16 @@ export default function TaskColumn ({
   const { setNodeRef, isOver } = useDroppable({ id: COLUMN_DROP_PREFIX + column.id })
   const isDone = column.category === 'done'
   const hiddenCount = Math.max(0, (column.tasksTotal || 0) - column.tasks.length)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadMore = async () => {
+    if (loadingMore) return
+    setLoadingMore(true)
+    try {
+      await onLoadMore()
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   return (
     <div
@@ -221,7 +232,18 @@ export default function TaskColumn ({
           ))}
         </SortableContext>
         {hiddenCount > 0 && (
-          <div className='text-xs text-foreground/50 text-center py-1'>{t('{{count}} more not shown', { count: hiddenCount })}</div>
+          <div className='flex flex-col items-center gap-1 py-1'>
+            <div className='text-xs text-foreground/50'>{t('{{count}} more not shown', { count: hiddenCount })}</div>
+            <button
+              type='button'
+              data-testid='task-column-load-more'
+              disabled={loadingMore}
+              onClick={loadMore}
+              className='h-8 px-3 rounded-md border border-foreground/20 bg-background text-xs font-bold text-foreground/70 hover:text-foreground hover:border-foreground/40 cursor-pointer disabled:opacity-50'
+            >
+              {loadingMore ? t('Loading...') : t('Load more')}
+            </button>
+          </div>
         )}
         {canAdd && <AddTaskInline onAdd={onAddTask} />}
       </div>

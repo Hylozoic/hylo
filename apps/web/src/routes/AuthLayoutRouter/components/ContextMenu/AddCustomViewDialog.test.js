@@ -27,7 +27,7 @@ describe('AddCustomViewDialog', () => {
   it('explains an empty post type selection', () => {
     const onAdd = renderDialog()
     fireEvent.change(screen.getByTestId('custom-view-name'), { target: { value: 'Garden' } })
-    ;['discussion', 'event', 'resource', 'project', 'proposal', 'request', 'offer'].forEach(key => {
+    ;['discussion', 'event', 'resource', 'project', 'task', 'proposal', 'request', 'offer'].forEach(key => {
       fireEvent.click(screen.getByTestId(`post-type-pill-${key}`))
     })
 
@@ -49,7 +49,7 @@ describe('AddCustomViewDialog', () => {
       name: 'Garden',
       icon: 'ListFilter',
       settings: {
-        postTypes: ['discussion', 'event', 'resource', 'project', 'proposal', 'request', 'offer'],
+        postTypes: ['discussion', 'event', 'resource', 'project', 'task', 'proposal', 'request', 'offer'],
         defaultViewMode: 'cards'
       }
     })
@@ -59,7 +59,7 @@ describe('AddCustomViewDialog', () => {
   it('saves a stream showing only offers', () => {
     const onAdd = renderDialog()
     fireEvent.change(screen.getByTestId('custom-view-name'), { target: { value: 'Gifts' } })
-    ;['discussion', 'event', 'resource', 'project', 'proposal', 'request'].forEach(key => {
+    ;['discussion', 'event', 'resource', 'project', 'task', 'proposal', 'request'].forEach(key => {
       fireEvent.click(screen.getByTestId(`post-type-pill-${key}`))
     })
 
