@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useDispatch } from 'react-redux'
-import { uploadFile, uploadedFileToAttachment } from 'client/filestack'
+import { attachmentFromUpload, uploadFile, uploadedFileToAttachment } from 'client/filestack'
 import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store'
 import uploadAttachment from 'store/actions/uploadAttachment'
 
@@ -27,7 +27,7 @@ export default function useUploadFiles ({ type, id = ID_FOR_NEW }) {
         if (!response || response.error || !response.payload?.url) {
           throw response?.payload || new Error('No response returned from uploader')
         }
-        const stored = { ...attachment, ...response.payload }
+        const stored = attachmentFromUpload(attachment, response.payload)
         uploaded.push(stored)
         onUploaded(stored)
       } catch (error) {

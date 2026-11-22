@@ -4,9 +4,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
 import { groupUrl } from '@hylo/navigation'
-import { GROUP_ASSISTANT } from 'config/featureFlags'
+import { GROUP_ASSISTANT, hasFeature } from 'config/featureFlags'
 import { askGroupQuestion } from 'store/actions/groupAssistant'
-import { hasFeature } from 'store/models/Me'
 import AxlAvatar from './AxlAvatar'
 
 /**

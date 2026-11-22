@@ -329,6 +329,34 @@ describe('StripeController.webhook', () => {
       expect(stored).to.equal(undefined)
     })
 
+    it('records refunds of Pro payments without running the Connect refund handler', async () => {
+      const savedCharges = stripeMock.charges
+      const savedHandler = StripeController.handleChargeRefunded
+      StripeController.handleChargeRefunded = spy(async () => {})
+      const proCharge = { id: 'ch_pro', object: 'charge', customer: 'cus_pro', amount: 1000, amount_refunded: 1000, refunded: true, currency: 'usd', refunds: { data: [] } }
+      stripeMock.charges = { retrieve: async () => proCharge }
+      try {
+        currentWebhookEvent = { id: 'evt_pro_refund', type: 'charge.refunded', data: { object: proCharge } }
+        await StripeController.webhook(req, res)
+
+        expect(res.body).to.deep.equal({ received: true })
+        expect(StripeController.handleChargeRefunded).to.not.have.been.called()
+        const log = await bookshelf.knex('stripe_logs').where({ log_type: 'hylo_pro_refund', external_id: 'ch_pro' }).first()
+        expect(log.group_id).to.equal(group.id)
+        const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_refund' }).first()
+        expect(stored).to.not.equal(undefined)
+
+        // A refund of some other platform charge still goes the old way
+        currentWebhookEvent = { id: 'evt_other_refund', type: 'charge.refunded', data: { object: { ...proCharge, id: 'ch_other', customer: 'cus_someone' } } }
+        res = factories.mock.response()
+        await StripeController.webhook(req, res)
+        expect(StripeController.handleChargeRefunded).to.have.been.called()
+      } finally {
+        stripeMock.charges = savedCharges
+        StripeController.handleChargeRefunded = savedHandler
+      }
+    })
+
     it('sends Connect events to the Connect handlers even if their metadata looks like Pro', async () => {
       await StripeAccount.forge({ stripe_account_external_id: 'acct_known_pro_lookalike' }).save()
       const retrieved = []
@@ -407,7 +435,7 @@ describe('StripeController.webhook', () => {
       const savedHandler = StripeController.handleChargeRefunded
       StripeController.handleChargeRefunded = spy(async () => {})
       try {
-        // e.g. a refund of a Hylo Pro charge: the charge carries no Pro metadata
+        // e.g. a refund of a platform charge that isn't a Hylo Pro payment
         signedWith('whsec_platform', { id: 'evt_platform_refund', type: 'charge.refunded', data: { object: { id: 'ch_1', metadata: {} } } })
         await StripeController.webhook(req, res)
         expect(res.body).to.deep.equal({ received: true, skipped: 'platform_event' })

@@ -8,11 +8,18 @@ export default
     bio
     contactPhone
     contactEmail
-    twitterName
-    linkedinUrl
-    facebookUrl
-    url
     tagline
+    profileLinks {
+      items {
+        id
+        url
+        title
+        iconUrl
+        sortOrder
+        createdAt
+        updatedAt
+      }
+    }
     location
     isSupporter
     isProfilePublic

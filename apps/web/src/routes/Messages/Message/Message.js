@@ -170,7 +170,7 @@ export default function Message ({ message, isHeader }) {
               <div className='text-foreground font-bold truncate hover:underline'>{person.name}</div>
             </ProfileCardDialog>
             <div className='flex items-center gap-1 flex-shrink-0'>
-              <span className='text-xs text-foreground/50 whitespace-nowrap'>
+              <span className='text-xs text-foreground-muted whitespace-nowrap'>
                 {pending ? 'sending...' : TextHelpers.humanDate(message.createdAt)}
                 {editedTimestamp && (
                   <span className='ml-1'>({editedTimestamp})</span>
@@ -180,7 +180,7 @@ export default function Message ({ message, isHeader }) {
           </div>
         )}
         {!isHeader && editedTimestamp && (
-          <div className='text-xs text-foreground/50 text-right mb-0.5'>({editedTimestamp})</div>
+          <div className='text-xs text-foreground-muted text-right mb-0.5'>({editedTimestamp})</div>
         )}
         <div className='text-foreground break-words'>
           {editing

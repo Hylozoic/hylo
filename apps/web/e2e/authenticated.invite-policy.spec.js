@@ -5,8 +5,7 @@ import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading
 
 /**
  * "Who can add new members?" and invitations sent by members.
- * Seed: `E2E_MEMBER_INVITE_GROUPS` in `apps/backend/scripts/seed-e2e-baseline.js`. The isolated
- * runner turns member invites on (FEATURE_FLAG_MEMBER_INVITES / VITE_FEATURE_FLAG_MEMBER_INVITES).
+ * Seed: `E2E_MEMBER_INVITE_GROUPS` in `apps/backend/scripts/seed-e2e-baseline.js`.
  * Set PLATFORM_INVITE_POLICY_SCREENSHOTS to a directory to save screenshots there.
  */
 

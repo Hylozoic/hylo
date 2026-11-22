@@ -1,4 +1,4 @@
-import isPlayableVideoUrl, { getVideoEmbedUrl } from './isPlayableVideoUrl'
+import isPlayableVideoUrl, { getVideoEmbedUrl, isDirectVideoFileUrl } from './isPlayableVideoUrl'
 
 describe('isPlayableVideoUrl', () => {
   it('detects YouTube and Vimeo watch URLs', () => {
@@ -14,6 +14,18 @@ describe('isPlayableVideoUrl', () => {
     expect(isPlayableVideoUrl('https://www.youtube.com/about')).toBe(false)
     expect(isPlayableVideoUrl('')).toBe(false)
     expect(isPlayableVideoUrl(null)).toBe(false)
+  })
+})
+
+describe('isDirectVideoFileUrl', () => {
+  it('detects uploaded video files and ignores embeds', () => {
+    expect(isDirectVideoFileUrl('https://cdn.example/clip.mp4')).toBe(true)
+    expect(isDirectVideoFileUrl('https://cdn.example/clip.MP4?token=1')).toBe(true)
+    expect(isDirectVideoFileUrl('https://cdn.example/clip.webm')).toBe(true)
+    expect(isDirectVideoFileUrl('https://cdn.example/clip.mov')).toBe(true)
+    expect(isDirectVideoFileUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe(false)
+    expect(isDirectVideoFileUrl('https://cdn.example/notes.pdf')).toBe(false)
+    expect(isDirectVideoFileUrl(null)).toBe(false)
   })
 })
 
