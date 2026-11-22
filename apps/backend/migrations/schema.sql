@@ -1523,6 +1523,41 @@ ALTER SEQUENCE public.group_views_users_id_seq OWNED BY public.group_views_users
 
 
 --
+-- Name: group_view_design_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_view_design_sessions (
+    id bigint NOT NULL,
+    group_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    view_id bigint,
+    messages jsonb DEFAULT '[]'::jsonb NOT NULL,
+    draft jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: group_view_design_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.group_view_design_sessions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: group_view_design_sessions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.group_view_design_sessions_id_seq OWNED BY public.group_view_design_sessions.id;
+
+
+--
 -- Name: groups; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -8214,6 +8249,59 @@ ALTER TABLE ONLY public.supporter_grants
 
 ALTER TABLE ONLY public.supporter_links
     ADD CONSTRAINT supporter_links_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_view_design_sessions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_design_sessions ALTER COLUMN id SET DEFAULT nextval('public.group_view_design_sessions_id_seq'::regclass);
+
+
+--
+-- Name: group_view_design_sessions group_view_design_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_design_sessions
+    ADD CONSTRAINT group_view_design_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: group_view_design_sessions_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX group_view_design_sessions_unique ON public.group_view_design_sessions USING btree (group_id, user_id, COALESCE(view_id, (0)::bigint));
+
+
+--
+-- Name: group_view_design_sessions_view_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_view_design_sessions_view_id_index ON public.group_view_design_sessions USING btree (view_id);
+
+
+--
+-- Name: group_view_design_sessions group_view_design_sessions_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_design_sessions
+    ADD CONSTRAINT group_view_design_sessions_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_view_design_sessions group_view_design_sessions_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_design_sessions
+    ADD CONSTRAINT group_view_design_sessions_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: group_view_design_sessions group_view_design_sessions_view_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_view_design_sessions
+    ADD CONSTRAINT group_view_design_sessions_view_id_foreign FOREIGN KEY (view_id) REFERENCES public.group_views(id) ON DELETE CASCADE;
 
 
 --

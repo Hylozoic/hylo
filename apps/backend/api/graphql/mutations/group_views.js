@@ -12,6 +12,13 @@ import {
 import { buildGroupDigest, describePickedPosts, digestPostIds, formatGroupDigest, formatPickedPosts, postIdsInGroup } from '../../../lib/groupDigest'
 import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
 import RedisClient from '../../services/RedisClient'
+import HyloProService from '../../services/HyloProService'
+import {
+  MAX_DESIGN_SESSION_BYTES,
+  normalizeDesignSessionDraft,
+  normalizeStoredDesignMessages,
+  presentDesignSession
+} from '../../../lib/designedViewSessions'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -44,18 +51,16 @@ async function requireAdminOrManageContent (userId, groupId, action) {
   }
 }
 
-export const HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS = 'Designed views are part of Hylo Pro. This group needs Hylo Pro to design or change one.'
-
 /**
- * Designed views are a Hylo Pro feature: designing, creating and changing one
- * need an active subscription or grant. A view made while the group had Pro
- * keeps showing after Pro lapses, and can still be renamed, moved or deleted.
+ * Designed views are the `designedViews` Hylo Pro feature (decision Q-82 on #1782): designing,
+ * creating and changing one need it. A view made while the group had it keeps showing after it
+ * lapses, and can still be renamed, moved or deleted, but its design can't be changed (Q-25).
+ * Refused with HYLO_PRO_REQUIRED (no Pro) or HYLO_PRO_FEATURE_REQUIRED (a plan without it).
  */
-async function requireHyloProForDesignedViews (groupId) {
+async function requireDesignedViews (groupId) {
   const group = await Group.find(groupId)
-  if (!group || !(await group.hasPro())) {
-    throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_DESIGNED_VIEWS, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
-  }
+  if (!group) throw new GraphQLError('Group not found')
+  await HyloProService.requireProFeature(group, 'designedViews')
   return group
 }
 
@@ -87,7 +92,7 @@ export async function createGroupView ({ userId, groupId, type, name, icon, sett
   await requireAdmin(userId, groupId, 'create views')
 
   if (type === GroupView.Type.DESIGNED) {
-    await requireHyloProForDesignedViews(groupId)
+    await requireDesignedViews(groupId)
     settings = await designedViewSettings(settings, groupId)
   }
 
@@ -153,7 +158,7 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
   }
 
   if (view.get('type') === GroupView.Type.DESIGNED && settings !== undefined) {
-    await requireHyloProForDesignedViews(groupId)
+    await requireDesignedViews(groupId)
     settings = await designedViewSettings(settings, groupId)
   }
 
@@ -527,14 +532,19 @@ async function withinDesignTurnLimit (groupId) {
  * One turn of the "Design your own view" chat. Saves nothing: returns the AI's
  * reply, the whole page as a designed view, and the token usage and estimated
  * cost. The steward saves the page with createGroupView or updateGroupView.
- * Requires the Administration responsibility and Hylo Pro.
+ * Requires the Administration responsibility and the designedViews Pro feature.
+ *
+ * Cost limits: turns are counted per group per hour here (withinDesignTurnLimit). There is no
+ * monthly cost cap (decision Q-26); the per-group token limit coming in #1795 plugs in next to
+ * withinDesignTurnLimit, checked before the model call, with the turn's usage (returned below as
+ * `usage`, input and output tokens) counted against it afterwards.
  */
 export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents, postIds }, deps = {}) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
 
   await requireAdmin(userId, groupId, 'design views')
-  const group = await requireHyloProForDesignedViews(groupId)
+  const group = await requireDesignedViews(groupId)
 
   if (!(deps.isConfigured || isViewDesignConfigured)()) {
     throw new GraphQLError('Designing views with AI is not set up on this server')
@@ -593,7 +603,7 @@ export async function designGroupViewTurn ({ userId, groupId, messages, currentV
  * it already holds (see lib/groupDigest.js for exactly what the AI is shown).
  * Returns { reply, suggestions: [{ name, why, prompt }], usage }; each prompt
  * can be sent to designGroupViewTurn as the steward's first message.
- * Requires the Administration responsibility and Hylo Pro; counts toward the
+ * Requires the Administration responsibility and the designedViews Pro feature; counts toward the
  * same hourly limit as design turns.
  */
 export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
@@ -601,7 +611,7 @@ export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
   if (!groupId) throw new GraphQLError('No groupId passed into function')
 
   await requireAdmin(userId, groupId, 'design views')
-  const group = await requireHyloProForDesignedViews(groupId)
+  const group = await requireDesignedViews(groupId)
 
   if (!(deps.isConfigured || isViewDesignConfigured)()) {
     throw new GraphQLError('Designing views with AI is not set up on this server')
@@ -617,4 +627,69 @@ export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
     sails.log.error(`suggestGroupViews failed for group ${group.id}: ${err.message}`)
     throw new GraphQLError(`Suggestions could not be made: ${err.message}`)
   }
+}
+
+const DESIGN_SESSIONS = 'group_view_design_sessions'
+
+/**
+ * Which stored design session a call is about: the steward's own, for one designed view of the
+ * group or (viewId empty) for the page they have not added to the menu yet.
+ */
+async function designSessionScope (userId, groupId, viewId) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+  await requireAdmin(userId, groupId, 'design views')
+  if (!viewId) return { groupId, userId, viewId: null }
+  const view = await GroupView.where({ id: viewId }).fetch()
+  if (!view || String(view.get('group_id')) !== String(groupId) || view.get('type') !== GroupView.Type.DESIGNED) {
+    throw new GraphQLError('View not found in this group')
+  }
+  return { groupId, userId, viewId: view.id }
+}
+
+function whereDesignSession (query, { groupId, userId, viewId }) {
+  query.where({ group_id: groupId, user_id: userId })
+  return viewId ? query.where('view_id', viewId) : query.whereNull('view_id')
+}
+
+/**
+ * The steward's stored "Design your own view" session (decision Q-27): { messages, draft,
+ * updatedAt }, or null. messages is the chat with Axl; draft is the page they have not saved, or
+ * null. Reading needs only the Administration responsibility, so a group whose Pro lapsed can
+ * still see its conversation.
+ */
+export async function groupViewDesignSession ({ userId, groupId, viewId }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  return presentDesignSession(await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first())
+}
+
+/**
+ * Stores the steward's design session, replacing what was there. draft null means the page
+ * matches what is saved. Needs the designedViews Pro feature, like changing a design.
+ */
+export async function saveGroupViewDesignSession ({ userId, groupId, viewId, messages, draft }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  await requireDesignedViews(groupId)
+
+  const storedMessages = JSON.stringify(normalizeStoredDesignMessages(messages))
+  const storedDraft = draft == null ? null : JSON.stringify(normalizeDesignSessionDraft(draft))
+  if (Buffer.byteLength(storedMessages) + Buffer.byteLength(storedDraft || '') > MAX_DESIGN_SESSION_BYTES) {
+    throw new GraphQLError('This design is too large to keep. Save the page to keep going.')
+  }
+
+  const result = await bookshelf.knex.raw(`
+    INSERT INTO ${DESIGN_SESSIONS} (group_id, user_id, view_id, messages, draft, created_at, updated_at)
+    VALUES (?, ?, ?, ?::jsonb, ?::jsonb, now(), now())
+    ON CONFLICT (group_id, user_id, COALESCE(view_id, 0))
+    DO UPDATE SET messages = EXCLUDED.messages, draft = EXCLUDED.draft, updated_at = now()
+    RETURNING *
+  `, [scope.groupId, scope.userId, scope.viewId, storedMessages, storedDraft])
+  return presentDesignSession(result.rows[0])
+}
+
+/** Forgets the steward's design session (used once a new page has been added to the menu). */
+export async function deleteGroupViewDesignSession ({ userId, groupId, viewId }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).del()
+  return { success: true }
 }

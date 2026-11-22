@@ -44,7 +44,10 @@ export {
   removePostFromView,
   reorderViewPost,
   designGroupViewTurn,
-  suggestGroupViews
+  suggestGroupViews,
+  groupViewDesignSession,
+  saveGroupViewDesignSession,
+  deleteGroupViewDesignSession
 } from './group_views'
 export {
   createSpace,

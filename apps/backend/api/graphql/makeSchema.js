@@ -158,6 +158,9 @@ import {
   setHomeView,
   designGroupViewTurn,
   suggestGroupViews,
+  groupViewDesignSession,
+  saveGroupViewDesignSession,
+  deleteGroupViewDesignSession,
   subscribe,
   swapProposalVote,
   unblockUser,
@@ -582,6 +585,9 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     myDrafts: (root, args, context) =>
       Draft.where({ user_id: context.currentUserId }).orderBy('updated_at', 'desc').fetchAll(),
 
+    groupViewDesignSession: (root, { groupId, viewId }, context) =>
+      groupViewDesignSession({ userId: context.currentUserId, groupId, viewId }),
+
     draft: (root, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }, context) =>
       Draft.findForContext(context.currentUserId, { type, postId, groupId, topicId, messageThreadId, postType, isEdit }),
 
@@ -775,6 +781,10 @@ export function makeMutations ({ fetchOne }) {
     suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
     designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>
       designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents, postIds }),
+    saveGroupViewDesignSession: (root, { groupId, viewId, messages, draft }, context) =>
+      saveGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId, messages, draft }),
+    deleteGroupViewDesignSession: (root, { groupId, viewId }, context) =>
+      deleteGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 

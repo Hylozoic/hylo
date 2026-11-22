@@ -303,6 +303,11 @@ type Query {
   # Get all drafts for the currently logged in user
   myDrafts: [Draft]
 
+  # The current user's stored "Design your own view" session for a Group: { messages, draft, updatedAt },
+  # or null. viewId is the designed view, or empty for a page not added to the menu yet. messages is the
+  # chat with Axl; draft is the unsaved page, or null. Requires the Administration responsibility.
+  groupViewDesignSession(groupId: ID!, viewId: ID): JSON
+
   # Get a single draft by context (pass the relevant context IDs for the type)
   draft(type: String, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean): Draft
 
@@ -3650,13 +3655,19 @@ type Mutation {
   # postIds is the posts from this Group the steward picked to build the page around.
   # The AI is shown the attached images and documents so it can read them. Saves nothing: returns { reply, name, view, usage } where name is a suggested menu name, view is the whole
   # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
-  # AI model, token counts and estimated cost. Requires the Administration responsibility and Hylo Pro.
+  # AI model, token counts and estimated cost. Requires the Administration responsibility and the designedViews Hylo Pro feature.
   designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON, documents: JSON, postIds: [ID]): JSON
   # Ideas for views that would help a Group grow, from its purpose, size, post counts and the titles of
   # recent posts and coming events. Returns { reply, suggestions: [{ name, why, prompt }], usage }; a
   # suggestion's prompt can be sent to designGroupViewTurn as the first message.
-  # Requires the Administration responsibility and Hylo Pro.
+  # Requires the Administration responsibility and the designedViews Hylo Pro feature.
   suggestGroupViews(groupId: ID!): JSON
+  # Store the current user's "Design your own view" session (see Query.groupViewDesignSession), replacing
+  # what was there; draft null means the page matches what is saved. Requires the Administration
+  # responsibility and the designedViews Hylo Pro feature.
+  saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON): JSON
+  # Forget the current user's stored design session for a Group's view (or new page)
+  deleteGroupViewDesignSession(groupId: ID!, viewId: ID): GenericResult
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

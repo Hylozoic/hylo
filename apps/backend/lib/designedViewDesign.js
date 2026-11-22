@@ -24,9 +24,10 @@ import { runInChildProcess as runScript } from './aiChildProcess'
  * want in a chat, and Claude answers each message with a short reply and the
  * whole page as a designed view (see DesignedViewHelpers in @hylo/shared).
  *
- * The conversation is not stored here. The web app sends the history and the
- * current design with every message, and saves the design separately once the
- * steward is happy with it.
+ * The web app sends the history and the current design with every message, and
+ * saves the design separately once the steward is happy with it. The conversation
+ * and the unsaved page are kept per steward in group_view_design_sessions (see
+ * lib/designedViewSessions.js), not here.
  */
 
 export const DEFAULT_DESIGN_MODEL = 'claude-opus-5-5'

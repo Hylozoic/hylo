@@ -1,7 +1,10 @@
 /* eslint-disable no-unused-expressions */
 /* global Group, GroupView, HyloProSubscription, Post, bookshelf */
 import factories from '../../../test/setup/factories'
-import { createGroupView, updateGroupView, deleteGroupView, designGroupViewTurn, suggestGroupViews } from './group_views'
+import {
+  createGroupView, updateGroupView, deleteGroupView, reorderGroupView, designGroupViewTurn, suggestGroupViews,
+  groupViewDesignSession, saveGroupViewDesignSession, deleteGroupViewDesignSession
+} from './group_views'
 import { buildGroupDigest, describePickedPosts, digestPostIds, postIdsInGroup } from '../../../lib/groupDigest'
 
 describe('designed views', () => {
@@ -95,7 +98,7 @@ describe('designed views', () => {
         .to.be.rejectedWith(/part of Hylo Pro/)
     })
 
-    it('keeps a view made with Pro, and still lets it be renamed and deleted', async () => {
+    it('keeps a view made with Pro, and still lets it be renamed, moved and deleted', async () => {
       const view = await create(admin.id)
       await removePro()
 
@@ -103,8 +106,120 @@ describe('designed views', () => {
       expect(renamed.get('name')).to.equal('Start here')
       expect(renamed.get('settings')).to.deep.equal({ design: storedDesign })
 
+      expect(await reorderGroupView(admin.id, view.id, null, true)).to.deep.equal({ success: true })
+
       await deleteGroupView(admin.id, view.id)
       expect(await GroupView.where({ id: view.id }).fetch()).to.not.exist
+    })
+  })
+
+  describe('with a Hylo Pro plan that leaves out designedViews', () => {
+    const planWithout = () => HyloProSubscription.forge({
+      group_id: group.id, source: 'manual', status: 'active', features: { designedViews: false }
+    }).save()
+
+    it('refuses designing and changing a design with the feature error code, and still allows renaming', async () => {
+      const view = await create(admin.id)
+      await removePro()
+      await planWithout()
+
+      const error = await create(admin.id).catch(err => err)
+      expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_FEATURE_REQUIRED', feature: 'designedViews' })
+      await expect(updateGroupView({ userId: admin.id, id: view.id, settings: { design } }))
+        .to.be.rejectedWith(/doesn't include designedViews/)
+      await expect(designGroupViewTurn({ userId: admin.id, groupId: group.id, messages: [{ role: 'user', text: 'Hi' }] }, {
+        isConfigured: () => true, withinLimit: async () => true, designTurn: async () => { throw new Error('should not run') }
+      })).to.be.rejectedWith(/doesn't include designedViews/)
+
+      const renamed = await updateGroupView({ userId: admin.id, id: view.id, name: 'Renamed' })
+      expect(renamed.get('name')).to.equal('Renamed')
+    })
+
+    it('refuses a group with no Pro with the Pro error code', async () => {
+      await removePro()
+      const error = await create(admin.id).catch(err => err)
+      expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_REQUIRED', feature: 'designedViews' })
+    })
+  })
+
+  describe('stored design sessions', () => {
+    const messages = [{ role: 'user', text: 'A welcome page' }, { role: 'assistant', text: 'Here you go.' }]
+    const draft = {
+      design,
+      name: 'Welcome',
+      nameEdited: true,
+      dirty: true,
+      images: [{ url: 'https://hylo-uploads.example.org/a.jpg', name: 'Image 1', visible: true }],
+      documents: [],
+      posts: [{ id: '12', title: 'Potluck', type: 'event' }],
+      suggestions: null,
+      usageTotal: { count: 1, tokens: 900, costUsd: 0.03, costKnown: true },
+      sending: true,
+      extra: 'dropped'
+    }
+    const session = (userId, viewId, more = {}) => ({ userId, groupId: group.id, viewId, ...more })
+
+    afterEach(() => bookshelf.knex('group_view_design_sessions').where('group_id', group.id).del())
+
+    it('keeps the chat and the unsaved page for a new page, per steward, with only known fields', async () => {
+      expect(await groupViewDesignSession(session(admin.id))).to.equal(null)
+
+      const saved = await saveGroupViewDesignSession(session(admin.id, null, { messages: [...messages, { role: 'system', text: 'x' }], draft }))
+      expect(saved.messages).to.deep.equal(messages)
+      expect(saved.draft).to.deep.equal({
+        design: storedDesign,
+        name: 'Welcome',
+        nameEdited: true,
+        dirty: true,
+        images: [{ url: 'https://hylo-uploads.example.org/a.jpg', name: 'Image 1' }],
+        documents: [],
+        posts: [{ id: '12', title: 'Potluck', type: 'event' }],
+        suggestions: null,
+        usageTotal: { count: 1, tokens: 900, costUsd: 0.03, costKnown: true }
+      })
+
+      const loaded = await groupViewDesignSession(session(admin.id))
+      expect(loaded.messages).to.deep.equal(messages)
+      expect(loaded.draft.name).to.equal('Welcome')
+
+      // Saving again replaces the one row; another steward has their own
+      await saveGroupViewDesignSession(session(admin.id, null, { messages: messages.slice(0, 1), draft: null }))
+      expect(await bookshelf.knex('group_view_design_sessions').where({ group_id: group.id, user_id: admin.id }).count().then(r => Number(r[0].count))).to.equal(1)
+      expect((await groupViewDesignSession(session(admin.id))).draft).to.equal(null)
+    })
+
+    it('keeps a session per designed view, and forgets it when the view is deleted', async () => {
+      const view = await create(admin.id)
+      await saveGroupViewDesignSession(session(admin.id, view.id, { messages, draft: null }))
+      await saveGroupViewDesignSession(session(admin.id, null, { messages: messages.slice(0, 1), draft }))
+
+      expect((await groupViewDesignSession(session(admin.id, view.id))).messages).to.deep.equal(messages)
+      expect((await groupViewDesignSession(session(admin.id))).messages).to.have.length(1)
+
+      await deleteGroupViewDesignSession(session(admin.id))
+      expect(await groupViewDesignSession(session(admin.id))).to.equal(null)
+
+      await deleteGroupView(admin.id, view.id)
+      expect(await bookshelf.knex('group_view_design_sessions').where({ group_id: group.id }).count().then(r => Number(r[0].count))).to.equal(0)
+    })
+
+    it('needs the Administration responsibility, a designed view of this group, and the feature to save', async () => {
+      await expect(groupViewDesignSession(session(member.id))).to.be.rejectedWith(/permission/)
+      await expect(saveGroupViewDesignSession(session(member.id, null, { messages }))).to.be.rejectedWith(/permission/)
+
+      const other = await createGroupView({ userId: admin.id, groupId: group.id, type: 'custom', name: 'Mine', settings: { postTypes: ['offer'] } })
+      await expect(groupViewDesignSession(session(admin.id, other.id))).to.be.rejectedWith(/View not found/)
+
+      await saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))
+      await removePro()
+      await expect(saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))).to.be.rejectedWith(/part of Hylo Pro/)
+      // A lapsed group can still read its conversation
+      expect((await groupViewDesignSession(session(admin.id))).messages).to.deep.equal(messages)
+    })
+
+    it('refuses a session too large to keep', async () => {
+      const long = Array.from({ length: 200 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: 'x'.repeat(4000) }))
+      await expect(saveGroupViewDesignSession(session(admin.id, null, { messages: long, draft: null }))).to.be.rejectedWith(/too large/)
     })
   })
 
