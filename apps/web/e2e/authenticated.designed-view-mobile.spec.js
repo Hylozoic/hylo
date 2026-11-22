@@ -46,7 +46,8 @@ function sql (query) {
   return execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc', query], { encoding: 'utf8' }).trim()
 }
 
-const viewName = project => `E2E Designed ${project}`
+const VIEW_PREFIX = 'E2E Designed'
+const viewName = project => `${VIEW_PREFIX} ${project}`
 
 function createView (name) {
   sql(`DELETE FROM group_views WHERE type = 'designed' AND name = '${name}'`)
@@ -58,7 +59,7 @@ function createView (name) {
     RETURNING id`).split('\n')[0]
 }
 
-const deleteViews = () => sql(`DELETE FROM group_views WHERE type = 'designed' AND name LIKE 'E2E Designed %'`)
+const deleteViews = () => sql(`DELETE FROM group_views WHERE type = 'designed' AND name LIKE '${VIEW_PREFIX} %'`)
 
 async function stubDesignTurn (page) {
   await page.route('**/noo/graphql', async route => {

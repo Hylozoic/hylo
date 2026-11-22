@@ -9,7 +9,7 @@ export const DESIGNED_VIEWS = 'DESIGNED_VIEWS'
 export const HYLO_PRO = 'HYLO_PRO'
 
 // Flags that default to 'on' in development, test and staging, and to off in production
-const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, HYLO_PRO]
+const ON_OUTSIDE_PRODUCTION = [MEMBER_INVITES, DESIGNED_VIEWS, HYLO_PRO]
 const NON_PRODUCTION_ENVIRONMENTS = ['development', 'test', 'staging']
 
 // Staging runs a production build, so it is told apart by the environment name its error reports use
