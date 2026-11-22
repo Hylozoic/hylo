@@ -54,6 +54,16 @@ describe('MapDrawer', () => {
     expect(screen.getByText('hello')).toBeInTheDocument()
   })
 
+  it('only lists people on a group map', () => {
+    const members = [{ id: 2, name: 'hello' }]
+    const { unmount } = render(<MapDrawer {...defaultMinProps} members={members} />)
+    expect(screen.getByText('hello')).toBeInTheDocument()
+    unmount()
+
+    render(<MapDrawer {...defaultMinProps} context='all' routeParams={{ context: 'all' }} members={members} />)
+    expect(screen.queryByText('hello')).not.toBeInTheDocument()
+  })
+
   it('shows a space avatar in the drawer', () => {
     render(
       <MapDrawer
@@ -112,6 +122,17 @@ describe('MapDrawer', () => {
     expect(screen.getByText('in Oak Park')).toBeInTheDocument()
     expect(screen.queryByText('in Staff')).not.toBeInTheDocument()
     expect(screen.queryByText('in River')).not.toBeInTheDocument()
+  })
+
+  it('labels a legacy project post as a project', () => {
+    render(
+      <MapDrawer
+        {...defaultMinProps}
+        posts={[{ id: 1, title: 'Old project', type: 'project', creator: { id: 3, name: 'Ada' }, groups: [] }]}
+      />
+    )
+    // Without its own entry the pill falls back to the raw type, 'project'
+    expect(screen.getByText('Project')).toBeInTheDocument()
   })
 
   it('updates filters when searching', () => {
