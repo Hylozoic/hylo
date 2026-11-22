@@ -75,12 +75,14 @@ module.exports = bookshelf.Model.extend(Object.assign({
     // The Group Assistant's data-sharing agreement is never accepted along with the others: a member
     // answers it on its own (lib/groupAssistantConsent.js), and may say no and stay in the group
     const assistantAgreementId = await assistantAgreementRowId({ transacting, create: false })
-    const groupAgreements = (await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting }))
-      .filter(ga => String(ga.get('agreement_id')) !== String(assistantAgreementId))
+    const allAgreements = await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting })
+    const groupAgreements = allAgreements.filter(ga => String(ga.get('agreement_id')) !== String(assistantAgreementId))
 
     // Only set agreementsAcceptedAt if the group actually has agreements
-    // This prevents falsely recording acceptance when there's nothing to accept
-    if (groupAgreements.length === 0) {
+    // This prevents falsely recording acceptance when there's nothing to accept.
+    // A group whose only agreement is the assistant's still records it, or the
+    // "agreements have changed" prompt would keep coming back after the member answered
+    if (allAgreements.length === 0) {
       return
     }
 

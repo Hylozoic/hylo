@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-/* global Group, HyloProSubscription, Queue, bookshelf */
+/* global Group, GroupMembership, HyloProSubscription, Queue, bookshelf */
 import factories from '../../../test/setup/factories'
 import { askGroupAssistant, askGroupQuestion, assistantForMember, groupAssistant, markGroupAssistantDraftPosted, saveGroupAssistantVoiceNote, setGroupAssistantConsent, summarizeGroupChat, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
 import { fetchAssistantContent, fetchAssistantMembers, formatAssistantContent, summarizeAssistantMembers } from '../../../lib/groupAssistantContent'
@@ -425,6 +425,16 @@ describe('group assistant', () => {
       await setAssistantConsent(newcomer.id, group.id, false)
       await g.removeMembers([newcomer.id])
       expect(await bookshelf.knex('users_groups_agreements').where({ user_id: newcomer.id, agreement_id: await assistantAgreementRowId() }).first()).to.be.undefined
+    })
+
+    it('records the other agreements as accepted when the assistant\'s is the only one', async () => {
+      const lone = await factories.group({ name: 'Lone' }).save()
+      await addAssistantAgreement(lone)
+      const person = await factories.user().save()
+      const membership = await person.joinGroup(lone)
+      await membership.acceptAgreements()
+      expect((await GroupMembership.forPair(person.id, lone.id).fetch()).getSetting('agreementsAcceptedAt')).to.be.a('string')
+      expect(await assistantConsentFor(person.id, lone.id)).to.equal('pending')
     })
 
     it('only members can answer, and only while the group has the agreement', async () => {

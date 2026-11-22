@@ -1,4 +1,6 @@
 import {
+  GROUP_ASSISTANT_AGREEMENT,
+  isGroupAssistantAgreement,
   GROUP_ASSISTANT_DEFAULTS,
   groupAssistantJsonSchema,
   sanitizeAssistantParts,
@@ -86,5 +88,14 @@ describe('assistant message parts', () => {
     const part = schema.properties.parts.items
     expect(part.required.sort()).toEqual(Object.keys(part.properties).sort())
     expect(part.additionalProperties).toBe(false)
+  })
+})
+
+describe('isGroupAssistantAgreement', () => {
+  it('matches the assistant agreement by its exact text, ignoring surrounding spaces', () => {
+    expect(isGroupAssistantAgreement(GROUP_ASSISTANT_AGREEMENT)).toBe(true)
+    expect(isGroupAssistantAgreement({ title: ` ${GROUP_ASSISTANT_AGREEMENT.title} `, description: GROUP_ASSISTANT_AGREEMENT.description })).toBe(true)
+    expect(isGroupAssistantAgreement({ title: GROUP_ASSISTANT_AGREEMENT.title, description: 'Something else' })).toBe(false)
+    expect(isGroupAssistantAgreement(null)).toBe(false)
   })
 })
