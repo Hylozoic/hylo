@@ -43,10 +43,6 @@ export default gql`
     contactEmail
     contactPhone
     tagline
-    twitterName
-    linkedinUrl
-    facebookUrl
-    url
     hasDevice
     intercomHash
     hasStripeAccount

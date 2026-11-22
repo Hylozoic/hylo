@@ -517,7 +517,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
           <div className='flex flex-wrap items-center gap-2 shrink-0'>
             {getAccessTypeBadge(accessType)}
             {getStatusBadge(status, subscriptionCancelAtPeriodEnd)}
-            <div className='text-xs text-foreground/60'>
+            <div className='text-xs text-foreground-muted'>
               {t('Granted')}: {formatDate(createdAt)}
             </div>
             {subscriptionCancelAtPeriodEnd && subscriptionPeriodEnd && (
@@ -526,7 +526,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
               </div>
             )}
             {!subscriptionCancelAtPeriodEnd && expiresAt && (
-              <div className='text-xs text-foreground/60'>
+              <div className='text-xs text-foreground-muted'>
                 {t('Expires')}: {formatDate(expiresAt)}
               </div>
             )}
@@ -564,7 +564,7 @@ function ContentAccessRecordItem ({ record, parentGroupId, t, onActionComplete }
 
         {/* Granted By Info */}
         {grantedBy && (
-          <div className='mt-2 text-xs text-foreground/60 break-words [overflow-wrap:anywhere]'>
+          <div className='mt-2 text-xs text-foreground-muted break-words [overflow-wrap:anywhere]'>
             {t('Granted by')}: {grantedBy.name}
           </div>
         )}
@@ -912,7 +912,7 @@ function GrantAccessForm ({ group, offerings, spaces, initialSpaceId, onSuccess,
             ))}
           </select>
           {spaceOptions.length === 0 && (
-            <p className='mt-2 text-sm text-foreground/60'>
+            <p className='mt-2 text-sm text-foreground-muted'>
               {t('No spaces found in this group')}
             </p>
           )}

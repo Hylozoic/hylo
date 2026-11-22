@@ -88,7 +88,7 @@ export default function LocationWithBoundary ({
           <button
             type='button'
             onClick={() => setShowMap(true)}
-            className='absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold text-foreground/50 hover:text-foreground hover:bg-foreground/5 transition-colors'
+            className='absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] font-semibold text-foreground-muted hover:text-foreground hover:bg-foreground/5 transition-colors'
             data-testid='draw-boundary'
           >
             <VectorPolygonIcon className='w-3.5 h-3.5' />
@@ -99,7 +99,7 @@ export default function LocationWithBoundary ({
       {showMap && (
         <div ref={editorRef} className='flex flex-col gap-2' data-testid='boundary-editor'>
           <div className='flex items-center justify-between gap-3'>
-            <span className='text-xs text-foreground/60'>
+            <span className='text-xs text-foreground-muted'>
               {geoShape
                 ? t('Boundary drawn. Use the pen to redraw it.')
                 : t('Click the map to add points. Click the first point or press Enter to finish.')}
@@ -107,7 +107,7 @@ export default function LocationWithBoundary ({
             <button
               type='button'
               onClick={removeBoundary}
-              className='shrink-0 text-xs font-semibold text-foreground/60 hover:text-foreground transition-colors'
+              className='shrink-0 text-xs font-semibold text-foreground-muted hover:text-foreground transition-colors'
             >
               {geoShape ? t('Remove boundary') : t('Cancel')}
             </button>

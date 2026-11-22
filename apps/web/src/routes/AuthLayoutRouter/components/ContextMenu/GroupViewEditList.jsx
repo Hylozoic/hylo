@@ -96,7 +96,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         className={rowClass}
         {...flashProps}
       >
-        <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
+        <button type='button' className='p-1 cursor-grab text-foreground-muted shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <hr className='flex-1 border-foreground/10' />
@@ -113,7 +113,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
         className={rowClass}
         {...flashProps}
       >
-        <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
+        <button type='button' className='p-1 cursor-grab text-foreground-muted shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <TruncatedText
@@ -133,7 +133,7 @@ function SortableEditRow ({ view, onSettings, onHide, onDelete, isHome, spaceGro
       className={rowClass}
       {...flashProps}
     >
-      <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
+      <button type='button' className='p-1 cursor-grab text-foreground-muted shrink-0' {...attributes} {...listeners}>
         <GripVertical className='w-4 h-4' />
       </button>
       <GroupViewIcon view={presentedView} />
@@ -187,7 +187,7 @@ function SpaceEditRowMenu ({
           <DropdownMenuTrigger asChild>
             <button
               type='button'
-              className='p-1 text-foreground/50 hover:text-foreground rounded'
+              className='p-1 text-foreground-muted hover:text-foreground rounded'
               onPointerDown={(e) => e.stopPropagation()}
               aria-label={t('More actions')}
             >
@@ -282,7 +282,7 @@ function SortableSpaceEditRow ({
   return (
     <li ref={setNodeRef} style={style} className={cn('list-none', NO_TEXT_SELECT)}>
       <div className='flex items-center gap-1 border-2 border-dashed border-transparent hover:border-foreground/20 rounded-md p-1 group'>
-        <button type='button' className='p-1 cursor-grab text-foreground/50 shrink-0' {...attributes} {...listeners}>
+        <button type='button' className='p-1 cursor-grab text-foreground-muted shrink-0' {...attributes} {...listeners}>
           <GripVertical className='w-4 h-4' />
         </button>
         <GroupViewIcon view={presentedView} />
@@ -303,7 +303,7 @@ function SortableSpaceEditRow ({
               <TooltipTrigger asChild>
                 <button
                   type='button'
-                  className='p-1 text-foreground/50 hover:text-foreground'
+                  className='p-1 text-foreground-muted hover:text-foreground'
                   onClick={handleEditSpaceMenu}
                   aria-label={t('Edit space menu')}
                 >

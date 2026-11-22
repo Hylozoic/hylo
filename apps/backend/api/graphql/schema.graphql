@@ -593,6 +593,8 @@ type Query {
   hyloProGroups(slugOrId: String!): [HyloProAdminGroup]
   # Hylo Pro payments by a group's platform Stripe customer, newest first. groupId is the group's id (not a slug); after = the last charge id seen, for the next page
   hyloProPayments(groupId: ID!, after: String): HyloProPaymentPage
+  # Hylo staff only: a group's Pro refunds and disputes, as recorded from Stripe webhooks
+  hyloProChargeEvents(groupId: ID!): [HyloProChargeEvent]
   # The current user's Hylo supporter status, linked Open Collective contributions and badge setting
   supportHylo: SupportHyloInfo
 
@@ -751,6 +753,30 @@ type AffiliationQuerySet {
   total: Int
   hasMore: Boolean
   items: [Affiliation]
+}
+
+# A profile link for a user
+type UserProfileLink {
+  id: ID
+  createdAt: Date
+  # NOT USED: Reserved for a server-fetched favicon. The web app picks brand icons from the URL instead.
+  iconUrl: String
+  # Lower numbers appear first
+  sortOrder: Int
+  # Custom title text for the link
+  title: String
+  updatedAt: Date
+  # The URL of the link
+  url: String
+  # The person who owns this profile link
+  person: Person
+}
+
+# Query Sets are used for pagination, returning the total # of results for a query along with the current set of items and whether there is more to load in the final set
+type UserProfileLinkQuerySet {
+  total: Int
+  hasMore: Boolean
+  items: [UserProfileLink]
 }
 
 # An agreement used by a Group
@@ -1913,8 +1939,6 @@ type Me {
   email: String
   # Whether the logged in user has validated their email address or not
   emailValidated: Boolean
-  # The URL to the logged in user Facebook profile
-  facebookUrl: String
  # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
   hasDevice: Boolean  # False for new users who have not completed the registration process
   hasRegistered: Boolean
@@ -1926,8 +1950,6 @@ type Me {
   isAdmin: Boolean
   # Whether this user's profile is publicly viewable without logging in
   isProfilePublic: Boolean
-  # URL of the logged in user's LinkedIn Profile
-  linkedinUrl: String
   # String representing the logged in user's physical location
   location: String
   # Object with the geocoded details of the logged in user's physical location
@@ -1950,17 +1972,18 @@ type Me {
   settings: UserSettings
   # Short tagline
   tagline: String
-  # Twitter handle
-  twitterName: String
   # The number of message threads with unread content
   unseenThreadCount: Int
   # When this record was last updated
   updatedAt: Date
-  # A website URL the logged in user has added to their profile
+  # DEPRECATED: returns the first profile link url
   url: String
 
   # Organizational affiliations that are not Hylo Groups
   affiliations: AffiliationQuerySet
+
+  # Profile links for the logged in user
+  profileLinks: UserProfileLinkQuerySet
 
   # Set of Users the logged in user has blocked
   blockedUsers: [Person]
@@ -2327,16 +2350,12 @@ type Person {
   contactPhone: String
   # When loading through a track: membership created_at (join space = enroll)
   enrolledAt: Date
-  # The URL to this person's Facebook profile
-  facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
   # Whether this person's profile is publicly viewable without logging in
   isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
-  # URL of this person's LinkedIn Profile
-  linkedinUrl: String
   # String representing this person's physical location
   location: String
   # Object with the geocoded details of this person's physical location
@@ -2351,13 +2370,13 @@ type Person {
   name: String
   # Short tagline
   tagline: String
-  # This person's twitter handle
-  twitterName: String
-  # A website URL this person has added to their profile
+  # DEPRECATED: returns the first profile link url
   url: String
 
   # Organizational affiliations that are not Hylo Groups
   affiliations: AffiliationQuerySet
+  # Profile links for this person
+  profileLinks: UserProfileLinkQuerySet
   # Comments this person has made (that are visible to the logged in user)
   comments(
     # Load this number of posts
@@ -3599,6 +3618,8 @@ type Mutation {
   completePost(postId: ID, completionResponse: JSON): Post
   # For logged in user to add an Affiliation to their profile
   createAffiliation(data: AffiliationInput): Affiliation
+  # Create a new profile link
+  createUserProfileLink(data: UserProfileLinkInput): UserProfileLink
   # Add a comment to a Post
   createComment(data: CommentInput): Comment
   # Create a new funding round
@@ -3784,6 +3805,8 @@ type Mutation {
   declineJoinRequest(joinRequestId: ID): JoinRequest
   # Delete an Affiliation from your profile
   deleteAffiliation(id: ID): ID
+  # Delete a profile link
+  deleteUserProfileLink(id: ID): ID
   # Delete a comment
   deleteComment(id: ID): GenericResult
   # Delete a draft by ID
@@ -3977,6 +4000,10 @@ type Mutation {
   updateAllMemberships(data: MembershipInput): GenericResult
   # Edit a comment
   updateComment(id: ID, data: CommentInput): Comment
+  # Update a profile link
+  updateUserProfileLink(id: ID, data: UserProfileLinkInput): UserProfileLink
+  # Reorder the logged in user's profile links. ids must be exactly those links, in the new order
+  reorderUserProfileLinks(ids: [ID!]!): [UserProfileLink]
   # Update a funding round
   updateFundingRound(id: ID, data: FundingRoundInput): FundingRound
   # Update a Group's settings. Only a group steward can call this.
@@ -4395,6 +4422,51 @@ type HyloProAdminSubscription {
   canceledAt: Date
   endedAt: Date
   createdAt: Date
+  # Stripe rows, as of the last sync: price per billing period in cents, before discounts (null until synced)
+  amount: Int
+  currency: String
+  # Billing period length in units of interval (e.g. 3 for every 3 months)
+  intervalCount: Int
+  # The discount applied to the subscription, if any
+  discount: HyloProDiscount
+  # Stripe rows: what this subscription adds to MRR (in its currency, discount included, yearly as 1/12); null until synced
+  monthlyRevenueCents: Int
+  # Stripe rows: the group's Pro disputes still waiting for an outcome, and its refunded Pro payments
+  openDisputes: Int
+  refunds: Int
+}
+
+type HyloProDiscount {
+  couponId: String
+  percentOff: Float
+  # In cents of currency
+  amountOff: Int
+  currency: String
+  # 'once', 'repeating' or 'forever'
+  duration: String
+  # When a repeating discount stops applying
+  endsAt: Date
+}
+
+# A refund or dispute of a Hylo Pro payment, recorded from Stripe webhooks
+type HyloProChargeEvent {
+  id: ID
+  # 'refund' or 'dispute'
+  type: String
+  # The Stripe charge refunded or disputed
+  chargeId: String
+  # Stripe dispute id (disputes) or charge id (refunds)
+  externalId: String
+  # Refunds: total refunded on the payment so far; disputes: the disputed amount. In cents
+  amount: Int
+  currency: String
+  reason: String
+  # Refunds: refunded or partially_refunded; disputes: Stripe's dispute status
+  status: String
+  # Disputes only: still waiting for an outcome
+  open: Boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 type HyloProAdminGroup {
@@ -4447,11 +4519,23 @@ type HyloProMetrics {
   pastDue: Int
   # Active grants ending within 30 days
   grantsExpiringSoon: Int
-  # Monthly recurring revenue in cents (yearly plans count 1/12)
+  # Monthly recurring revenue in cents of `currency` (the plan currency), from what each paying
+  # subscription pays as of its last sync, discounts included; yearly plans count 1/12
   mrrCents: Int
   currency: String
+  # MRR per currency, never converted; the plan currency first
+  mrrByCurrency: [HyloProCurrencyRevenue]
+  # Paying subscriptions not yet synced with their own amount, counted at today's plan price
+  mrrEstimatedSubscriptions: Int
   # The last six months, oldest first
   months: [HyloProMetricsMonth]
+}
+
+type HyloProCurrencyRevenue {
+  currency: String
+  mrrCents: Int
+  # Paying subscriptions in this currency
+  subscriptions: Int
 }
 
 type HyloProPayment {
@@ -4617,6 +4701,14 @@ input AffiliationInput {
   # The role this person has in the organization
   role: String
   # URL of the affiliated organization
+  url: String
+}
+
+# Input for creating or updating a user profile link
+input UserProfileLinkInput {
+  # Custom title text for the link
+  title: String
+  # The URL of the link
   url: String
 }
 
@@ -4929,12 +5021,8 @@ input MeInput {
   contactPhone: String
   # Account email address used to log in. Changing it sends a verification to the new address, and it only takes effect once verified (see pendingEmail)
   email: String
-  # The URL to your Facebook profile
-  facebookUrl: String
   # Whether your profile is publicly viewable without logging in
   isProfilePublic: Boolean
-  # The URL to your LinkedIn profile
-  linkedinUrl: String
   # String representing your physical location
   location: String
   # ID of the geocoded location object representing your physical location in the world
@@ -4949,10 +5037,6 @@ input MeInput {
   settings: UserSettingsInput
   # Short tagline
   tagline: String
-  # Twitter handle
-  twitterName: String
-  # A website URL for your profile
-  url: String
 }
 
 # Data related to membership in a Group

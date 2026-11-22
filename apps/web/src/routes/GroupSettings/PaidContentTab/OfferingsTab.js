@@ -73,7 +73,7 @@ function OfferingPriceFeeBreakdown ({ price, currency, t }) {
   const netToGroup = amount - stripeFee - hyloFee
 
   return (
-    <div className='mt-1 text-xs text-foreground/60 space-y-0.5'>
+    <div className='mt-1 text-xs text-foreground-muted space-y-0.5'>
       <div className='flex justify-between gap-3'>
         <span>{t('Estimated Stripe fee (US cards)')}</span>
         <span className='tabular-nums'>{stripeFee.toFixed(2)} <span className='font-semibold'>{upperCurrency}</span></span>
@@ -86,7 +86,7 @@ function OfferingPriceFeeBreakdown ({ price, currency, t }) {
         <span>{t('Estimated net to group')}</span>
         <span className='tabular-nums'>{netToGroup.toFixed(2)} <span className='font-semibold'>{upperCurrency}</span></span>
       </div>
-      <div className='text-foreground/50'>
+      <div className='text-foreground-muted'>
         {t('Estimates only. Stripe fees vary by country, payment method, and account settings.')}
       </div>
     </div>
@@ -628,7 +628,7 @@ function OfferingsTab ({ group, accountId, offerings, onRefreshOfferings }) {
                 />
                 <span>{t('Sliding scale')}</span>
               </label>
-              <div className='text-xs text-foreground/50'>
+              <div className='text-xs text-foreground-muted'>
                 {t('Users choose quantity in Stripe within this range')}
               </div>
             </div>
@@ -1064,7 +1064,7 @@ function SubscribersPanel ({ offering, group, t }) {
           <p className='text-xs text-foreground/70'>{t('Monthly Revenue')}</p>
         </div>
         <div className='bg-background/50 rounded-lg p-3 text-center'>
-          <p className='text-2xl font-bold text-foreground/50'>{stats?.lapsedCount || 0}</p>
+          <p className='text-2xl font-bold text-foreground-muted'>{stats?.lapsedCount || 0}</p>
           <p className='text-xs text-foreground/70'>{t('Lapsed')}</p>
         </div>
       </div>
@@ -1075,7 +1075,7 @@ function SubscribersPanel ({ offering, group, t }) {
         <div className='flex items-center justify-between mb-3'>
           <p className='text-sm font-medium text-foreground'>
             {showLapsedOnly ? t('Lapsed Members') : t('Active Members')}
-            <span className='text-foreground/50 ml-2'>({subscribersMeta.total})</span>
+            <span className='text-foreground-muted ml-2'>({subscribersMeta.total})</span>
           </p>
           <Button
             variant='outline'
@@ -1089,7 +1089,7 @@ function SubscribersPanel ({ offering, group, t }) {
 
         {/* Subscriber List */}
         {subscribers.length === 0 && (
-          <div className='text-center py-4 text-foreground/50 text-sm'>
+          <div className='text-center py-4 text-foreground-muted text-sm'>
             <Users className='w-6 h-6 mx-auto mb-2 opacity-50' />
             <p>
               {showLapsedOnly
@@ -1122,7 +1122,7 @@ function SubscribersPanel ({ offering, group, t }) {
                   <p className='text-sm font-medium text-foreground truncate'>
                     {subscriber.userName}
                   </p>
-                  <p className='text-xs text-foreground/50'>
+                  <p className='text-xs text-foreground-muted'>
                     {subscriber.status === 'active'
                       ? t('Active')
                       : t('Lapsed')}
@@ -1283,7 +1283,7 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
               {stripHtml(offering.description)}
             </div>
           )}
-          <div className='flex items-center gap-4 text-xs text-foreground/50 mb-2'>
+          <div className='flex items-center gap-4 text-xs text-foreground-muted mb-2'>
             {slidingScaleDisplay && (
               <span>{slidingScaleDisplay}</span>
             )}
@@ -1317,7 +1317,7 @@ function OfferingListItem ({ offering, onEdit, group, childSpaces = [], isEditin
               {(accessDetails.spaces.length > 0 || accessDetails.roles.length > 0) && (
                 <>
                   <p className='text-xs font-semibold text-foreground/70 mb-2'>{t('Grants access to')}:</p>
-                  <div className='flex flex-col gap-2 text-xs text-foreground/60'>
+                  <div className='flex flex-col gap-2 text-xs text-foreground-muted'>
                     {accessDetails.spaces.length > 0 && (
                       <div>
                         <span className='font-medium mb-1 block'>{t('Spaces')}:</span>
@@ -1543,7 +1543,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
         <label className='text-sm font-semibold text-foreground mb-2 block'>
           {t('Content Access')}
         </label>
-        <p className='text-xs text-foreground/60 mb-3'>
+        <p className='text-xs text-foreground-muted mb-3'>
           {t('Select spaces, groups, and roles that this offering grants access to')}
         </p>
 
@@ -1552,7 +1552,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
             <label className='text-sm font-medium text-foreground block mb-1'>
               {t('Grant access to this group')}
             </label>
-            <p className='text-xs text-foreground/60'>
+            <p className='text-xs text-foreground-muted'>
               {t('When enabled, purchasing this offering grants access to join this group')}
             </p>
           </div>
@@ -1565,7 +1565,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
         <div className='space-y-2 mb-4'>
           {(lineItems.spaces || []).length > 0 && (
             <div>
-              <p className='text-xs text-foreground/50 mb-1'>{t('Spaces')}:</p>
+              <p className='text-xs text-foreground-muted mb-1'>{t('Spaces')}:</p>
               <div className='flex flex-wrap gap-2'>
                 {lineItems.spaces.map(space => (
                   <span
@@ -1587,7 +1587,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
           )}
           {lineItems.roles.length > 0 && (
             <div>
-              <p className='text-xs text-foreground/50 mb-1'>{t('Roles')}:</p>
+              <p className='text-xs text-foreground-muted mb-1'>{t('Roles')}:</p>
               <div className='flex flex-wrap gap-2'>
                 {lineItems.roles.map(role => (
                   <span
@@ -1659,7 +1659,7 @@ function LineItemsSelector ({ group, lineItems, onLineItemsChange, t }) {
                             >
                               {activeSelector === 'role' && item.emoji && <span className='mr-2'>{item.emoji}</span>}
                               <span>{item.name}</span>
-                              {isSelected && <span className='ml-2 text-xs text-foreground/50'>({t('Already selected')})</span>}
+                              {isSelected && <span className='ml-2 text-xs text-foreground-muted'>({t('Already selected')})</span>}
                             </CommandItem>
                           )
                         })}

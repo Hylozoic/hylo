@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions, camelcase */
-import { mockify, spyify, unspyify } from '../../setup/helpers'
+import { joinEventProperties, latestJoinEvent, mockify, spyify, unspyify } from '../../setup/helpers'
 import { sortBy } from 'lodash/fp'
 const root = require('root-path')
 const setup = require(root('test/setup'))
@@ -43,6 +43,16 @@ describe('Invitation', function () {
       expect(invitation1.get('used_at').getTime()).to.be.closeTo(new Date().getTime(), 2000)
       const hasAdministration = await GroupMembership.hasResponsibility(user, group, Responsibility.constants.RESP_ADMINISTRATION)
       expect(hasAdministration).to.be.true
+    })
+
+    it('records the invitation and inviter as the source of the membership', async () => {
+      const invitee = await factories.user().save()
+      const invitation = await Invitation.create({ userId: inviter.id, groupId: group.id, email: invitee.get('email') })
+      await invitation.use(invitee.id)
+      const properties = joinEventProperties(await latestJoinEvent(invitee.id, group.id))
+      expect(properties.source).to.equal('email_invite')
+      expect(String(properties.invitationId)).to.equal(String(invitation.id))
+      expect(String(properties.invitedById)).to.equal(String(inviter.id))
     })
 
     it('creates a tag_follow when it has a tag_id', function () {

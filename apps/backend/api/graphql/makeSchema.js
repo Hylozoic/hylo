@@ -39,6 +39,9 @@ import {
   convertGroupToSpace,
   convertSpaceToChildGroup,
   createAffiliation,
+  createUserProfileLink,
+  updateUserProfileLink,
+  reorderUserProfileLinks,
   createComment,
   createFundingRound,
   createGroup,
@@ -71,6 +74,7 @@ import {
   reviewPublicListingRequest,
   publicListingRequests,
   deleteAffiliation,
+  deleteUserProfileLink,
   deleteComment,
   deleteFundingRound,
   deleteGroup,
@@ -204,6 +208,7 @@ import {
   hyloProSubscriptions,
   hyloProGroups,
   hyloProPayments,
+  hyloProChargeEvents,
   grantHyloPro,
   updateHyloProGrant,
   revokeHyloProGrant,
@@ -683,6 +688,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
     hyloProGroups: (root, { slugOrId }, context) => hyloProGroups(context.currentUserId, { slugOrId }),
     hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after }),
+    hyloProChargeEvents: (root, { groupId }, context) => hyloProChargeEvents(context.currentUserId, { groupId }),
     supportHylo: (root, args, context) => SupporterService.supportInfo(context.currentUserId),
     groupSupporterInfo: (root, { groupId }, context) => SupporterService.groupSupportInfo(context.currentUserId, groupId),
     supporterGrants: (root, args, context) => SupporterService.listGrants(context.currentUserId)
@@ -755,6 +761,8 @@ export function makeMutations ({ fetchOne }) {
     recordStripePurchase: (root, args, context) => recordStripePurchase(context.currentUserId, args),
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
+
+    createUserProfileLink: (root, { data }, context) => createUserProfileLink(context.currentUserId, data),
 
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
@@ -847,6 +855,12 @@ export function makeMutations ({ fetchOne }) {
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
+
+    updateUserProfileLink: (root, { id, data }, context) => updateUserProfileLink(context.currentUserId, id, data),
+
+    reorderUserProfileLinks: (root, { ids }, context) => reorderUserProfileLinks(context.currentUserId, ids),
+
+    deleteUserProfileLink: (root, { id }, context) => deleteUserProfileLink(context.currentUserId, id),
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 

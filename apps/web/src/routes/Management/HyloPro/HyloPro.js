@@ -169,6 +169,7 @@ function Metrics ({ metrics, error, t, locale }) {
   if (error) return <div className='text-red-500'>{error}</div>
   if (!metrics) return <Loading />
 
+  const otherCurrencies = (metrics.mrrByCurrency || []).filter(r => r.currency !== metrics.currency)
   const stats = [
     {
       label: t('Groups with Pro'),
@@ -176,9 +177,16 @@ function Metrics ({ metrics, error, t, locale }) {
       detail: t('{{paid}} paying · {{granted}} granted', { paid: metrics.stripeGroups, granted: metrics.manualGroups })
     },
     {
+      // Each subscription at what it pays (its own price and discount), per currency: other
+      // currencies are listed beside the plan currency's total, never converted into it
       label: t('Monthly recurring revenue'),
       value: formatCurrencyAmount(metrics.mrrCents, metrics.currency, locale),
-      detail: t('Yearly plans count 1/12. Trialing not included.')
+      detail: [
+        otherCurrencies.length > 0 && t('Plus {{amounts}} (not converted)', { amounts: otherCurrencies.map(r => formatCurrencyAmount(r.mrrCents, r.currency, locale)).join(', ') }),
+        t('What each subscription pays, discounts included. Yearly plans count 1/12. Trialing not included.'),
+        metrics.mrrEstimatedSubscriptions > 0 && t('Not yet synced, counted at the current price: {{count}}', { count: metrics.mrrEstimatedSubscriptions })
+      ].filter(Boolean).join(' '),
+      testId: 'hylo-pro-mrr'
     },
     {
       // The same subscriptions MRR counts: paying now (including failed payments still in grace), not trialing
@@ -196,7 +204,7 @@ function Metrics ({ metrics, error, t, locale }) {
     <section className='space-y-4' data-testid='hylo-pro-metrics'>
       <div className='grid grid-cols-2 sm:grid-cols-4 gap-3'>
         {stats.map(stat => (
-          <div key={stat.label} className='bg-card rounded-lg p-4 border border-foreground/10'>
+          <div key={stat.label} className='bg-card rounded-lg p-4 border border-foreground/10' data-testid={stat.testId}>
             <div className={cn('text-2xl font-bold', stat.highlight ? 'text-yellow-500' : 'text-foreground')}>{stat.value}</div>
             <div className='text-xs text-foreground/60 mt-1'>{stat.label}</div>
             {stat.detail && <div className='text-[11px] text-foreground/40 mt-1'>{stat.detail}</div>}

@@ -19,6 +19,8 @@ const METRICS = {
   grantsExpiringSoon: 0,
   mrrCents: 1833,
   currency: 'usd',
+  mrrByCurrency: [{ currency: 'usd', mrrCents: 1833, subscriptions: 2 }],
+  mrrEstimatedSubscriptions: 0,
   months: [
     { month: '2026-10', newSubscriptions: 1, cancellations: 0, ended: 0, grants: 0 },
     { month: '2026-11', newSubscriptions: 4, cancellations: 1, ended: 0, grants: 2 }
@@ -45,6 +47,13 @@ const row = attrs => ({
   canceledAt: null,
   endedAt: null,
   createdAt: '2026-11-01T00:00:00.000Z',
+  amount: null,
+  currency: null,
+  intervalCount: null,
+  discount: null,
+  monthlyRevenueCents: null,
+  openDisputes: 0,
+  refunds: 0,
   ...attrs
 })
 
@@ -66,6 +75,7 @@ function mockApi (overrides = {}) {
         case 'HyloProMetrics': return HttpResponse.json({ data: { hyloProMetrics: METRICS } })
         case 'HyloProSubscriptions': return HttpResponse.json({ data: { hyloProSubscriptions: { total: ROWS.length, hasMore: false, items: ROWS } } })
         case 'HyloProPayments': return HttpResponse.json({ data: { hyloProPayments: { hasMore: false, items: [PAYMENT] } } })
+        case 'HyloProChargeEvents': return HttpResponse.json({ data: { hyloProChargeEvents: [] } })
         case 'HyloProGroups': return HttpResponse.json({ data: { hyloProGroups: [{ id: '12', name: 'New Group', slug: 'new-group', type: null }] } })
         case 'GrantHyloPro': return HttpResponse.json({ data: { grantHyloPro: row({ id: '3', source: 'manual', group: { id: '12', name: 'New Group', slug: 'new-group' } }) } })
         case 'UpdateHyloProGrant': return HttpResponse.json({ data: { updateHyloProGrant: ROWS[1] } })
@@ -303,6 +313,74 @@ describe('HyloPro management page', () => {
 
     fireEvent.click(within(sub).getByRole('button', { name: 'Cancel at period end' }))
     await waitFor(() => expect(requests.CancelHyloProSubscription).toEqual([{ id: '1', immediately: false }]))
+  })
+
+  it('shows MRR in other currencies beside the plan currency, unconverted, and how many rows are estimates', async () => {
+    mockApi({
+      HyloProMetrics: () => HttpResponse.json({ data: { hyloProMetrics: { ...METRICS, mrrByCurrency: [{ currency: 'usd', mrrCents: 1833, subscriptions: 2 }, { currency: 'eur', mrrCents: 1333, subscriptions: 1 }], mrrEstimatedSubscriptions: 2 } } })
+    })
+    renderPage()
+    const mrr = await screen.findByTestId('hylo-pro-mrr')
+    expect(within(mrr).getByText('$18.33')).toBeInTheDocument()
+    expect(mrr).toHaveTextContent('Plus €13.33 (not converted)')
+    expect(mrr).toHaveTextContent('Not yet synced, counted at the current price: 2')
+  })
+
+  it("shows a subscription's price and discount, and badges for open disputes and refunds", async () => {
+    mockApi({
+      HyloProSubscriptions: () => HttpResponse.json({
+        data: {
+          hyloProSubscriptions: {
+            total: 2,
+            hasMore: false,
+            items: [
+              row({ interval: 'year', amount: 60000, currency: 'usd', discount: { couponId: 'TEN', percentOff: 10, amountOff: null, currency: null, duration: 'repeating', endsAt: '2027-03-01T00:00:00.000Z' }, openDisputes: 1, refunds: 2 }),
+              row({ id: '5', group: { id: '15', name: 'Coupon Group', slug: 'coupon' }, amount: 6000, currency: 'usd', discount: { couponId: 'FIVE', percentOff: null, amountOff: 500, currency: 'usd', duration: 'once', endsAt: null } })
+            ]
+          }
+        }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+    expect(sub).toHaveTextContent('Yearly · $600.00 · Discount: 10% off until Mar 1, 2027')
+    expect(within(sub).getByTestId('hylo-pro-open-disputes')).toHaveTextContent('Open disputes: 1')
+    expect(within(sub).getByTestId('hylo-pro-refunds')).toHaveTextContent('Refunded payments: 2')
+
+    const other = await findRow('Coupon Group')
+    expect(other).toHaveTextContent('$60.00 · Discount: $5.00 off first payment only')
+    expect(within(other).queryByTestId('hylo-pro-open-disputes')).not.toBeInTheDocument()
+    expect(within(other).queryByTestId('hylo-pro-refunds')).not.toBeInTheDocument()
+  })
+
+  it('lists the recorded refunds and disputes with the payments, open disputes marked', async () => {
+    const requests = mockApi({
+      HyloProChargeEvents: () => HttpResponse.json({
+        data: {
+          hyloProChargeEvents: [
+            { id: '30', type: 'dispute', chargeId: 'ch_d', externalId: 'dp_1', amount: 6000, currency: 'usd', reason: 'fraudulent', status: 'needs_response', open: true, createdAt: '2026-11-10T00:00:00.000Z', updatedAt: '2026-11-11T00:00:00.000Z' },
+            { id: '31', type: 'refund', chargeId: 'ch_r', externalId: 'ch_r', amount: 2500, currency: 'usd', reason: 'requested_by_customer', status: 'partially_refunded', open: false, createdAt: '2026-11-05T00:00:00.000Z', updatedAt: '2026-11-05T00:00:00.000Z' }
+          ]
+        }
+      })
+    })
+    renderPage()
+    const sub = await findRow('Paying Group')
+
+    fireEvent.click(within(sub).getByRole('button', { name: 'Payments' }))
+    const events = await within(sub).findByTestId('hylo-pro-charge-events')
+    const [dispute, refund] = within(events).getAllByTestId('hylo-pro-charge-event')
+    expect(dispute).toHaveTextContent('Dispute')
+    expect(dispute).toHaveTextContent('$60.00')
+    expect(dispute).toHaveTextContent('Needs response')
+    expect(dispute).toHaveTextContent('fraudulent')
+    expect(within(dispute).getByText('Needs response')).toHaveClass('text-red-600')
+    expect(refund).toHaveTextContent('Refund')
+    expect(refund).toHaveTextContent('$25.00')
+    expect(refund).toHaveTextContent('Partly refunded')
+    expect(requests.HyloProChargeEvents).toEqual([{ groupId: '10' }])
+    // The payments table is still there
+    expect(within(sub).getByText('Subscription creation')).toBeInTheDocument()
   })
 
   it('lists payments and refunds part of one in cents', async () => {

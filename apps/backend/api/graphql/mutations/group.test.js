@@ -1,6 +1,9 @@
 /* eslint-disable no-unused-expressions */
+import '../../../test/setup'
 import factories from '../../../test/setup/factories'
+import { joinEventProperties, latestJoinEvent } from '../../../test/setup/helpers'
 import {
+  addMember,
   createGroup,
   joinGroup,
   updateGroup,
@@ -260,6 +263,48 @@ describe('mutations/group', () => {
         expect(await GroupMembership.forPair(user, space).fetch()).to.exist
       })
     })
+
+    describe('join attribution', () => {
+      let inviter, group
+
+      before(async () => {
+        inviter = await factories.user().save()
+        group = await factories.group().save({ accessibility: Group.Accessibility.OPEN })
+        await inviter.joinGroup(group, { assignAdministrator: true })
+      })
+
+      it('records open when joining without a code or invitation', async () => {
+        const user = await factories.user().save()
+        await joinGroup(group.id, user.id, [], null, null, false, {})
+        expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('open')
+      })
+
+      it('records invite_link when joining with the access code', async () => {
+        const user = await factories.user().save()
+        await joinGroup(group.id, user.id, [], group.get('access_code'), null, false, {})
+        expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('invite_link')
+      })
+
+      it('records the invitation and inviter when joining with an invitation token', async () => {
+        const user = await factories.user().save()
+        const invitation = await Invitation.create({ userId: inviter.id, groupId: group.id, email: user.get('email') })
+        await joinGroup(group.id, user.id, [], null, invitation.get('token'), false, {})
+        const properties = joinEventProperties(await latestJoinEvent(user.id, group.id))
+        expect(properties.source).to.equal('email_invite')
+        expect(String(properties.invitationId)).to.equal(String(invitation.id))
+        expect(String(properties.invitedById)).to.equal(String(inviter.id))
+      })
+    })
+  })
+
+  describe('addMember', () => {
+    it('records admin_add as the join source', async () => {
+      const user = await factories.user().save()
+      const group = await factories.group().save()
+      const result = await addMember(user.id, group.id)
+      expect(result.success).to.be.true
+      expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('admin_add')
+    })
   })
 
   describe('createGroup', () => {
@@ -288,6 +333,7 @@ describe('mutations/group', () => {
       // TODO: improve this test
       const hasAdministration = await GroupMembership.hasResponsibility(user.id, group, Responsibility.constants.RESP_ADMINISTRATION)
       expect(hasAdministration).to.be.true
+      expect(joinEventProperties(await latestJoinEvent(user.id, group.id)).source).to.equal('creator')
 
       const chatView = await GroupView.where({ group_id: group.id, type: GroupView.Type.CHAT }).fetch()
       expect(chatView).to.exist

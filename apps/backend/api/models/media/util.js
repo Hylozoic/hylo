@@ -26,12 +26,15 @@ export const createAndAddSize = function (attrs) {
   return Media.create(attrs)
 }
 
-export function getMediaTypeFromMimetype (mimetype) {
-  let baseMimetype = mimetype && mimetype.split('/')[0]
+// MIME roots that are also media types. `video` and `gdoc` are legacy embed
+// types (YouTube/Vimeo, Google Docs), not uploads. video/mp4 must stay a file
+// or the post UI, which only renders image and file attachments, drops it.
+const MEDIA_TYPE_FROM_MIME_ROOT = {
+  image: 'image'
+}
 
-  // NOTE: This doesn't account for the currently unsupportd
-  // legacy special cases of 'gdoc' or 'video'
-  return VALID_MEDIA_TYPES.includes(baseMimetype)
-    ? baseMimetype
-    : DEFAULT_MEDIA_TYPE
+/** Maps an upload mimetype to image or file. Uploaded video and audio are files. */
+export function getMediaTypeFromMimetype (mimetype) {
+  const baseMimetype = mimetype && mimetype.split('/')[0]
+  return MEDIA_TYPE_FROM_MIME_ROOT[baseMimetype] || DEFAULT_MEDIA_TYPE
 }

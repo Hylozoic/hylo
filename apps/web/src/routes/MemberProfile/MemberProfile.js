@@ -19,6 +19,7 @@ import Dropdown from 'components/Dropdown'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from 'components/ui/dialog'
 import HyloHTML from 'components/HyloHTML'
 import Icon from 'components/Icon'
+import ProfileLinkIcon from 'components/ProfileLinkIcon'
 import NotFound from 'components/NotFound'
 import RoundImage from 'components/RoundImage'
 import RoundImageRow from 'components/RoundImageRow'
@@ -39,7 +40,7 @@ import useViewPostDetails from 'hooks/useViewPostDetails'
 import blockUser from 'store/actions/blockUser'
 import { removeMember } from 'routes/Members/Members.store'
 import { RESP_REMOVE_MEMBERS } from 'store/constants'
-import { twitterUrl, AXOLOTL_ID } from 'store/models/Person'
+import { AXOLOTL_ID } from 'store/models/Person'
 import { getResponsibilityTitlesForGroup } from 'store/selectors/getResponsibilitiesForGroup'
 import getRolesForGroup from 'store/selectors/getRolesForGroup'
 import isPendingFor from 'store/selectors/isPendingFor'
@@ -56,11 +57,11 @@ import {
 } from './MemberProfile.store'
 import { cn } from 'util/index'
 import { historyIndexBackDelta, profileDirectLoadBackPath } from 'util/mobileNavBack'
+import orm from 'store/models'
 import {
   currentUserSettingsUrl,
   messagePersonUrl,
-  messagesUrl,
-  gotoExternalUrl
+  messagesUrl
 } from '@hylo/navigation'
 
 import styles from './MemberProfile.module.scss'
@@ -71,6 +72,13 @@ const EVENTS_DIV_HEIGHT = 220
 
 const MESSAGES = {
   invalid: "That doesn't seem to be a valid person ID."
+}
+
+/** Sort profile links by sortOrder, then id. */
+function compareProfileLinks (a, b) {
+  const orderDiff = (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+  if (orderDiff !== 0) return orderDiff
+  return Number(a.id) - Number(b.id)
 }
 
 const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleColumn, context }) => {
@@ -91,6 +99,10 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   const error = !Number.isSafeInteger(Number(personId)) ? MESSAGES.invalid : null
   const person = useSelector(state => getPresentedPerson(state, routeParams))
   const memberPosts = useSelector(state => getMemberPosts(state, { routeParams }))
+  const personModel = useSelector(state => {
+    const { Person } = orm.session(state.orm)
+    return Person.idExists(personId) ? Person.withId(personId) : null
+  })
   const contentLoading = useSelector(state => isPendingFor([
     FETCH_RECENT_ACTIVITY,
     FETCH_MEMBER_POSTS,
@@ -256,20 +268,18 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
   ].filter(Boolean).map(contentDropDownitem => ({
     ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
   }))
+  const profileLinks = (personModel?.profileLinks?.toRefArray() || []).slice().sort(compareProfileLinks)
   const actionButtonsItems = [
     {
       iconName: 'Messages',
+      label: t('Message'),
       value: t('Message Member'),
       onClick: () => push(isCurrentUser ? messagesUrl() : messagePersonUrl(person)),
       hideCopyTip: true,
       placeholder: isPublicView
     },
-    !isPublicView && { iconName: 'Phone', value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
-    !isPublicView && { iconName: 'Email', value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) },
-    { iconName: 'Facebook', value: person.facebookUrl, onClick: () => gotoExternalUrl(person.facebookUrl) },
-    { iconName: 'LinkedIn', value: person.linkedinUrl, onClick: () => gotoExternalUrl(person.linkedinUrl) },
-    { iconName: 'Twitter', value: twitterUrl(person.twitterName), onClick: () => gotoExternalUrl(twitterUrl(person.twitterName)) },
-    { iconName: 'Public', value: person.url, onClick: () => gotoExternalUrl(person.url) }
+    !isPublicView && { iconName: 'Phone', label: t('Phone'), value: person.contactPhone, onClick: () => handleContactPhone(person.contactPhone) },
+    !isPublicView && { iconName: 'Email', label: t('Email'), value: person.contactEmail, onClick: () => handleContactEmail(person.contactEmail) }
   ].filter(Boolean)
   const actionDropdownItems = [
     { icon: <Pencil className='w-4 h-4 text-foreground' />, label: t('Edit Profile'), onClick: () => push(currentUserSettingsUrl()), hide: !isCurrentUser },
@@ -310,7 +320,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               <div className='w-full h-full bg-gradient-to-b absolute top-0 left-0 from-transparent to-black/90 opacity-60 rounded-xl z-2' />
             </div>
           </div>
-          <div className='-mt-5 mb-10 center flex gap-2 flex-row w-full items-center justify-center'>
+          <div className={cn('-mt-5 center flex gap-2 flex-row w-full items-center justify-center', profileLinks.length > 0 ? 'mb-4' : 'mb-10')}>
             <ActionButtons items={actionButtonsItems} />
             <ActionDropdown items={actionDropdownItems} placeholder={isPublicView} />
           </div>
@@ -346,6 +356,22 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
               </DialogContent>
             </Dialog>
           )}
+          {profileLinks.length > 0 && (
+            <div className='mb-10 flex flex-wrap gap-2 justify-center items-center'>
+              {profileLinks.map(link => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target='_blank'
+                  rel='noreferrer'
+                  className='flex items-center gap-2 px-3 py-1 bg-background/50 hover:bg-background border border-foreground/10 hover:border-foreground/20 rounded-lg transition-all text-sm text-foreground hover:scale-105'
+                >
+                  <ProfileLinkIcon url={link.url} className='w-4 h-4' />
+                  <span>{link.title || new URL(link.url).hostname.replace('www.', '')}</span>
+                </a>
+              ))}
+            </div>
+          )}
           {(person.tagline || person.bio) && (
             <div className='flex items-center flex-col mb-4'>
               {person.tagline && <div className='text-foreground text-center text-lg font-bold max-w-md'>{person.tagline}</div>}
@@ -379,12 +405,12 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
           <div className='flex flex-col max-w-[720px] w-full'>
             {roles.length > 0 && (
               <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6'>
-                <div className='bg-midground text-foreground/50 text-sm absolute -top-2.5 left-1/2 uppercase -translate-x-1/2 px-2 text-center'>{t('Roles in {{group}}', { group: group.name })}</div>
+                <div className='bg-midground text-foreground-muted text-sm absolute -top-2.5 left-1/2 uppercase -translate-x-1/2 px-2 text-center'>{t('Roles in {{group}}', { group: group.name })}</div>
                 <div className='flex flex-row flex-wrap items-center w-full relative gap-2 justify-center'>
                   {roles.map(role => (
                     <div key={role.id + role.common} className='flex flex-row p-2 bg-background rounded-lg items-center justify-center gap-2'>
                       <BadgeEmoji expanded {...role} responsibilities={role.responsibilities} id={person.id} />
-                      <div className='text-sm text-foreground/50'>{role.name}</div>
+                      <div className='text-sm text-foreground-muted'>{role.name}</div>
                     </div>
                   ))}
                 </div>
@@ -393,13 +419,13 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             {person.skills && person.skills.length > 0
               ? (
                 <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 justify-center items-center'>
-                  <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
+                  <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
                   <SkillsSection personId={personId} editable={false} t={t} />
                 </div>)
               : (currentUser && currentUser.id === personId && (
                 <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center justify-center items-center'>
-                  <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
-                  <p className='text-foreground/50 mb-3'>{t('Add your skills and interests to your profile')}</p>
+                  <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Skills & Interests')}</div>
+                  <p className='text-foreground-muted mb-3'>{t('Add your skills and interests to your profile')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
                     className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-white transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
@@ -412,7 +438,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
             {person.skillsToLearn && person.skillsToLearn.length > 0 && (
               <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
-                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>
+                <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>
                   {t('What I\'m Learning')}
                 </div>
                 <SkillsToLearnSection personId={personId} editable={false} t={t} />
@@ -422,7 +448,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             {memberships && memberships.length > 0
               ? (
                 <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
-                  <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
+                  <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
                   <div
                     ref={groupsRef}
                     className='flex flex-row flex-wrap items-center justify-center w-full overflow-hidden relative gap-2'
@@ -446,8 +472,8 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                 </div>)
               : (!isPublicView && (
                 <div className='border-2 mt-8 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
-                  <div className='text-sm bg-midground text-foreground/50 absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
-                  <p className='text-foreground/50 mb-3'>{t('Find groups to join and collaborate with others')}</p>
+                  <div className='text-sm bg-midground text-foreground-muted absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Hylo Groups')}</div>
+                  <p className='text-foreground-muted mb-3'>{t('Find groups to join and collaborate with others')}</p>
                   <button
                     onClick={() => push('/groups/explorer')}
                     className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
@@ -459,15 +485,14 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
             {affiliations && affiliations.length > 0
               ? (
                 <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-6 items-center justify-center'>
-                  <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
+                  <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
                   <div className='flex flex-row flex-wrap items-center w-full relative gap-2'>
                     {affiliations.map((a, index) => <Affiliation key={a.id} index={index} affiliation={a} />)}
                   </div>
                 </div>)
               : (currentUser && currentUser.id === personId && (
                 <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4 text-center'>
-                  <div className='sm:text-base text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Other Affiliations')}</div>
-                  <p className='text-foreground/50 mb-3'>{t('Add your affiliations')}</p>
+                  <p className='text-foreground-muted mb-3'>{t('Other Affiliations')}</p>
                   <button
                     onClick={() => push(currentUserSettingsUrl())}
                     className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1.5 px-4 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 inline-flex items-center justify-center'
@@ -479,7 +504,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
             {events && events.length > 0 && (
               <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
-                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Upcoming Events')}</div>
+                <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Upcoming Events')}</div>
                 <div
                   ref={eventsRef}
                   className='flex flex-col w-full overflow-hidden relative gap-2'
@@ -506,7 +531,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
 
             {projects && projects.length > 0 && (
               <div className='border-2 mt-4 border-t-foreground/30 border-x-foreground/20 border-b-foreground/10 p-4 background-black/10 rounded-lg border-dashed relative mb-4'>
-                <div className='text-sm bg-midground text-foreground/50 uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Projects')}</div>
+                <div className='text-sm bg-midground text-foreground-muted uppercase absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 text-center'>{t('Projects')}</div>
                 <div
                   ref={projectsRef}
                   className='flex flex-col w-full overflow-hidden relative gap-2'
@@ -584,10 +609,10 @@ function ActionTooltip ({ content, hideCopyTip, onClick }) {
 }
 
 function ActionButtons ({ items }) {
-  const buttonClassName = 'shadow-lg relative text-base border-2 border-foreground/20 rounded-md p-2 bg-background text-foreground flex items-center justify-center'
+  const buttonClassName = 'shadow-lg relative text-sm border-2 border-foreground/20 rounded-md px-3 py-2 bg-background text-foreground flex items-center justify-center gap-1.5'
 
   return items.map((actionIconItem, index) => {
-    const { iconName, value, onClick, hideCopyTip, placeholder } = actionIconItem
+    const { iconName, label, value, onClick, hideCopyTip, placeholder } = actionIconItem
 
     if (placeholder) {
       return (
@@ -597,6 +622,7 @@ function ActionButtons ({ items }) {
           aria-hidden='true'
         >
           <Icon name={iconName} />
+          {label}
         </div>
       )
     }
@@ -614,6 +640,7 @@ function ActionButtons ({ items }) {
           data-tooltip-content={value}
         >
           <Icon name={iconName} />
+          {label}
         </button>
         <Tooltip
           id={tooltipId}
@@ -671,7 +698,7 @@ function Project ({ memberCap, project }) {
     <div className='bg-background border border-foreground/10 shadow-sm rounded-md cursor-pointer flex items-center justify-between min-h-[60px] p-2 px-3 w-full hover:border-foreground/30 transition-colors' onClick={() => viewPostDetails(project)}>
       <div>
         <div className='font-bold text-sm leading-[18px] text-foreground'>{title} </div>
-        <div className='text-sm leading-[18px] text-foreground/50'>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
+        <div className='text-sm leading-[18px] text-foreground-muted'>{creator.name} - {DateTimeHelpers.toDateTime(createdAt, { locale: getLocaleFromLocalStorage() }).toRelative()} </div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: members.items.length > memberCap })} inline imageUrls={members.items.map(m => m.avatarUrl)} cap={memberCap} />
     </div>
@@ -689,7 +716,7 @@ function Event ({ memberCap, event }) {
       </div>
       <div className='text-left px-3 block w-full justify-between'>
         <div className='font-bold text-sm leading-[18px] text-foreground'>{title}</div>
-        <div className='text-foreground/50 max-w-[350px] text-ellipsis overflow-hidden whitespace-nowrap text-xs'><Icon name='Location' />{location}</div>
+        <div className='text-foreground-muted max-w-[350px] text-ellipsis overflow-hidden whitespace-nowrap text-xs'><Icon name='Location' />{location}</div>
       </div>
       <RoundImageRow className={cn(styles.members, { [styles.membersPlus]: eventInvitations.items.length > memberCap })} inline imageUrls={eventInvitations.items.map(e => e.person.avatarUrl)} cap={memberCap} />
     </div>

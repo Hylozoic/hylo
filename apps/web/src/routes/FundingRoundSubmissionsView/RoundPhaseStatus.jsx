@@ -104,12 +104,12 @@ export default function RoundPhaseStatus ({
             </div>
           )}
           {submissionsCloseDate && (
-            <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
+            <span className='text-sm font-normal pt-0 mt-0 text-foreground-muted'>
               {t('Submissions close at {{date}}', { date: formatUserDatePair({ start: submissionsCloseDate }) })}
             </span>
           )}
           {votingOpensDate && (
-            <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
+            <span className='text-sm font-normal pt-0 mt-0 text-foreground-muted'>
               {t('Voting opens at {{date}}', { date: formatUserDatePair({ start: votingOpensDate }) })}
             </span>
           )}
@@ -211,7 +211,7 @@ export default function RoundPhaseStatus ({
                 />
               </p>
               {votingClosesDate && (
-                <span className='text-sm font-normal pt-0 mt-0 text-foreground/50'>
+                <span className='text-sm font-normal pt-0 mt-0 text-foreground-muted'>
                   {t('Voting closes at {{date}}', { date: formatUserDatePair({ start: votingClosesDate }) })}
                 </span>
               )}

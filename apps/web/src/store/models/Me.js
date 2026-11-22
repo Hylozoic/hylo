@@ -1,7 +1,7 @@
 import { includes } from 'lodash/fp'
 import PropTypes from 'prop-types'
 import { attr, fk, many, Model } from 'redux-orm'
-import featureFlag from 'config/featureFlags'
+import { hasFeature } from 'config/featureFlags'
 
 export function firstName (user) {
   return user.name ? user.name.split(' ')[0] : null
@@ -11,21 +11,6 @@ export function isTester (userId) {
   const testerIds = process.env.HYLO_TESTER_IDS && process.env.HYLO_TESTER_IDS.split(',')
 
   return includes(userId, testerIds)
-}
-
-export function hasFeature (key, isTester = false) {
-  if (!key) throw new Error("Can't call hasFeature without a user and a key")
-
-  const flag = featureFlag(key)
-
-  switch (flag) {
-    case 'on':
-      return true
-    case 'testing':
-      return isTester
-    default:
-      return false
-  }
 }
 
 export const CURRENT_USER_PROP_TYPES = {
@@ -73,7 +58,6 @@ Me.fields = {
   intercomHash: attr(),
   isAdmin: attr(),
   isProfilePublic: attr(),
-  memberInvitesEnabled: attr(),
   name: attr(),
   groupInvitesPending: many('Invitation'),
   joinRequests: many('JoinRequest'),
@@ -88,6 +72,7 @@ Me.fields = {
   messageThreads: many('MessageThread'),
   notifications: many('Notification'),
   posts: many('Post'),
+  profileLinks: many('UserProfileLink'),
   skills: many('Skill'),
   skillsToLearn: many({
     to: 'Skill',

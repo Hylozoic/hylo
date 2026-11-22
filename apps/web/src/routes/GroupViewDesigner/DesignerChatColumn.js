@@ -13,7 +13,8 @@ import useGroupViews from 'hooks/useGroupViews'
 import designGroupViewTurn from 'store/actions/designGroupViewTurn'
 import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
-import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
+import { isHyloProEnabled } from 'config/featureFlags'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import { NEW_VIEW_ID } from './DesignerSaveButton'
 import {
@@ -60,7 +61,7 @@ export default function DesignerChatColumn () {
   const dispatch = useDispatch()
   const { groupSlug, viewId } = useParams()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const hyloProEnabled = useSelector(getHyloProEnabled)
+  const hyloProEnabled = isHyloProEnabled(useSelector(getMe))
   const groupViews = useGroupViews(group)
   const groupId = group?.id
   const isNew = viewId === NEW_VIEW_ID
