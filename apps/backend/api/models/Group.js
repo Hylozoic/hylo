@@ -12,12 +12,12 @@ import ical from 'ical-generator'
 import { withStandardConference } from './event/mixin'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 import { safeFetch } from '../../lib/safeFetch'
-import { assertProFeature } from '@hylo/shared'
+import { assistantAgreementRowId, forgetAssistantConsent } from '../../lib/groupAssistantConsent'
 
 import mixpanel from '../../lib/mixpanel'
 import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
 import { track } from '../../lib/analytics/track'
-import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
+import { AnalyticsEvents, assertProFeature, isGroupAssistantAgreement, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
 import { finishQueuedChatSpaceConversion } from './space/convertChatSpaceToDiscussion'
@@ -865,6 +865,8 @@ module.exports = bookshelf.Model.extend(merge({
         .update({ accepted: false })
       if (transacting) agreementsQuery.transacting(transacting)
       await agreementsQuery
+      // Someone who comes back is asked about sharing with the Group Assistant again
+      await forgetAssistantConsent(userIds, this.id, { transacting })
     }
 
     // When removed from a parent group, also deactivate memberships in child spaces.
@@ -1040,9 +1042,15 @@ module.exports = bookshelf.Model.extend(merge({
       if (changes.agreements && this.get('type') !== 'space' && !this.get('parent_id')) {
         const currentAgreementIds = (await this.agreements().fetch({ transacting })).pluck('id')
         const newAgreementIds = []
+        // The Group Assistant's data-sharing agreement is added and removed only by turning the
+        // assistant on and off, never by editing the agreements: whatever the edit sends for it is
+        // ignored, and it stays last while the group has it
+        const assistantAgreementId = await assistantAgreementRowId({ transacting, create: false })
+        const keepAssistantAgreement = !!assistantAgreementId && currentAgreementIds.map(String).includes(String(assistantAgreementId))
+        const isAssistantAgreement = a => isGroupAssistantAgreement({ title: trim(a.title), description: trim(a.description) })
 
         // TODO: what if there are multiple agreements with the same title/description?
-        const agreements = await Promise.map(changes.agreements.filter(a => trim(a.title) !== ''), async (a) => {
+        const agreements = await Promise.map(changes.agreements.filter(a => trim(a.title) !== '' && !isAssistantAgreement(a)), async (a) => {
           let agreement = await Agreement.where({ title: trim(a.title), description: trim(a.description) }).fetch({ transacting })
           if (!agreement) {
             agreement = await Agreement.forge({ title: trim(a.title), description: trim(a.description) }).save({}, { transacting })
@@ -1050,6 +1058,10 @@ module.exports = bookshelf.Model.extend(merge({
           newAgreementIds.push(agreement.id)
           return agreement
         })
+        if (keepAssistantAgreement) {
+          agreements.push(await Agreement.where({ id: assistantAgreementId }).fetch({ transacting }))
+          newAgreementIds.push(Number(assistantAgreementId))
+        }
 
         // If there are any new/different agreements track the date of the change so we can tell group members
         // TODO: more sophisticated way to track what exactly changed in the text
@@ -1402,6 +1414,25 @@ module.exports = bookshelf.Model.extend(merge({
         ContentType: 'text/calendar'
       }
     )
+  },
+
+  /**
+   * Background task: tells a group's members that its agreements now ask whether their content
+   * may be shared with the Group Assistant's AI provider (it was turned on). The steward who
+   * turned it on is not told. Opening the group then shows the regular agreements prompt.
+   */
+  async notifyMembersOfAssistantAgreement ({ groupId, actorId }) {
+    const memberIds = await bookshelf.knex('group_memberships')
+      .where({ group_id: groupId, active: true })
+      .whereNot('user_id', actorId)
+      .pluck('user_id')
+    if (memberIds.length === 0) return
+    await Activity.saveForReasons(memberIds.map(readerId => ({
+      actor_id: actorId,
+      reader_id: readerId,
+      group_id: groupId,
+      reason: 'groupAssistantAgreement'
+    })))
   },
 
   // Background task to do additional work/tasks after a new member finished joining a group (after they've accepted agreements and answered join questions)

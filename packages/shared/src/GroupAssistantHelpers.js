@@ -77,6 +77,31 @@ export function validateGroupAssistantSettings (raw) {
   return errors.length > 0 ? { settings: null, errors } : { settings: sanitizeGroupAssistantSettings(raw), errors }
 }
 
+// ---------- Members' consent ----------
+
+// The Hylo Pro feature key that gates the Group Assistant (see HyloProFeatures.js)
+export const GROUP_ASSISTANT_PRO_FEATURE = 'groupAssistant'
+
+/**
+ * The agreement added to a group's agreements while its assistant is on. A member's content and
+ * details are sent to the AI provider only after they accept it; a member who declines keeps
+ * using the group as before and nothing of theirs is sent. It is stored as an ordinary agreement
+ * (in English, like any agreement a steward writes); the web shows it translated, and finds it
+ * with isGroupAssistantAgreement. Changing this text makes a new agreement row, so members who
+ * accepted the old one would have to accept again: change it only on purpose.
+ */
+export const GROUP_ASSISTANT_AGREEMENT = {
+  title: 'Sharing member content with a third-party AI',
+  description: 'The group admins have turned on features that allow member data to be shared with a third-party AI (Claude, made by Anthropic), through the Hylo Group Assistant. If you agree, your posts and replies in the spaces the stewards choose, and your name, join date and when you last posted, may be sent to it to help the stewards and answer members\' questions. If you do not agree, none of your posts, replies or member details are sent, and you keep using the group as before. You can change your choice at any time on the group\'s About page.'
+}
+
+/** Whether an agreement ({ title, description }) is the Group Assistant's data-sharing agreement. */
+export function isGroupAssistantAgreement (agreement) {
+  return !!agreement &&
+    String(agreement.title || '').trim() === GROUP_ASSISTANT_AGREEMENT.title &&
+    String(agreement.description || '').trim() === GROUP_ASSISTANT_AGREEMENT.description
+}
+
 // ---------- Message parts ----------
 
 export const ASSISTANT_PART_TYPES = ['counsel', 'bullets', 'quotedPost', 'draft', 'voiceNote']

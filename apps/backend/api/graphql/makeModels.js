@@ -2,7 +2,8 @@
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
-import { sanitizeGroupAssistantSettings, TextHelpers } from '@hylo/shared'
+import { GROUP_ASSISTANT_PRO_FEATURE, sanitizeGroupAssistantSettings, TextHelpers } from '@hylo/shared'
+import { assistantForMember } from './mutations/group_assistant'
 import { messageThreadSearchFilter } from './messageThreadSearch'
 import searchQuerySet from './searchQuerySet'
 import { getPendingEmail } from './mutations/emailChange'
@@ -1300,14 +1301,16 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
         proFeatures: g => g.proFeatures(),
-        // Whether to show the viewer the Group Assistant: only a steward of a Pro group that has turned it on.
-        // Everyone else gets false, so nothing tells a member whether the assistant is in use.
+        // Whether to show the viewer the stewards' Group Assistant thread: only a steward, in a group whose Hylo Pro
+        // includes the assistant and that has turned it on. Members learn it is on from the group's agreements, and
+        // see what it means for them in assistantForMe.
         assistantEnabled: async g => {
           if (!userId || g.get('type') === 'space') return false
           if (!sanitizeGroupAssistantSettings((g.get('settings') || {}).assistant).enabled) return false
           if (!await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) return false
-          return g.hasPro()
+          return g.hasProFeature(GROUP_ASSISTANT_PRO_FEATURE)
         },
+        assistantForMe: g => assistantForMember(userId, g),
         proBilling: async g => {
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null

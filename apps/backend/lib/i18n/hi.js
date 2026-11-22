@@ -85,6 +85,7 @@ exports.hi = {
     ? `${actor.get('name')} ने ${parentGroupName} में ${groupName} में शामिल होने के लिए कहा`
     : `${actor.get('name')} ने ${groupName} में शामिल होने के लिए कहा`,
   textForMemberJoinedGroup: ({ group, actor }) => `${group.get('name')} में नया सदस्य शामिल हुआ: ${actor.get('name')}`,
+  textForGroupAssistantAgreement: ({ group }) => `${group.get('name')} ने अपने समझौते अपडेट किए हैं: चुनें कि क्या आपकी पोस्ट समूह के AI सहायक के साथ साझा की जा सकती हैं`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -85,6 +85,7 @@ exports.de = {
     ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
     : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  textForGroupAssistantAgreement: ({ group }) => `${group.get('name')} hat seine Vereinbarungen geändert: Bitte entscheide, ob deine Beiträge mit dem KI-Assistenten der Gruppe geteilt werden dürfen`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -87,6 +87,7 @@ exports.es = {
   textForGroupPeerGroupInvite: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} invitó a tu grupo ${toGroup.get('name')} a formar una relación de pares con ${fromGroup.get('name')}`,
   textForGroupPeerGroupInviteAccepted: ({ actor, fromGroup, toGroup }) => `${actor.get('name')} aceptó la relación de pares entre ${fromGroup.get('name')} y ${toGroup.get('name')}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nuevo miembro se ha unido a ${group.get('name')}: ${actor.get('name')}`,
+  textForGroupAssistantAgreement: ({ group }) => `${group.get('name')} ha actualizado sus acuerdos: elige si tus publicaciones pueden compartirse con el asistente de IA del grupo`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

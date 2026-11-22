@@ -157,9 +157,12 @@ import {
   setGroupViewHidden,
   setHomeView,
   askGroupAssistant,
+  askGroupQuestion,
   groupAssistant,
   markGroupAssistantDraftPosted,
   saveGroupAssistantVoiceNote,
+  setGroupAssistantConsent,
+  summarizeGroupChat,
   updateGroupAssistantSettings,
   updateGroupAssistantVoice,
   subscribe,
@@ -785,6 +788,9 @@ export function makeMutations ({ fetchOne }) {
       saveGroupAssistantVoiceNote({ userId: context.currentUserId, messageId, partIndex, text }),
     markGroupAssistantDraftPosted: (root, { messageId, partIndex, postId, commentId }, context) =>
       markGroupAssistantDraftPosted({ userId: context.currentUserId, messageId, partIndex, postId, commentId }),
+    setGroupAssistantConsent: (root, { groupId, accepted }, context) => setGroupAssistantConsent({ userId: context.currentUserId, groupId, accepted }),
+    summarizeGroupChat: (root, { groupId, sincePostId }, context) => summarizeGroupChat({ userId: context.currentUserId, groupId, sincePostId }),
+    askGroupQuestion: (root, { groupId, text }, context) => askGroupQuestion({ userId: context.currentUserId, groupId, text }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 

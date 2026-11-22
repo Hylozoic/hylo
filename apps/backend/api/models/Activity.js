@@ -168,6 +168,7 @@ module.exports = bookshelf.Model.extend({
     JoinRequest: 'joinRequest',
     GroupInvitation: 'groupInvitation',
     MemberJoinedGroup: 'memberJoinedGroup',
+    GroupAssistantAgreement: 'groupAssistantAgreement', // the group's agreements now ask about sharing with its AI assistant
     GroupChildGroupInvite: 'groupChildGroupInvite',
     GroupChildGroupInviteAccepted: 'groupChildGroupInviteAccepted',
     GroupParentGroupJoinRequest: 'groupParentGroupJoinRequest',

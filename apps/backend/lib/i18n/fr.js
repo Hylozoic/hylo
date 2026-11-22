@@ -85,6 +85,7 @@ exports.fr = {
     ? `${actor.get('name')} a demandé à rejoindre ${groupName} dans ${parentGroupName}`
     : `${actor.get('name')} a demandé à rejoindre ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Un nouveau membre a rejoint ${group.get('name')} : ${actor.get('name')}`,
+  textForGroupAssistantAgreement: ({ group }) => `${group.get('name')} a mis à jour ses accords : choisissez si vos publications peuvent être partagées avec l'assistant IA du groupe`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

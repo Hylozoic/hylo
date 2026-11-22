@@ -956,6 +956,12 @@ type Group {
   # Whether the viewer should be shown the Group Assistant: true only for someone with the Administration
   # responsibility, in a group that has Hylo Pro and has turned the assistant on. False for everyone else.
   assistantEnabled: Boolean
+  # What the Group Assistant means for the viewer, a member of this group or space:
+  # { consent: 'accepted' | 'declined' | 'pending' | null, summarize: Boolean, answerMembers: Boolean }.
+  # consent is their answer to the assistant's data-sharing agreement (null while the assistant is off);
+  # summarize: they can ask for a summary of this chat; answerMembers: they can ask it about the group.
+  # Null for someone who is not a member.
+  assistantForMe: JSON
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -3668,6 +3674,15 @@ type Mutation {
   # Records that the steward posted a draft from the thread, as the post or comment they just made.
   # Returns the updated message.
   markGroupAssistantDraftPosted(messageId: ID!, partIndex: Int!, postId: ID, commentId: ID): JSON
+  # ---- Group Assistant, for members ----
+  # The calling member's own answer to the assistant's data-sharing agreement. Returns { consent }.
+  setGroupAssistantConsent(groupId: ID!, accepted: Boolean!): JSON
+  # A summary of a group's or space's chat since sincePostId (or the last day), from members who agreed to share.
+  # Returns { text, messagesRead, notShared }.
+  summarizeGroupChat(groupId: ID!, sincePostId: ID): JSON
+  # A member's question about the group, answered from what the stewards let the assistant read.
+  # Returns { text, posts: [{ id, title }] }.
+  askGroupQuestion(groupId: ID!, text: String!): JSON
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

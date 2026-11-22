@@ -46,9 +46,13 @@ export {
 } from './group_views'
 export {
   askGroupAssistant,
+  askGroupQuestion,
+  assistantForMember,
   groupAssistant,
   markGroupAssistantDraftPosted,
   saveGroupAssistantVoiceNote,
+  setGroupAssistantConsent,
+  summarizeGroupChat,
   updateGroupAssistantSettings,
   updateGroupAssistantVoice
 } from './group_assistant'

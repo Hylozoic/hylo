@@ -1,14 +1,17 @@
-/* global bookshelf, Group, GroupMembership, Responsibility, sails */
+/* global bookshelf, Group, GroupMembership, Queue, Responsibility, sails */
 import { GraphQLError } from 'graphql'
 import {
+  GROUP_ASSISTANT_PRO_FEATURE,
   MAX_ASSISTANT_MESSAGE_LENGTH,
   MAX_ASSISTANT_VOICE_LENGTH,
   sanitizeAssistantParts,
   sanitizeGroupAssistantSettings,
   validateGroupAssistantSettings
 } from '@hylo/shared'
-import { assistantTurnInChildProcess, isGroupAssistantConfigured } from '../../../lib/groupAssistant'
-import { assistantSpaceChoices, fetchAssistantContent, formatAssistantContent, linkablePostIds } from '../../../lib/groupAssistantContent'
+import { assistantTurnInChildProcess, isGroupAssistantConfigured, memberAnswerInChildProcess } from '../../../lib/groupAssistant'
+import { assistantSpaceChoices, fetchAssistantContent, fetchChatForSummary, formatAssistantContent, formatChatForSummary, linkablePostIds } from '../../../lib/groupAssistantContent'
+import { addAssistantAgreement, assistantConsentFor, consentingMemberIds, removeAssistantAgreement, setAssistantConsent } from '../../../lib/groupAssistantConsent'
+import HyloProService from '../../services/HyloProService'
 import RedisClient from '../../services/RedisClient'
 
 /**
@@ -20,7 +23,11 @@ import RedisClient from '../../services/RedisClient'
  * - Stewards only. Every function checks the caller holds the Administration
  *   responsibility in the group right now, on every read and write, so someone
  *   who stops being a steward loses the thread at once.
- * - Hylo Pro, per group, and only once a steward has turned the assistant on.
+ * - The group's Hylo Pro must include the groupAssistant feature, and a steward
+ *   must have turned the assistant on.
+ * - Members' consent: while it is on, the group's agreements include the
+ *   assistant's data-sharing agreement, and only the posts, replies and
+ *   details of members who accepted it are ever sent (groupAssistantConsent.js).
  * - A steward's "How I write" note is theirs alone. It is kept on their own
  *   membership of the group, returned only to them, and given to the model
  *   only for a turn they ask for themselves.
@@ -31,6 +38,8 @@ import RedisClient from '../../services/RedisClient'
 
 export const HYLO_PRO_REQUIRED_FOR_ASSISTANT = 'The Group Assistant is part of Hylo Pro. This group needs Hylo Pro to use it.'
 const TURNS_PER_GROUP_PER_HOUR = 60
+// A member's chat summaries and questions, on top of the group's own hourly limit
+const MEMBER_REQUESTS_PER_HOUR = 10
 const THREAD_PAGE = 100
 const HISTORY_FOR_MODEL = 20
 
@@ -47,24 +56,32 @@ async function requireSteward (userId, groupId) {
   return group
 }
 
-const requirePro = async group => {
-  if (!(await group.hasPro())) throw new GraphQLError(HYLO_PRO_REQUIRED_FOR_ASSISTANT, { extensions: { code: 'HYLO_PRO_REQUIRED' } })
-}
+// The group's Hylo Pro must include the assistant (Q-82): HYLO_PRO_REQUIRED without Pro,
+// HYLO_PRO_FEATURE_REQUIRED when its plan leaves the assistant out
+const requireAssistantFeature = async group => HyloProService.requireProFeature(
+  group,
+  GROUP_ASSISTANT_PRO_FEATURE,
+  (await group.hasPro()) ? 'This group\'s Hylo Pro plan doesn\'t include the Group Assistant.' : HYLO_PRO_REQUIRED_FOR_ASSISTANT
+)
 
 const storedSettings = group => sanitizeGroupAssistantSettings((group.get('settings') || {}).assistant)
 
-async function withinTurnLimit (groupId) {
+async function withinHourlyLimit (key, limit) {
   try {
     const redis = RedisClient.create()
-    const key = `ratelimit:groupAssistant:group:${groupId}`
     const count = await redis.incr(key)
     if (count === 1) await redis.expire(key, 60 * 60)
-    return count <= TURNS_PER_GROUP_PER_HOUR
+    return count <= limit
   } catch (err) {
-    sails.log.error(`groupAssistant withinTurnLimit failed: ${err.message}`)
+    sails.log.error(`groupAssistant withinHourlyLimit failed: ${err.message}`)
     return true
   }
 }
+
+// Where a per-group token cap (#1795) would go: check the group's remaining tokens here, before
+// the model is called, and record each answer's `usage` after it (both ask and the member requests
+// go through this and get usage back from the model call).
+const withinTurnLimit = groupId => withinHourlyLimit(`ratelimit:groupAssistant:group:${groupId}`, TURNS_PER_GROUP_PER_HOUR)
 
 const saveStewardVoice = (userId, groupId, voice) => bookshelf.knex('group_memberships').where({ user_id: userId, group_id: groupId }).update({
   // Only this key, in one statement, so other membership settings are not overwritten
@@ -187,9 +204,18 @@ async function stewardNames (group) {
   return stewards.map(user => ({ id: String(user.id), name: user.get('name') || '' }))
 }
 
+async function consentCounts (groupId) {
+  const members = await bookshelf.knex('group_memberships')
+    .join('users', 'users.id', 'group_memberships.user_id')
+    .where({ 'group_memberships.group_id': groupId, 'group_memberships.active': true, 'users.active': true })
+    .count('* as count').first()
+  return { agreed: (await consentingMemberIds(groupId)).size, members: Number(members?.count) || 0 }
+}
+
 /** Everything the assistant screen and its settings card need, for a steward. */
 async function presentAssistant (group, userId, { withThread = true } = {}) {
   const hasPro = await group.hasPro()
+  const hasFeature = await group.hasProFeature(GROUP_ASSISTANT_PRO_FEATURE)
   const settings = storedSettings(group)
   const spaces = await assistantSpaceChoices(group.id)
   // A space that was deleted or archived out of the group stops counting at once
@@ -197,13 +223,16 @@ async function presentAssistant (group, userId, { withThread = true } = {}) {
   settings.readableGroupIds = settings.readableGroupIds.filter(id => choiceIds.has(id))
   return {
     hasPro,
+    hasFeature,
     configured: isGroupAssistantConfigured(),
+    // How many members have agreed to share with the assistant, of how many
+    consent: settings.enabled ? await consentCounts(group.id) : null,
     settings,
     spaces,
     stewards: await stewardNames(group),
     myVoice: await stewardVoice(userId, group.id),
     myVoiceMaxLength: MAX_ASSISTANT_VOICE_LENGTH,
-    messages: withThread && hasPro && settings.enabled ? await forSteward(group, userId, await fetchThread(group.id)) : []
+    messages: withThread && hasFeature && settings.enabled ? await forSteward(group, userId, await fetchThread(group.id)) : []
   }
 }
 
@@ -227,7 +256,7 @@ export async function updateGroupAssistantSettings ({ userId, groupId, settings 
   const group = await requireSteward(userId, groupId)
   const { settings: clean, errors } = validateGroupAssistantSettings({ ...storedSettings(group), ...(settings || {}) })
   if (errors.length > 0) throw new GraphQLError(`Invalid assistant settings: ${errors.join('; ')}`)
-  if (clean.enabled) await requirePro(group)
+  if (clean.enabled) await requireAssistantFeature(group)
 
   const choiceIds = new Set((await assistantSpaceChoices(group.id)).map(space => space.id))
   const outside = clean.readableGroupIds.filter(id => !choiceIds.has(id))
@@ -238,6 +267,16 @@ export async function updateGroupAssistantSettings ({ userId, groupId, settings 
     settings: bookshelf.knex.raw("jsonb_set(COALESCE(settings, '{}'::jsonb), '{assistant}', ?::jsonb)", [JSON.stringify({ ...clean, updatedBy: String(userId), updatedAt: new Date().toISOString() })]),
     updated_at: new Date()
   })
+
+  // Members' consent: while it is on, the group's agreements ask every member whether their
+  // content may be shared. Adding it marks the agreements as changed (the regular prompt) and
+  // tells the members; turning the assistant off takes the agreement away again.
+  if (clean.enabled) {
+    const added = await addAssistantAgreement(group, userId)
+    if (added) Queue.classMethod('Group', 'notifyMembersOfAssistantAgreement', { groupId: group.id, actorId: userId })
+  } else {
+    await removeAssistantAgreement(group)
+  }
   return presentAssistant(await group.refresh(), userId)
 }
 
@@ -311,7 +350,7 @@ function describeParts (parts, content, asker = {}) {
  */
 export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
   const group = await requireSteward(userId, groupId)
-  await requirePro(group)
+  await requireAssistantFeature(group)
   const settings = storedSettings(group)
   if (!settings.enabled) throw new GraphQLError('The Group Assistant is turned off for this group. A steward can turn it on in Group Settings.')
   if (!(deps.isConfigured || isGroupAssistantConfigured)()) throw new GraphQLError('The Group Assistant is not set up on this server')
@@ -331,7 +370,8 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
   const stewardMessageId = stewardRow.id || stewardRow
 
   // The only content the model sees: what the stewards chose, selected in the database
-  const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: settings.readMembers })
+  const abilities = { followUps: settings.followUps, shareLoad: settings.shareLoad }
+  const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: settings.readMembers, abilities })
   const allowedPostIds = content.posts.map(post => post.id)
   const allowedGroupIds = content.spaces.map(space => space.id)
   const asker = await knex('users').where('id', userId).first('name')
@@ -345,7 +385,8 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
       thread: earlier.map(item => ({ authorType: item.authorType, author: item.author?.name || '', text: item.text, parts: item.parts })),
       steward: asker?.name || '',
       voice: await stewardVoice(userId, group.id),
-      message
+      message,
+      abilities
     })
   } catch (err) {
     sails.log.error(`askGroupAssistant failed for group ${group.id}: ${err.message}`)
@@ -406,4 +447,122 @@ export async function markGroupAssistantDraftPosted ({ userId, messageId, partIn
   await knex('group_assistant_messages').where('id', row.id).update({ parts: JSON.stringify(parts) })
   const [updated] = await forSteward(await Group.find(row.group_id), userId, [presentMessage({ ...row, parts })])
   return updated
+}
+
+// ---------- Members ----------
+
+/** The group whose assistant covers groupId: the group itself, or a space's parent group. */
+async function assistantGroupFor (groupId) {
+  const group = groupId ? await Group.find(groupId) : null
+  if (!group) throw new GraphQLError('Group not found')
+  if (group.get('type') !== 'space') return { group, place: group }
+  const parent = group.get('parent_id') ? await Group.find(group.get('parent_id')) : null
+  if (!parent) throw new GraphQLError('Group not found')
+  return { group: parent, place: group }
+}
+
+const isActiveMember = async (userId, groupId) => !!(await bookshelf.knex('group_memberships').where({ user_id: userId, group_id: groupId, active: true }).first('id'))
+
+/**
+ * What the Group Assistant means for one member of a group or space, for the web:
+ * { consent, summarize, answerMembers }. consent is their answer to the data-sharing agreement
+ * ('accepted', 'declined' or 'pending'), or null when the assistant is off. summarize is whether
+ * they can ask for a summary of this group's or space's chat, answerMembers whether they can ask
+ * the assistant a question about the group. Null for someone who is not a member.
+ */
+export async function assistantForMember (userId, groupOrSpace) {
+  if (!userId || !groupOrSpace) return null
+  const { group, place } = await assistantGroupFor(groupOrSpace.id)
+  if (!(await isActiveMember(userId, place.id))) return null
+  const settings = storedSettings(group)
+  const off = { consent: null, summarize: false, answerMembers: false }
+  if (!settings.enabled) return off
+  const consent = await assistantConsentFor(userId, group.id)
+  if (!(await group.hasProFeature(GROUP_ASSISTANT_PRO_FEATURE)) || !isGroupAssistantConfigured()) return { ...off, consent }
+  return {
+    consent,
+    summarize: settings.summarize && settings.readableGroupIds.includes(String(place.id)),
+    answerMembers: settings.answerMembers && place.id === group.id
+  }
+}
+
+/** A member answers the assistant's data-sharing agreement for themselves: accepted true or false. */
+export async function setGroupAssistantConsent ({ userId, groupId, accepted }) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  const { group } = await assistantGroupFor(groupId)
+  if (!(await isActiveMember(userId, group.id))) throw new GraphQLError('Only members of this group can answer its agreements')
+  try {
+    return { consent: await setAssistantConsent(userId, group.id, !!accepted) }
+  } catch (err) {
+    throw new GraphQLError(err.message)
+  }
+}
+
+async function requireMemberAbility (userId, groupId, ability, deps) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  const { group, place } = await assistantGroupFor(groupId)
+  if (!(await isActiveMember(userId, place.id))) throw new GraphQLError('Only members can ask the Group Assistant')
+  await requireAssistantFeature(group)
+  const settings = storedSettings(group)
+  if (!settings.enabled || !settings[ability]) throw new GraphQLError('The stewards have not turned this on for this group')
+  if (!(deps.isConfigured || isGroupAssistantConfigured)()) throw new GraphQLError('The Group Assistant is not set up on this server')
+  const limited = deps.withinLimit
+    ? !(await deps.withinLimit(group.id))
+    : !(await withinHourlyLimit(`ratelimit:groupAssistant:member:${userId}`, MEMBER_REQUESTS_PER_HOUR)) || !(await withinTurnLimit(group.id))
+  if (limited) throw new GraphQLError('The Group Assistant has been asked a lot in the last hour. Please try again later.')
+  return { group, place, settings }
+}
+
+/**
+ * "Catch me up" in a chat room (the "Summarize busy chats" ability): a summary of the chat
+ * messages in a group or space since sincePostId (the member's last read message), or from the
+ * last day. Only for a space the stewards let the assistant read, and only messages from members
+ * who agreed to share. Returns { text, messagesRead, notShared }. Nothing is stored.
+ */
+export async function summarizeGroupChat ({ userId, groupId, sincePostId }, deps = {}) {
+  const { group, place, settings } = await requireMemberAbility(userId, groupId, 'summarize', deps)
+  if (!settings.readableGroupIds.includes(String(place.id))) throw new GraphQLError('The stewards have not let the assistant read this chat')
+  const chat = await fetchChatForSummary({ assistantGroupId: group.id, chatGroupId: place.id, sincePostId })
+  if (chat.messages.length === 0) return { text: '', messagesRead: 0, notShared: chat.notShared }
+  try {
+    const answer = await (deps.memberAnswer || memberAnswerInChildProcess)({
+      kind: 'summary',
+      contentSummary: formatChatForSummary({ spaceName: place.get('name') || '', ...chat }),
+      allowedPostIds: chat.messages.map(message => message.id)
+    })
+    return { text: answer.text, messagesRead: chat.messages.length, notShared: chat.notShared }
+  } catch (err) {
+    sails.log.error(`summarizeGroupChat failed for group ${place.id}: ${err.message}`)
+    throw new GraphQLError(`Axl could not answer: ${err.message}`)
+  }
+}
+
+/**
+ * A member asks the assistant a question about the group (the "Answer members' questions"
+ * ability). Answered from the group's About text, agreements and the posts the stewards let it
+ * read, from members who agreed to share; never the member list. Returns
+ * { text, posts: [{ id, title }] }: the posts the answer relied on. Nothing is stored.
+ */
+export async function askGroupQuestion ({ userId, groupId, text }, deps = {}) {
+  const question = typeof text === 'string' ? text.trim() : ''
+  if (!question) throw new GraphQLError('Write a question first')
+  if (question.length > MAX_ASSISTANT_MESSAGE_LENGTH) throw new GraphQLError(`A question can be up to ${MAX_ASSISTANT_MESSAGE_LENGTH} characters`)
+  const { group, settings } = await requireMemberAbility(userId, groupId, 'answerMembers', deps)
+  const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: false })
+  try {
+    const answer = await (deps.memberAnswer || memberAnswerInChildProcess)({
+      kind: 'answer',
+      contentSummary: formatAssistantContent(content),
+      question,
+      allowedPostIds: content.posts.map(post => post.id)
+    })
+    const posts = answer.postIds
+      .map(id => content.posts.find(post => post.id === id))
+      .filter(Boolean)
+      .map(post => ({ id: post.id, title: post.title || post.text.slice(0, 80) }))
+    return { text: answer.text, posts }
+  } catch (err) {
+    sails.log.error(`askGroupQuestion failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Axl could not answer: ${err.message}`)
+  }
 }
