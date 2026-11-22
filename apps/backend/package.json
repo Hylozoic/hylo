@@ -272,6 +272,7 @@
       "UserExternalData",
       "UserGroupAgreement",
       "UserExternalData",
+      "UserProfileLink",
       "UserScope",
       "UserSession",
       "UserVerificationCode",

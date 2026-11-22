@@ -1,8 +1,8 @@
 import { expect } from 'chai'
-import { isFeatureEnabled, MEMBER_INVITES } from '../../../lib/featureFlags'
+import { isFeatureEnabled } from '../../../lib/featureFlags'
 
 describe('isFeatureEnabled', () => {
-  const ENV_KEYS = ['FEATURE_FLAG_MEMBER_INVITES', 'FEATURE_FLAG_SOMETHING_ELSE', 'SENTRY_ENV', 'NODE_ENV']
+  const ENV_KEYS = ['FEATURE_FLAG_SOMETHING_ELSE', 'SENTRY_ENV', 'NODE_ENV']
   let saved
 
   function setEnv (values) {
@@ -21,41 +21,23 @@ describe('isFeatureEnabled', () => {
 
   afterEach(() => setEnv(saved))
 
-  it('turns member invitations on by default in development, test and staging', () => {
-    for (const NODE_ENV of ['development', 'test']) {
+  it('keeps a flag that is not turned on off in every environment', () => {
+    for (const NODE_ENV of ['development', 'test', 'production']) {
       setEnv({ NODE_ENV })
-      expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(true)
+      expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(false)
     }
     setEnv({ NODE_ENV: 'production', SENTRY_ENV: 'staging' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(true)
-  })
-
-  it('turns member invitations off by default in production and in unknown environments', () => {
-    setEnv({ NODE_ENV: 'production' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-    setEnv({ NODE_ENV: 'development', SENTRY_ENV: 'production' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-    setEnv({ NODE_ENV: 'production', SENTRY_ENV: 'reviewApp' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-    setEnv({})
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
+    expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(false)
   })
 
   it('follows an explicit on or off in any environment', () => {
-    setEnv({ NODE_ENV: 'production', FEATURE_FLAG_MEMBER_INVITES: 'on' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(true)
-    setEnv({ NODE_ENV: 'production', FEATURE_FLAG_MEMBER_INVITES: ' TRUE ' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(true)
-    setEnv({ NODE_ENV: 'test', FEATURE_FLAG_MEMBER_INVITES: 'off' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-    setEnv({ NODE_ENV: 'development', FEATURE_FLAG_MEMBER_INVITES: 'false' })
-    expect(isFeatureEnabled(MEMBER_INVITES)).to.equal(false)
-  })
-
-  it('keeps other flags off unless they are turned on', () => {
-    setEnv({ NODE_ENV: 'development' })
-    expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(false)
     setEnv({ NODE_ENV: 'production', FEATURE_FLAG_SOMETHING_ELSE: 'on' })
     expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(true)
+    setEnv({ NODE_ENV: 'production', FEATURE_FLAG_SOMETHING_ELSE: ' TRUE ' })
+    expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(true)
+    setEnv({ NODE_ENV: 'test', FEATURE_FLAG_SOMETHING_ELSE: 'off' })
+    expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(false)
+    setEnv({ NODE_ENV: 'development', FEATURE_FLAG_SOMETHING_ELSE: 'false' })
+    expect(isFeatureEnabled('SOMETHING_ELSE')).to.equal(false)
   })
 })
