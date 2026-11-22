@@ -125,6 +125,38 @@ module.exports = bookshelf.Model.extend(Object.assign({
   }
 
 }, HasSettings), {
+  // Stored as properties.source on group_joined activity events.
+  // A join without one is recorded as direct: it happened before sources were labelled, or by an unlabelled path.
+  JoinSource: {
+    ADMIN_ADD: 'admin_add',
+    AUTO_ADD: 'auto_add',
+    CREATOR: 'creator',
+    EMAIL_INVITE: 'email_invite',
+    FUNDING_ROUND: 'funding_round',
+    INVITE_LINK: 'invite_link',
+    JOIN_REQUEST: 'join_request',
+    OPEN: 'open',
+    SPACE: 'space',
+    TRACK: 'track'
+  },
+
+  /**
+   * Attribution for a join that a join link or an email invitation let through.
+   * The access code wins when both are present, as it does in InvitationService.check.
+   * @returns {Promise<{ analyticsSource: string, analyticsProperties?: { invitationId?: string, invitedById?: string } }>}
+   */
+  async inviteJoinAttribution ({ accessCode, invitationToken } = {}) {
+    if (accessCode) return { analyticsSource: GroupMembership.JoinSource.INVITE_LINK }
+    const invitation = invitationToken ? await Invitation.find(invitationToken) : null
+    return {
+      analyticsSource: GroupMembership.JoinSource.EMAIL_INVITE,
+      analyticsProperties: {
+        invitationId: invitation?.id,
+        invitedById: invitation?.get('invited_by_id')
+      }
+    }
+  },
+
   forPair (userOrId, groupOrId, opts = {}) {
     const userId = userOrId instanceof User ? userOrId.id : userOrId
     const groupId = groupOrId instanceof Group ? groupOrId.id : groupOrId

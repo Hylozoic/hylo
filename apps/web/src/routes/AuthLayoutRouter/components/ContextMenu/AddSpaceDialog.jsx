@@ -43,7 +43,7 @@ import FundingRoundSettingsFields from './FundingRoundSettingsFields'
 import SpaceIconRow from './SpaceIconRow'
 import SpaceSlugField from './SpaceSlugField'
 import TrackSettingsFields from './TrackSettingsFields'
-import ProjectColumnsFields, { defaultProjectColumns, projectColumnsForCreate, projectColumnsValid } from './ProjectColumnsFields'
+import ProjectColumnsFields, { defaultProjectColumns, projectColumnsForCreate, projectColumnsValid, projectSpaceViewTypes } from './ProjectColumnsFields'
 import AutoAddMembersSetting from './AutoAddMembersSetting'
 import { accessOptionsForGroup, toMinuteIsoOrNull } from './spaceFormConstants'
 
@@ -438,9 +438,10 @@ export default function AddSpaceDialog ({ group, onClose, onCreated, addToMenu =
       const standardTypesInOrder = orderedRows.filter(row => row.kind === 'standard').map(row => row.type)
       const manualRowsInOrder = orderedRows.filter(row => row.kind === 'manual')
       // Custom spaces put the chosen home first; preset types already lead with theirs.
+      const presetViewTypes = standardTypesInOrder.length > 0 ? standardTypesInOrder : standardViewTypes
       const viewTypes = spaceType === 'custom'
         ? viewTypesForCreate(standardTypesInOrder, standardViewTypes, homeViewType)
-        : (standardTypesInOrder.length > 0 ? standardTypesInOrder : standardViewTypes)
+        : spaceType === 'project' ? projectSpaceViewTypes(presetViewTypes) : presetViewTypes
 
       // The welcome panel's editor wins while mounted; otherwise use the kept draft.
       const effectiveWelcome = welcomeEnabled

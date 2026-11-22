@@ -27,7 +27,8 @@ export function TaskCardFace ({ task, isDone, onToggleDone, onOpen, className, d
       data-task-title={task.title}
       onClick={onOpen}
       className={cn(
-        'rounded-lg bg-card border border-foreground/10 p-2.5 shadow-sm cursor-grab select-none transition-shadow hover:border-foreground/30 hover:shadow-md',
+        // No long-press callout on touch screens: pressing and holding a card starts a drag
+        'rounded-lg bg-card border border-foreground/10 p-2.5 shadow-sm cursor-grab select-none [-webkit-touch-callout:none] transition-shadow hover:border-foreground/30 hover:shadow-md',
         dragging && 'shadow-xl cursor-grabbing',
         className
       )}

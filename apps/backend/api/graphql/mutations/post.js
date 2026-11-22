@@ -36,12 +36,9 @@ export async function completePost (userId, postId, completionResponse) {
 }
 
 export function createPost (userId, data) {
+  // Project stays a post type (Q-74). The web editor no longer offers it, but a project post
+  // sent by an older client is still saved as a project, never silently turned into a task.
   return convertGraphqlPostData(data)
-    // New project posts can no longer be made: projects are spaces now. One sent by an older
-    // client is saved as a task instead. Existing project posts are untouched.
-    .then(convertedData => convertedData.type === Post.Type.PROJECT
-      ? { ...convertedData, type: Post.Type.TASK }
-      : convertedData)
     .tap(convertedData => validatePostData(userId, convertedData))
     .tap(convertedData => convertedData.groupAdminsCanEdit && assertCanAllowGroupAdminEdits(userId, convertedData.group_ids))
     .then(async validatedData => {

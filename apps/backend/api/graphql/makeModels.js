@@ -1281,6 +1281,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
         taskStatuses: async g => (userId && await GroupMembership.hasActiveMembership(userId, g))
           ? TaskStatus.ensureForGroup(g.id)
           : TaskStatus.forGroup(g.id),
+        // Read through the group, so a column is only seen by those who can see its board
+        taskStatus: (g, { id }) => id
+          ? TaskStatus.where({ id, group_id: g.id }).fetch()
+          : null,
         taskEvents: async (g, { sinceDaysAgo = 1 }) => {
           if (!userId || !(await GroupMembership.hasActiveMembership(userId, g))) return []
           return TaskEvent.recentForGroup(g.id, sinceDaysAgo)

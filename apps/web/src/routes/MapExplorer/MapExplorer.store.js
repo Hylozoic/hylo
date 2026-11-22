@@ -26,7 +26,8 @@ export const FEATURE_TYPES = {
   project: {
     primaryColor: [252, 128, 0, 255],
     backgroundColor: 'rgba(252, 128, 0, .2)',
-    map: true
+    map: true,
+    label: 'Project'
   },
   member: {
     primaryColor: [201, 88, 172, 255],
@@ -433,9 +434,6 @@ export function fetchMembers ({ boundingBox, context, slug, sortBy, search, grou
     extractModel = 'Group'
     getItems = get('payload.data.group.members')
   } else if (context === 'all') {
-    // query = allGroupsMembersQuery
-    // extractModel = 'User'
-    // getItems = get('payload.data.people')
     // No Members in All Groups Context, yet
     return { type: 'RETURN NO MEMBERS FOR ALL GROUPS' }
   } else if (context === 'public') {

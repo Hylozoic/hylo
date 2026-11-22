@@ -4,6 +4,7 @@ import {
   CREATE_TASK_STATUS,
   DELETE_TASK_STATUS,
   FETCH_TASK_BOARD,
+  FETCH_TASK_COLUMN_PAGE,
   FETCH_TASK_EVENTS,
   FETCH_TASK_STATUSES,
   JOIN_PROJECT,
@@ -177,6 +178,31 @@ export function fetchTaskBoard (groupId, assigneeId) {
         }
       }`,
       variables: { id: groupId, first: BOARD_COLUMN_PAGE_SIZE, assigneeId: assigneeId || null }
+    }
+  }
+}
+
+/**
+ * Loads the next page of one column ("Load more"): `first` tasks after the first `offset`.
+ * Resolves with the column on `payload.data.group.taskStatus`.
+ */
+export function fetchTaskColumnPage ({ groupId, taskStatusId, offset, assigneeId }) {
+  return {
+    type: FETCH_TASK_COLUMN_PAGE,
+    graphql: {
+      query: `query FetchTaskColumnPage ($id: ID, $taskStatusId: ID, $first: Int, $offset: Int, $assigneeId: ID) {
+        group (id: $id) {
+          id
+          taskStatus (id: $taskStatusId) {
+            id
+            tasksTotal (assigneeId: $assigneeId)
+            tasks (first: $first, offset: $offset, assigneeId: $assigneeId) {
+              ${boardCardFields}
+            }
+          }
+        }
+      }`,
+      variables: { id: groupId, taskStatusId, first: BOARD_COLUMN_PAGE_SIZE, offset, assigneeId: assigneeId || null }
     }
   }
 }

@@ -397,14 +397,15 @@ module.exports = bookshelf.Model.extend(merge({
     return normalizeLocaleToFull(this.getSetting('locale') || 'en-US')
   },
 
-  joinGroup: async function (group, { assignAdministrator = false, fromInvitation = false, questionAnswers = [], analyticsSource = null, transacting = null } = {}) {
+  joinGroup: async function (group, { assignAdministrator = false, questionAnswers = [], analyticsSource = null, analyticsProperties = null, transacting = null } = {}) {
     const groupSettings = group.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
 
     const memberships = await group.addMembers([this.id],
       {
         assignAdministrator,
-        analyticsSource: analyticsSource || (fromInvitation ? 'invitation' : 'open'),
+        analyticsSource,
+        analyticsProperties,
         settings: {
           // Set joinQuestionsAnsweredAt if user answered questions during the join flow
           joinQuestionsAnsweredAt: questionAnswers.length > 0 ? new Date() : null,
@@ -802,7 +803,7 @@ module.exports = bookshelf.Model.extend(merge({
         .then(async (user) => {
           await Promise.join(
             account && LinkedAccount.create(user.id, account, { transacting }),
-            group && group.addMembers([user.id], { assignAdministrator: !!assignAdministrator }, { transacting }),
+            group && group.addMembers([user.id], { assignAdministrator: !!assignAdministrator, analyticsSource: GroupMembership.JoinSource.ADMIN_ADD }, { transacting }),
             group && user.markInvitationsUsed(group.id, transacting)
           )
           return user

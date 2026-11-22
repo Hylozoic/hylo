@@ -45,6 +45,14 @@ export function projectColumnsValid (columns) {
 }
 
 /** Starting-columns editor shown when creating a Project space. */
+/**
+ * A project space is a space whose home view is Tasks (Q-78): the backend takes the home
+ * from the first view, so Tasks always goes first, even if the menu was reordered or Tasks removed.
+ */
+export function projectSpaceViewTypes (viewTypes) {
+  return ['tasks', ...(viewTypes || []).filter(type => type !== 'tasks')]
+}
+
 export default function ProjectColumnsFields ({ columns, onChange }) {
   const { t } = useTranslation()
   const doneCount = columns.filter(column => column.category === 'done').length

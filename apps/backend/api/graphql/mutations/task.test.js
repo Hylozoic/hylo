@@ -77,10 +77,13 @@ describe('tasks', () => {
       expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(String(review.id))
     })
 
-    it('turns a new post sent with the old project type into a task', async () => {
-      const post = await newTask(steward.id, { type: 'project' })
-      expect(post.get('type')).to.equal('task')
-      expect((await placementIn(post.id, group.id)).statusName).to.equal('To do')
+    it('keeps a new post sent with the project type (an older client) a project, off the board', async () => {
+      const post = await newTask(steward.id, { type: 'project', memberIds: [member.id] })
+      const saved = await Post.find(post.id)
+      expect(saved.get('type')).to.equal('project')
+      expect(saved.get('task_category')).to.not.exist
+      expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(null)
+      expect((await saved.members().fetch()).map(m => m.id)).to.deep.equal([member.id])
     })
 
     it('leaves an existing project post a project when it is edited', async () => {
@@ -392,6 +395,20 @@ describe('tasks', () => {
       expect(column.mine.map(t => t.title)).to.deep.equal(['board two'])
       expect(column.mineTotal).to.equal(1)
       expect(one.id).to.exist
+
+      // "Load more": the next page of one column, read through its own group only
+      const otherColumn = (await columns(otherGroup.id))[0] || (await TaskStatus.ensureForGroup(otherGroup.id))[0]
+      const { executionResult: page } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") {
+          next: taskStatus(id: "${ordering.id}") { id tasksTotal tasks(first: 1, offset: 1) { title } }
+          elsewhere: taskStatus(id: "${otherColumn.id}") { id }
+        } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(page.errors).to.not.exist
+      expect(page.data.group.next.tasks.map(t => t.title)).to.deep.equal(['board one'])
+      expect(page.data.group.next.tasksTotal).to.equal(2)
+      expect(page.data.group.elsewhere).to.equal(null)
 
       const statuses = task.groups[0].taskStatuses
       expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
