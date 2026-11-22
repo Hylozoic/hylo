@@ -4,7 +4,8 @@ import { Columns2, LayoutGrid } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useSelector } from 'react-redux'
 import useProFeature from 'hooks/useProFeature'
-import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
+import { isHyloProEnabled } from 'config/featureFlags'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import SaveButton from '../SaveButton'
 import GroupThemeEditor from './GroupThemeEditor'
@@ -17,7 +18,7 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
   // whose Pro lapsed with a theme saved (they keep it and can only remove it), and, wherever Hylo
   // Pro can be bought, to everyone else as a try-out that links to the Billing tab.
   const hasGroupThemes = useProFeature(group, 'groupThemes')
-  const hyloProEnabled = useSelector(getHyloProEnabled)
+  const hyloProEnabled = isHyloProEnabled(useSelector(getMe))
   const showThemeEditor = hasGroupThemes || !!group?.settings?.theme || hyloProEnabled
 
   const { setHeaderDetails } = useViewHeader()
@@ -58,7 +59,7 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           >
             <Columns2 className='h-8 w-8' />
             <span className='text-sm font-medium'>{t('Two Column')}</span>
-            <span className='text-xs text-foreground/60 text-center'>{t('Sidebar menu with content pane')}</span>
+            <span className='text-xs text-foreground-muted text-center'>{t('Sidebar menu with content pane')}</span>
           </button>
           <button
             onClick={() => handleLayoutChange('one-column')}
@@ -69,7 +70,7 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           >
             <LayoutGrid className='h-8 w-8' />
             <span className='text-sm font-medium'>{t('One Column')}</span>
-            <span className='text-xs text-foreground/60 text-center'>{t('Full-width dashboard with cards')}</span>
+            <span className='text-xs text-foreground-muted text-center'>{t('Full-width dashboard with cards')}</span>
           </button>
         </div>
       </div>

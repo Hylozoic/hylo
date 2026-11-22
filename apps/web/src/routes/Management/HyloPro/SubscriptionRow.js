@@ -15,6 +15,7 @@ import { getDateLocale } from 'util/locale'
 import {
   cancelHyloProSubscription,
   extendHyloProSubscription,
+  fetchHyloProChargeEvents,
   fetchHyloProPayments,
   refundHyloProPayment,
   resumeHyloProSubscription,
@@ -43,6 +44,13 @@ function disputeStatusLabel (status, t) {
     case 'prevented': return t('Prevented')
     default: return status
   }
+}
+
+function chargeEventStatusLabel (event, t) {
+  if (event.type === 'dispute') return disputeStatusLabel(event.status, t)
+  if (event.status === 'refunded') return t('Refunded')
+  if (event.status === 'partially_refunded') return t('Partly refunded')
+  return event.status
 }
 
 function statusLabel (row, t) {
@@ -131,6 +139,16 @@ export default function SubscriptionRow ({ row, onChanged }) {
             <span className={cn('text-xs rounded-full px-2 py-0.5', row.active ? 'bg-selected/30 text-foreground' : 'bg-foreground/10 text-foreground/60', row.status === 'past_due' && 'bg-yellow-500/20 text-yellow-600')}>
               {statusLabel(row, t)}
             </span>
+            {row.openDisputes > 0 && (
+              <span className='text-xs rounded-full px-2 py-0.5 bg-red-500/15 text-red-600' data-testid='hylo-pro-open-disputes'>
+                {t('Open disputes: {{count}}', { count: row.openDisputes })}
+              </span>
+            )}
+            {row.refunds > 0 && (
+              <span className='text-xs rounded-full px-2 py-0.5 bg-foreground/10 text-foreground/80' data-testid='hylo-pro-refunds'>
+                {t('Refunded payments: {{count}}', { count: row.refunds })}
+              </span>
+            )}
           </div>
           <p className='text-xs text-foreground/60 m-0 mt-1'>
             {isGrant ? <GrantDetails row={row} t={t} locale={locale} /> : <SubscriptionDetails row={row} t={t} locale={locale} />}
@@ -198,6 +216,9 @@ function SubscriptionDetails ({ row, t, locale }) {
   const parts = []
   if (row.interval === 'month') parts.push(t('Monthly'))
   if (row.interval === 'year') parts.push(t('Yearly'))
+  // What it pays as of the last sync (absent until the row has been synced with its amount)
+  if (row.amount !== null && row.amount !== undefined) parts.push(formatCurrencyAmount(row.amount, row.currency, locale))
+  if (row.discount) parts.push(discountLabel(row.discount, row.currency, t, locale))
   if (row.endedAt) {
     parts.push(t('Ended on {{date}}', { date: formatLocalizedDate(row.endedAt && new Date(row.endedAt), { style: 'mediumDateTime', locale }) || '' }))
   } else if (row.endsAt) {
@@ -210,6 +231,19 @@ function SubscriptionDetails ({ row, t, locale }) {
   parts.push(t('Started {{date}}', { date: formatLocalizedDate(row.createdAt && new Date(row.createdAt), { style: 'medium', locale }) || '' }))
   if (row.stripeSubscriptionId) parts.push(row.stripeSubscriptionId)
   return parts.join(' · ')
+}
+
+// e.g. "Discount: 10% off until 21 Dec 2026"
+function discountLabel (discount, currency, t, locale) {
+  const amount = discount.percentOff !== null && discount.percentOff !== undefined
+    ? t('{{percent}}% off', { percent: discount.percentOff })
+    : t('{{amount}} off', { amount: formatCurrencyAmount(discount.amountOff || 0, discount.currency || currency, locale) })
+  const when = discount.duration === 'once'
+    ? t('first payment only')
+    : discount.duration === 'repeating' && discount.endsAt
+      ? t('until {{date}}', { date: formatLocalizedDate(new Date(discount.endsAt), { style: 'medium', locale }) || '' })
+      : null
+  return t('Discount: {{discount}}', { discount: when ? `${amount} ${when}` : amount })
 }
 
 function EndDatePanel ({ row, busy, run }) {
@@ -307,6 +341,7 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
   const [amounts, setAmounts] = useState({})
   const [cancelToo, setCancelToo] = useState({})
   const [refundingId, setRefundingId] = useState(null)
+  const [chargeEvents, setChargeEvents] = useState([])
   const groupId = row.group?.id
   const groupName = row.group?.name
 
@@ -327,7 +362,17 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
     }
   }, [dispatch, groupId])
 
+  // Refunds and disputes recorded from Stripe webhooks, with their reasons; refreshed with the first page
+  const loadChargeEvents = useCallback(async () => {
+    try {
+      setChargeEvents(await runGraphql(dispatch, fetchHyloProChargeEvents(groupId), 'hyloProChargeEvents') || [])
+    } catch (e) {
+      toast.error(e?.message || t('Something went wrong'))
+    }
+  }, [dispatch, groupId])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadChargeEvents() }, [loadChargeEvents])
 
   const loadMore = async () => {
     setLoadingMore(true)
@@ -385,10 +430,11 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
 
   if (error) return <div className='mt-3 text-sm text-red-500'>{error}</div>
   if (!payments) return <div className='mt-3'><Loading /></div>
-  if (payments.length === 0) return <div className='mt-3 text-sm text-foreground/50'>{t('No payments yet.')}</div>
+  if (payments.length === 0 && chargeEvents.length === 0) return <div className='mt-3 text-sm text-foreground/50'>{t('No payments yet.')}</div>
 
   return (
     <div className='mt-3 overflow-x-auto bg-card rounded-md p-3 border border-foreground/10 space-y-2' data-testid='hylo-pro-payments'>
+      {chargeEvents.length > 0 && <ChargeEvents events={chargeEvents} t={t} locale={locale} />}
       <table className='w-full text-sm text-left border-collapse'>
         <thead>
           <tr className='border-b border-foreground/10 text-foreground/50 text-xs uppercase'>
@@ -455,6 +501,45 @@ function PaymentsPanel ({ row, canCancel, onRefunded }) {
       {hasMore && (
         <Button size='sm' variant='outline' disabled={loadingMore} onClick={loadMore}>{t('Load more')}</Button>
       )}
+    </div>
+  )
+}
+
+/**
+ * The group's Pro refunds and disputes as recorded from Stripe's webhooks (including ones made in
+ * the Stripe dashboard), with Stripe's reason codes; open disputes first catch the eye.
+ */
+function ChargeEvents ({ events, t, locale }) {
+  return (
+    <div className='space-y-1' data-testid='hylo-pro-charge-events'>
+      <h3 className='text-sm font-semibold text-foreground m-0'>{t('Refunds and disputes')}</h3>
+      <table className='w-full text-sm text-left border-collapse'>
+        <thead>
+          <tr className='border-b border-foreground/10 text-foreground/50 text-xs uppercase'>
+            <th className='py-2 pr-4'>{t('Updated')}</th>
+            <th className='py-2 pr-4'>{t('Type')}</th>
+            <th className='py-2 pr-4 text-right'>{t('Amount')}</th>
+            <th className='py-2 pr-4'>{t('Status')}</th>
+            <th className='py-2 pr-4'>{t('Reason')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map(event => (
+            <tr key={event.id} className='border-b border-foreground/5' data-testid='hylo-pro-charge-event'>
+              <td className='whitespace-nowrap py-2 pr-4 text-foreground'>{formatLocalizedDate(event.updatedAt && new Date(event.updatedAt), { style: 'mediumDateTime', locale }) || ''}</td>
+              <td className='py-2 pr-4 text-foreground'>{event.type === 'dispute' ? t('Dispute') : t('Refund')}</td>
+              <td className='py-2 pr-4 text-right text-foreground'>{formatCurrencyAmount(event.amount || 0, event.currency, locale)}</td>
+              <td className='py-2 pr-4'>
+                <span className={cn('text-xs rounded-full px-2 py-0.5 whitespace-nowrap', event.open ? 'bg-red-500/15 text-red-600' : 'bg-foreground/10 text-foreground/80')}>
+                  {chargeEventStatusLabel(event, t)}
+                </span>
+              </td>
+              {/* Stripe's reason code (e.g. fraudulent, requested_by_customer), for looking up in Stripe */}
+              <td className='py-2 pr-4 text-foreground/70 font-mono text-xs'>{event.reason || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

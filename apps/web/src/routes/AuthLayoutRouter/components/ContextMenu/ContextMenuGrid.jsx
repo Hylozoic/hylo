@@ -134,7 +134,7 @@ function SpaceBannerHeader ({ group, spaceGroup, canAdminister, onOpenSettings, 
   const inkClass = bannerUrl ? 'text-white' : 'text-foreground'
   const controlClass = bannerUrl
     ? 'text-white/90 hover:text-white'
-    : 'text-foreground/60 hover:text-foreground dark:text-foreground/80 dark:hover:text-foreground'
+    : 'text-foreground-muted hover:text-foreground dark:text-foreground/80 dark:hover:text-foreground'
   const pillClass = bannerUrl
     ? 'bg-white/15 border-white/25 text-white hover:bg-white/25 hover:text-white'
     : 'bg-foreground/10 border-foreground/20 text-foreground/80 hover:bg-foreground/20 hover:text-foreground dark:bg-foreground/15 dark:border-foreground/25 dark:text-foreground/90 dark:hover:bg-foreground/25 dark:hover:text-foreground'
@@ -1001,7 +1001,7 @@ export default function ContextMenuGrid ({ group = null, spaceGroup = null, cont
             <button
               type='button'
               onClick={toggleEditing}
-              className='flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all border-foreground/20 hover:border-foreground/40 text-foreground/60 hover:text-foreground/80'
+              className='flex items-center gap-1.5 px-4 py-2 rounded-lg border-2 text-sm transition-all border-foreground/20 hover:border-foreground/40 text-foreground-muted hover:text-foreground/80'
             >
               <Pencil className='w-4 h-4' /> {t('Edit Menu')}
             </button>

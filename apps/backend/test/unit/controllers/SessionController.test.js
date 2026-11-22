@@ -69,11 +69,11 @@ describe('SessionController.upsertLinkedAccount', () => {
       return LinkedAccount.query().where('user_id', user.id).del()
     })
 
-    it('updates the user facebook_url', () => {
+    it('updates the user avatar from facebook', () => {
       return upsertLinkedAccount(req, 'facebook', profile)
         .then(() => user.refresh())
         .then(() => {
-          expect(user.get('facebook_url')).to.equal(facebookUrl)
+          expect(user.get('avatar_url')).to.contain('graph.facebook.com/foo/picture')
         })
     })
   })

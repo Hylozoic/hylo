@@ -45,9 +45,9 @@ export const THEME_ROLES = Object.keys(ROLE_TOKENS)
 
 // The tokens that are recalculated when a role changes
 export const ROLE_DEPENDENTS = {
-  background: ['background', 'midground', 'context-menu-background', 'muted', 'border', 'muted-foreground'],
-  card: ['card', 'popover', 'input', 'midground', 'context-menu-background', 'muted', 'muted-foreground'],
-  text: ['foreground', 'card-foreground', 'popover-foreground', 'ring', 'border', 'muted-foreground', 'primary-foreground'],
+  background: ['background', 'midground', 'context-menu-background', 'muted', 'border', 'muted-foreground', 'foreground-muted'],
+  card: ['card', 'popover', 'input', 'midground', 'context-menu-background', 'muted', 'muted-foreground', 'foreground-muted'],
+  text: ['foreground', 'foreground-muted', 'card-foreground', 'popover-foreground', 'ring', 'border', 'muted-foreground', 'primary-foreground'],
   primary: ['primary', 'primary-foreground'],
   accent: ['accent', 'accent-foreground'],
   selected: ['selected']
@@ -174,16 +174,22 @@ function withContrast (color, surface, target) {
  */
 export function deriveTokensFromRoles ({ background, card, text, primary, accent, selected }) {
   const muted = mixHslTriples(background, card, 0.3)
+  const midground = mixHslTriples(background, card, 0.5)
+  const contextMenuBackground = mixHslTriples(background, card, 0.6)
+  // Secondary text: faded toward the background, but readable on every surface it sits on
+  const foregroundMuted = [background, midground, contextMenuBackground, card]
+    .reduce((color, surface) => withContrast(color, surface, text), mixHslTriples(text, background, 0.4))
   return {
     background,
-    midground: mixHslTriples(background, card, 0.5),
-    'context-menu-background': mixHslTriples(background, card, 0.6),
+    midground,
+    'context-menu-background': contextMenuBackground,
     muted,
     border: mixHslTriples(background, text, 0.12),
     card,
     popover: card,
     input: card,
     foreground: text,
+    'foreground-muted': foregroundMuted,
     'card-foreground': text,
     'popover-foreground': text,
     ring: text,

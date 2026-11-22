@@ -130,9 +130,6 @@ export const converters = {
       bio: row['Short Bio (175 char)'],
       intention: row['Intention'],
       extra_info: row['Personal Website'],
-      facebook_url: row['Facebook URL'],
-      twitter_name: row['Twitter URL'].replace(/.*twitter.com\/@?/, ''),
-      linkedin_url: row['Linked In URL'],
       skills
     })
 

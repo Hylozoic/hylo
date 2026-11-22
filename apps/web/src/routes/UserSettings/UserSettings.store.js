@@ -3,7 +3,6 @@ import {
   FETCH_SAVED_SEARCHES,
   DELETE_SAVED_SEARCH,
   SAVE_SEARCH,
-  UNLINK_ACCOUNT,
   VIEW_SAVED_SEARCH
 } from 'store/constants'
 import CreateSavedSearchMutation from '@graphql/mutations/CreateSavedSearchMutation'
@@ -221,20 +220,6 @@ export function viewSavedSearch (search) {
   }
 }
 
-export function unlinkAccount (provider) {
-  return {
-    type: UNLINK_ACCOUNT,
-    graphql: {
-      query: `mutation ($provider: String) {
-        unlinkAccount(provider: $provider) {
-          success
-        }
-      }`,
-      variables: { provider }
-    }
-  }
-}
-
 export function updateMembershipSettings (groupId, settings, acceptAgreements = null, questionAnswers = []) {
   return {
     type: UPDATE_MEMBERSHIP_SETTINGS,
@@ -284,23 +269,6 @@ export function updateAllMemberships (settings) {
     meta: {
       settings,
       optimistic: true
-    }
-  }
-}
-
-export function registerStripeAccount (authorizationCode) {
-  return {
-    type: REGISTER_STRIPE_ACCOUNT,
-    graphql: {
-      query: `mutation ($authorizationCode: String) {
-        registerStripeAccount(authorizationCode: $authorizationCode) {
-          success
-        }
-      }`,
-      variables: { authorizationCode }
-    },
-    meta: {
-      authorizationCode
     }
   }
 }

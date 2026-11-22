@@ -104,6 +104,16 @@ describe('deriveTokensFromRoles', () => {
     expect(contrastRatio(tokens['muted-foreground'], tokens.muted)).toBeGreaterThanOrEqual(MIN_CONTRAST_RATIO)
   })
 
+  it('derives a secondary text color that stays readable on every surface it sits on', () => {
+    ;[roles, { ...roles, background: '220 25% 12%', card: '220 22% 18%', text: '40 30% 92%' }].forEach(r => {
+      const tokens = deriveTokensFromRoles(r)
+      expect(tokens['foreground-muted']).not.toEqual(r.text)
+      ;['background', 'midground', 'context-menu-background', 'card'].forEach(surface => {
+        expect(contrastRatio(tokens['foreground-muted'], tokens[surface])).toBeGreaterThanOrEqual(MIN_CONTRAST_RATIO)
+      })
+    })
+  })
+
   it('keeps the chosen text color on the primary button when it is readable', () => {
     const tokens = deriveTokensFromRoles({ ...roles, primary: '150 30% 95%' })
     expect(tokens['primary-foreground']).toEqual(roles.text)

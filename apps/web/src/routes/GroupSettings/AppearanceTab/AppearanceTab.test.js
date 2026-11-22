@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from 'util/testing/reactTestingLibraryExtended'
-import featureFlag from 'config/featureFlags'
+import { isHyloProEnabled } from 'config/featureFlags'
 import { UPDATE_GROUP_THEME } from 'store/actions/updateGroupTheme'
 import { IMPORT_GROUP_THEME_FROM_URL } from 'store/actions/importGroupThemeFromUrl'
 import { themes, defaultTheme } from '../../../themes'
@@ -18,7 +18,7 @@ jest.mock('react-redux', () => ({
 jest.mock('config/featureFlags', () => ({
   ...jest.requireActual('config/featureFlags'),
   __esModule: true,
-  default: jest.fn()
+  isHyloProEnabled: jest.fn()
 }))
 
 jest.mock('hooks/useAppearance', () => () => ({ effectiveColorScheme: 'light' }))
@@ -35,28 +35,28 @@ const saveButton = () => screen.getByRole('button', { name: 'Save theme' })
 
 describe('AppearanceTab group theme editor', () => {
   beforeEach(() => {
-    featureFlag.mockImplementation(key => key === 'HYLO_PRO' ? 'on' : undefined)
+    isHyloProEnabled.mockReturnValue(true)
     mockDispatch.mockReset()
     mockDispatch.mockResolvedValue({ type: UPDATE_GROUP_THEME, payload: {} })
     window.confirm = jest.fn(() => true)
   })
 
   it('is shown below the layout picker when the group has the groupThemes Pro feature', () => {
-    featureFlag.mockReturnValue(undefined)
+    isHyloProEnabled.mockReturnValue(false)
     renderTab()
     expect(screen.getByTestId('group-theme-editor')).toBeInTheDocument()
     expect(saveButton()).toBeDisabled()
   })
 
   it('is hidden without groupThemes or a saved theme where Hylo Pro cannot be bought', () => {
-    featureFlag.mockReturnValue(undefined)
+    isHyloProEnabled.mockReturnValue(false)
     renderTab(null, { hasGroupThemes: false })
     expect(screen.getByText('Two Column')).toBeInTheDocument()
     expect(screen.queryByTestId('group-theme-editor')).not.toBeInTheDocument()
   })
 
   it('is shown to a group whose Pro lapsed with a theme saved, so it can remove it', () => {
-    featureFlag.mockReturnValue(undefined)
+    isHyloProEnabled.mockReturnValue(false)
     renderTab(savedTheme, { hasGroupThemes: false })
     expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
   })

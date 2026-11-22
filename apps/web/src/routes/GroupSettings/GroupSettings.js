@@ -35,7 +35,7 @@ import { GROUP_TYPES } from 'store/models/Group'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import { getParentGroups } from 'store/selectors/getGroupRelationships'
 import getMe from 'store/selectors/getMe'
-import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
+import { isHyloProEnabled } from 'config/featureFlags'
 import {
   FETCH_GROUP_SETTINGS,
   deleteGroup,
@@ -90,7 +90,7 @@ export default function GroupSettings () {
   const currentUser = useSelector(getMe)
   const parentGroups = useSelector(state => getParentGroups(state, rawGroup))
   const fetchPending = useSelector(state => state.pending[FETCH_GROUP_SETTINGS])
-  const hyloProEnabled = useSelector(getHyloProEnabled)
+  const hyloProEnabled = isHyloProEnabled(currentUser)
 
   // Action creators
   const fetchGroupSettingsAction = () => slug && dispatch(fetchGroupSettings(slug))

@@ -6,7 +6,7 @@ import { AlertTriangle, Sparkles } from 'lucide-react'
 import useAppearance from 'hooks/useAppearance'
 import useProFeature from 'hooks/useProFeature'
 import getMe from 'store/selectors/getMe'
-import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
+import { isHyloProEnabled } from 'config/featureFlags'
 import { groupUrl } from '@hylo/navigation'
 import updateGroupTheme from 'store/actions/updateGroupTheme'
 import { applyAppearanceToDocument, getAppearanceFromSettings } from 'util/appearance'
@@ -119,7 +119,7 @@ export default function GroupThemeEditor ({ group }) {
   // Themes are the groupThemes Hylo Pro feature. Without it, stewards can still try the editor
   // and preview a theme, but only the server-side check actually protects saving.
   const hasGroupThemes = useProFeature(group, 'groupThemes')
-  const hyloProEnabled = useSelector(getHyloProEnabled)
+  const hyloProEnabled = isHyloProEnabled(currentUser)
 
   const savedKey = JSON.stringify(sanitizeGroupTheme(group?.settings?.theme) || null)
   const saved = useMemo(() => JSON.parse(savedKey), [savedKey])

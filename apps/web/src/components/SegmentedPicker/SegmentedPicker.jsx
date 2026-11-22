@@ -30,7 +30,7 @@ export default function SegmentedPicker ({ value, onChange, options, className }
               aria-pressed={isSelected}
               className={cn(
                 'flex flex-1 min-w-0 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors',
-                isSelected ? 'bg-selected/25 text-foreground' : 'text-foreground/60 hover:text-foreground',
+                isSelected ? 'bg-selected/25 text-foreground' : 'text-foreground-muted hover:text-foreground',
                 option.disabled && 'cursor-default'
               )}
             >

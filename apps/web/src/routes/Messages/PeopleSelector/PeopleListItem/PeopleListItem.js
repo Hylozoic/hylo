@@ -30,7 +30,7 @@ const PeopleListItem = forwardRef(({ active, onClick, onMouseOver, person, class
       <div className='min-w-[30px]'><RoundImage url={person.avatarUrl} medium /></div>
       <div className='ml-2 flex gap-2 items-baseline flex-1 min-w-0'>
         <span className={cn('truncate', hasRole ? 'text-foreground' : 'text-foreground/70')}>{person.name}</span>
-        <span className='text-foreground/50 text-xs shrink-0'>{person.group}</span>
+        <span className='text-foreground-muted text-xs shrink-0'>{person.group}</span>
         {typeof roleLabel !== 'undefined' && (
           <span
             className={cn(

@@ -27,6 +27,7 @@ export const GROUP_THEME_TOKENS = [
   'context-menu-background',
   'midground',
   'foreground',
+  'foreground-muted',
   'selected',
   'card',
   'card-foreground',

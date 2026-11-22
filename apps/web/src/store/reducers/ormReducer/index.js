@@ -24,6 +24,8 @@ import {
   DELETE_GROUP_RELATIONSHIP,
   DELETE_POST_PENDING,
   PIN_POST_PENDING,
+  CREATE_USER_PROFILE_LINK,
+  DELETE_USER_PROFILE_LINK,
   FETCH_GROUP_DETAILS_PENDING,
   FETCH_GROUP_VIEWS,
   FETCH_MESSAGES_PENDING,
@@ -37,7 +39,6 @@ import {
   LEAVE_GROUP,
   LEAVE_GROUP_PENDING,
   LEAVE_PROJECT_PENDING,
-  PROCESS_STRIPE_TOKEN_PENDING,
   REACT_ON_POST_PENDING,
   REACT_ON_COMMENT_PENDING,
   RECORD_CLICKTHROUGH_PENDING,
@@ -271,7 +272,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     PostCommenter,
     ProjectMember,
     Skill,
-    Topic
+    Topic,
+    UserProfileLink
   } = session
 
   if (payload && !isPromise(payload) && meta && meta.extractModel) {
@@ -1019,6 +1021,24 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
+    case CREATE_USER_PROFILE_LINK: {
+      const link = payload?.data?.createUserProfileLink
+      const me = Me.first()
+      if (me && link?.id && !me.profileLinks.filter({ id: link.id }).exists()) {
+        me.profileLinks.add(link.id)
+      }
+      break
+    }
+
+    case DELETE_USER_PROFILE_LINK: {
+      const linkId = payload?.data?.deleteUserProfileLink || meta?.id
+      if (linkId) {
+        const link = UserProfileLink.withId(linkId)
+        if (link) link.delete()
+      }
+      break
+    }
+
     case LEAVE_GROUP_PENDING:
     case LEAVE_GROUP: {
       me = Me.first()
@@ -1041,15 +1061,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
         projectMember.delete()
         clearCacheFor(Post, meta.id)
       }
-      break
-    }
-
-    case PROCESS_STRIPE_TOKEN_PENDING: {
-      post = Post.withId(meta.postId)
-      const totalContributions = Number(post.totalContributions) + Number(meta.amount)
-      post.update({
-        totalContributions
-      })
       break
     }
 
