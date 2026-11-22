@@ -48,7 +48,7 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           >
             <Columns2 className='h-8 w-8' />
             <span className='text-sm font-medium'>{t('Two Column')}</span>
-            <span className='text-xs text-foreground/60 text-center'>{t('Sidebar menu with content pane')}</span>
+            <span className='text-xs text-foreground-muted text-center'>{t('Sidebar menu with content pane')}</span>
           </button>
           <button
             onClick={() => handleLayoutChange('one-column')}
@@ -59,7 +59,7 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           >
             <LayoutGrid className='h-8 w-8' />
             <span className='text-sm font-medium'>{t('One Column')}</span>
-            <span className='text-xs text-foreground/60 text-center'>{t('Full-width dashboard with cards')}</span>
+            <span className='text-xs text-foreground-muted text-center'>{t('Full-width dashboard with cards')}</span>
           </button>
         </div>
       </div>

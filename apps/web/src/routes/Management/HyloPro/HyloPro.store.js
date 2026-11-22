@@ -5,6 +5,7 @@ export const FETCH_HYLO_PRO_METRICS = `${MODULE_NAME}/FETCH_HYLO_PRO_METRICS`
 export const FETCH_HYLO_PRO_SUBSCRIPTIONS = `${MODULE_NAME}/FETCH_HYLO_PRO_SUBSCRIPTIONS`
 export const FETCH_HYLO_PRO_GROUPS = `${MODULE_NAME}/FETCH_HYLO_PRO_GROUPS`
 export const FETCH_HYLO_PRO_PAYMENTS = `${MODULE_NAME}/FETCH_HYLO_PRO_PAYMENTS`
+export const FETCH_HYLO_PRO_CHARGE_EVENTS = `${MODULE_NAME}/FETCH_HYLO_PRO_CHARGE_EVENTS`
 export const GRANT_HYLO_PRO = `${MODULE_NAME}/GRANT_HYLO_PRO`
 export const UPDATE_HYLO_PRO_GRANT = `${MODULE_NAME}/UPDATE_HYLO_PRO_GRANT`
 export const REVOKE_HYLO_PRO_GRANT = `${MODULE_NAME}/REVOKE_HYLO_PRO_GRANT`
@@ -33,6 +34,13 @@ const ROW_FIELDS = `
   canceledAt
   endedAt
   createdAt
+  amount
+  currency
+  intervalCount
+  discount { couponId percentOff amountOff currency duration endsAt }
+  monthlyRevenueCents
+  openDisputes
+  refunds
 `
 
 export function fetchHyloProMetrics () {
@@ -52,6 +60,8 @@ export function fetchHyloProMetrics () {
           grantsExpiringSoon
           mrrCents
           currency
+          mrrByCurrency { currency mrrCents subscriptions }
+          mrrEstimatedSubscriptions
           months { month newSubscriptions cancellations ended grants }
         }
       }`
@@ -114,6 +124,31 @@ export function fetchHyloProPayments (groupId, after) {
         }
       }`,
       variables: { groupId, after: after || null }
+    }
+  }
+}
+
+// The group's Pro refunds and disputes, as recorded from Stripe webhooks
+export function fetchHyloProChargeEvents (groupId) {
+  return {
+    type: FETCH_HYLO_PRO_CHARGE_EVENTS,
+    graphql: {
+      query: `query HyloProChargeEvents ($groupId: ID!) {
+        hyloProChargeEvents(groupId: $groupId) {
+          id
+          type
+          chargeId
+          externalId
+          amount
+          currency
+          reason
+          status
+          open
+          createdAt
+          updatedAt
+        }
+      }`,
+      variables: { groupId }
     }
   }
 }

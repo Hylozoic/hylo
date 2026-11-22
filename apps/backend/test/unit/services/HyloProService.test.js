@@ -10,7 +10,7 @@ const Stripe = require('stripe')
 // test/setup/core makes every `new Stripe()` return one shared mock client, so stubbing it here
 // also stubs the client HyloProService created
 const stripeMock = new Stripe('sk_test_fake')
-const STUBBED_NAMESPACES = ['products', 'prices', 'subscriptions', 'checkout', 'billingPortal', 'customers']
+const STUBBED_NAMESPACES = ['products', 'prices', 'subscriptions', 'checkout', 'billingPortal', 'customers', 'charges', 'disputes']
 
 const PERIOD_END = 4102444800 // 2100-01-01, so synced rows stay active whatever the real date
 const unix = date => Math.floor(date.getTime() / 1000)
@@ -570,6 +570,246 @@ describe('HyloProService', () => {
     })
   })
 
+  describe('handleChargeEvent', () => {
+    function charge (overrides = {}) {
+      return {
+        id: 'ch_pro_1',
+        object: 'charge',
+        customer: 'cus_pro_1',
+        amount: 1000,
+        amount_refunded: 1000,
+        currency: 'usd',
+        refunded: true,
+        refunds: { data: [{ id: 're_2', reason: 'requested_by_customer' }, { id: 're_1', reason: null }] },
+        ...overrides
+      }
+    }
+
+    function stubCharge (value) {
+      const calls = []
+      stripeMock.charges = { retrieve: async (id, params) => { calls.push({ id, params }); return value } }
+      return calls
+    }
+
+    function stubDispute (value) {
+      const calls = []
+      stripeMock.disputes = { retrieve: async (id, params) => { calls.push({ id, params }); return value } }
+      return calls
+    }
+
+    const proLogs = () => bookshelf.knex('stripe_logs').whereIn('log_type', ['hylo_pro_refund', 'hylo_pro_dispute']).orderBy('id')
+
+    it('records a refund of a Pro payment from the charge re-read in Stripe, one row per charge', async () => {
+      await recordCustomer()
+      const calls = stubCharge(charge({ amount_refunded: 400, refunded: false, refunds: { data: [{ id: 're_1', reason: 'duplicate' }] } }))
+      // The payload is stale; the re-read charge decides
+      const event = { id: 'evt_r1', type: 'charge.refunded', data: { object: charge({ amount_refunded: 1 }) } }
+
+      await HyloProService.handleChargeEvent(event)
+      stubCharge(charge())
+      const row = await HyloProService.handleChargeEvent({ ...event, id: 'evt_r2' })
+
+      expect(calls[0]).to.deep.equal({ id: 'ch_pro_1', params: { expand: ['refunds'] } })
+      const rows = await proLogs()
+      expect(rows.length).to.equal(1)
+      expect(rows[0].id).to.equal(row.id)
+      expect(rows[0]).to.include({
+        group_id: group.id,
+        stripe_account_id: null,
+        log_type: 'hylo_pro_refund',
+        external_id: 'ch_pro_1',
+        charge_id: 'ch_pro_1',
+        amount: 1000,
+        currency: 'usd',
+        reason: 'requested_by_customer',
+        status: 'refunded'
+      })
+      expect(rows[0].metadata).to.deep.equal({ stripe_customer_id: 'cus_pro_1', charge_amount: 1000, refund_ids: ['re_2', 're_1'] })
+    })
+
+    it('ignores a refund by a customer that is not a Pro customer, without calling Stripe', async () => {
+      await recordCustomer()
+      const calls = stubCharge(charge())
+      const result = await HyloProService.handleChargeEvent({ id: 'evt_r', type: 'charge.refunded', data: { object: charge({ customer: 'cus_other' }) } })
+      expect(result).to.equal(null)
+      expect(calls).to.deep.equal([])
+      expect(await proLogs()).to.deep.equal([])
+    })
+
+    it('records a dispute of a Pro payment and keeps it up to date', async () => {
+      await recordCustomer()
+      const dispute = (overrides = {}) => ({
+        id: 'dp_1', object: 'dispute', charge: charge(), amount: 1000, currency: 'usd', reason: 'fraudulent', status: 'needs_response', ...overrides
+      })
+      const calls = stubDispute(dispute())
+      await HyloProService.handleChargeEvent({ id: 'evt_d1', type: 'charge.dispute.created', data: { object: { id: 'dp_1', charge: 'ch_pro_1' } } })
+      stubDispute(dispute({ status: 'lost' }))
+      await HyloProService.handleChargeEvent({ id: 'evt_d2', type: 'charge.dispute.closed', data: { object: { id: 'dp_1', charge: 'ch_pro_1' } } })
+
+      expect(calls[0]).to.deep.equal({ id: 'dp_1', params: { expand: ['charge'] } })
+      const rows = await proLogs()
+      expect(rows.length).to.equal(1)
+      expect(rows[0]).to.include({
+        group_id: group.id,
+        log_type: 'hylo_pro_dispute',
+        external_id: 'dp_1',
+        charge_id: 'ch_pro_1',
+        amount: 1000,
+        reason: 'fraudulent',
+        status: 'lost'
+      })
+    })
+
+    it('ignores disputes of other platform payments and every Connect event', async () => {
+      await recordCustomer()
+      stubDispute({ id: 'dp_2', charge: charge({ customer: 'cus_other' }), amount: 5, status: 'needs_response' })
+      expect(await HyloProService.handleChargeEvent({ id: 'evt_d', type: 'charge.dispute.created', data: { object: { id: 'dp_2' } } })).to.equal(null)
+
+      const calls = stubCharge(charge())
+      expect(HyloProService.isChargeEvent({ type: 'charge.refunded', account: 'acct_1', data: { object: charge() } })).to.be.false
+      expect(await HyloProService.handleChargeEvent({ id: 'evt_c', type: 'charge.refunded', account: 'acct_1', data: { object: charge() } })).to.equal(null)
+      expect(HyloProService.isChargeEvent({ type: 'charge.succeeded', data: { object: charge() } })).to.be.false
+      expect(calls).to.deep.equal([])
+      expect(await proLogs()).to.deep.equal([])
+    })
+
+    it('leaves Connect refund and dispute counts alone', async () => {
+      await recordCustomer()
+      stubCharge(charge())
+      await HyloProService.handleChargeEvent({ id: 'evt_r', type: 'charge.refunded', data: { object: charge() } })
+      const connectRows = await bookshelf.knex('stripe_logs').where({ group_id: group.id }).whereIn('log_type', ['refund', 'dispute'])
+      expect(connectRows).to.deep.equal([])
+    })
+  })
+
+  describe('resyncSubscriptions', () => {
+    let listCalls, retrieveCalls, stripeSubscriptions
+
+    // Every customer below has id % 24 equal to its slot only if ids are known, so tests use slots: 1
+    function stubStripe () {
+      listCalls = []
+      retrieveCalls = []
+      stripeMock.subscriptions = {
+        list: async params => {
+          listCalls.push(params)
+          return { data: stripeSubscriptions.filter(sub => sub.customer === params.customer), has_more: false }
+        },
+        retrieve: async id => {
+          retrieveCalls.push(id)
+          const sub = stripeSubscriptions.find(s => s.id === id)
+          if (!sub) {
+            const error = new Error('No such subscription')
+            error.code = 'resource_missing'
+            throw error
+          }
+          return sub
+        }
+      }
+    }
+
+    beforeEach(() => {
+      stripeSubscriptions = []
+      stubStripe()
+    })
+
+    const metadataFor = g => ({ hylo_pro: 'true', group_id: String(g.id) })
+
+    it('syncs a subscription whose webhooks were missed, and a change to one we have', async () => {
+      await recordCustomer()
+      stripeSubscriptions = [
+        subscriptionFixture({ id: 'sub_missed', metadata: metadataFor(group) }),
+        subscriptionFixture({ id: 'sub_known', metadata: metadataFor(group), status: 'past_due' })
+      ]
+      await bookshelf.knex('hylo_pro_subscriptions').insert({ group_id: group.id, source: 'stripe', status: 'active', stripe_subscription_id: 'sub_known', stripe_customer_id: 'cus_pro_1' })
+
+      const result = await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })
+
+      expect(result).to.deep.equal({ customers: 1, synced: 2, failed: 0, rateLimited: false })
+      expect(listCalls).to.deep.equal([{ customer: 'cus_pro_1', status: 'all', limit: 100 }])
+      expect((await HyloProSubscription.where({ stripe_subscription_id: 'sub_missed' }).fetch()).get('status')).to.equal('active')
+      expect((await HyloProSubscription.where({ stripe_subscription_id: 'sub_known' }).fetch()).get('status')).to.equal('past_due')
+    })
+
+    it('is idempotent and skips subscriptions already recorded as over', async () => {
+      await recordCustomer()
+      stripeSubscriptions = [
+        subscriptionFixture({ id: 'sub_over', metadata: metadataFor(group), status: 'canceled', ended_at: 1000 }),
+        subscriptionFixture({ id: 'sub_live', metadata: metadataFor(group) })
+      ]
+      await bookshelf.knex('hylo_pro_subscriptions').insert({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_over', stripe_customer_id: 'cus_pro_1' })
+
+      await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })
+      const before = await bookshelf.knex('hylo_pro_subscriptions').orderBy('id').select('stripe_subscription_id', 'status')
+      retrieveCalls = []
+      await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })
+      const after = await bookshelf.knex('hylo_pro_subscriptions').orderBy('id').select('stripe_subscription_id', 'status')
+
+      expect(retrieveCalls).to.deep.equal(['sub_live'])
+      expect(after).to.deep.equal(before)
+      expect(after.length).to.equal(2)
+    })
+
+    it('checks our open rows that Stripe no longer lists, and ignores non-Pro subscriptions', async () => {
+      await recordCustomer()
+      stripeSubscriptions = [subscriptionFixture({ id: 'sub_not_pro', metadata: {} })]
+      await bookshelf.knex('hylo_pro_subscriptions').insert({ group_id: group.id, source: 'stripe', status: 'active', stripe_subscription_id: 'sub_gone', stripe_customer_id: 'cus_pro_1' })
+
+      const result = await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })
+
+      expect(retrieveCalls).to.deep.equal(['sub_gone'])
+      expect(result).to.include({ synced: 0, failed: 0 })
+    })
+
+    it('only takes the groups in its slot', async () => {
+      const other = await factories.group().save()
+      await recordCustomer('cus_pro_1', group.id)
+      await recordCustomer('cus_pro_2', other.id)
+      const rows = await bookshelf.knex('hylo_pro_customers').orderBy('id').select('id', 'stripe_customer_id')
+
+      for (const row of rows) {
+        listCalls = []
+        await HyloProService.resyncSubscriptions({ slot: Number(row.id) % 24 })
+        expect(listCalls.map(c => c.customer)).to.include(row.stripe_customer_id)
+        const otherRow = rows.find(r => r !== row)
+        if (Number(otherRow.id) % 24 !== Number(row.id) % 24) {
+          expect(listCalls.map(c => c.customer)).to.not.include(otherRow.stripe_customer_id)
+        }
+      }
+    })
+
+    it('goes on after one group fails, and stops at a Stripe rate limit', async () => {
+      const other = await factories.group().save()
+      await recordCustomer('cus_pro_1', group.id)
+      await recordCustomer('cus_pro_2', other.id)
+      const listed = []
+      stripeMock.subscriptions = {
+        list: async params => {
+          listed.push(params.customer)
+          throw new Error('stripe down')
+        }
+      }
+      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ customers: 2, synced: 0, failed: 2, rateLimited: false })
+      expect(listed).to.deep.equal(['cus_pro_1', 'cus_pro_2'])
+
+      listed.length = 0
+      stripeMock.subscriptions = {
+        list: async params => {
+          listed.push(params.customer)
+          const error = new Error('Too many requests')
+          error.type = 'StripeRateLimitError'
+          throw error
+        }
+      }
+      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ customers: 2, synced: 0, failed: 0, rateLimited: true })
+      expect(listed).to.deep.equal(['cus_pro_1'])
+    })
+
+    it('rejects a slot outside the range', async () => {
+      await expect(HyloProService.resyncSubscriptions({ slot: 24 })).to.be.rejectedWith(/slot/)
+      await expect(HyloProService.resyncSubscriptions({})).to.be.rejectedWith(/slot/)
+    })
+  })
+
   describe('syncSubscriptionById', () => {
     it('never lets an older snapshot overwrite a newer one when two syncs overlap', async () => {
       await recordCustomer()
@@ -596,6 +836,78 @@ describe('HyloProService', () => {
       expect(reads).to.equal(2)
       const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
       expect(row.get('status')).to.equal('past_due')
+    })
+
+    it('reads the subscription with its discounts and stores what it pays: price, quantity, currency, period and discount', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const retrieved = []
+      stripeMock.subscriptions = {
+        retrieve: async (id, params) => {
+          retrieved.push([id, params])
+          return subscriptionFixture({
+            metadata,
+            items: { data: [{ id: 'si_1', quantity: 2, current_period_end: PERIOD_END, price: { id: 'price_year', unit_amount: 50000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } } }] },
+            // API 2025-09-30.clover and later: the coupon is under source.coupon
+            discounts: [{ id: 'di_1', end: PERIOD_END, source: { type: 'coupon', coupon: { id: 'LAUNCH', percent_off: 12.5, amount_off: null, currency: null, duration: 'repeating' } } }]
+          })
+        }
+      }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+
+      expect(retrieved).to.deep.equal([['sub_pro_1', { expand: ['discounts.source.coupon'] }]])
+      const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(100000)
+      expect(row.get('currency')).to.equal('usd')
+      expect(row.get('interval')).to.equal('year')
+      expect(row.get('interval_count')).to.equal(1)
+      expect(row.get('discount_coupon_id')).to.equal('LAUNCH')
+      expect(Number(row.get('discount_percent_off'))).to.equal(12.5)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('discount_duration')).to.equal('repeating')
+      expect(new Date(row.get('discount_ends_at')).getTime()).to.equal(PERIOD_END * 1000)
+    })
+
+    it('clears a discount that has been removed, and reads an older-style discount.coupon', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const price = { id: 'price_month', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } }
+      let subscription = subscriptionFixture({
+        metadata,
+        items: { data: [{ id: 'si_1', current_period_end: PERIOD_END, price }] },
+        discounts: [{ id: 'di_1', end: null, coupon: { id: 'TENOFF', percent_off: null, amount_off: 1000, currency: 'usd', duration: 'forever' } }]
+      })
+      stripeMock.subscriptions = { retrieve: async () => subscription }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      let row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(6000)
+      expect(row.get('discount_coupon_id')).to.equal('TENOFF')
+      expect(row.get('discount_amount_off')).to.equal(1000)
+      expect(row.get('discount_currency')).to.equal('usd')
+      expect(row.get('discount_ends_at')).to.equal(null)
+
+      subscription = { ...subscription, discounts: [] }
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('discount_coupon_id')).to.equal(null)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('amount')).to.equal(6000)
+    })
+  })
+
+  describe('discountColumns', () => {
+    it('stores no discount when the discount or its coupon was not expanded', () => {
+      const none = { discount_coupon_id: null, discount_percent_off: null, discount_amount_off: null, discount_currency: null, discount_duration: null, discount_ends_at: null }
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: ['di_1'] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: [{ id: 'di_1', source: { coupon: 'LAUNCH' } }] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1' })).to.deep.equal(none)
+    })
+
+    it("falls back to the first item's discounts", () => {
+      const columns = HyloProService.discountColumns({ id: 'sub_1', discounts: [], items: { data: [{ discounts: [{ id: 'di_2', end: null, source: { coupon: { id: 'ITEM', percent_off: 20, duration: 'forever' } } }] }] } })
+      expect(columns).to.include({ discount_coupon_id: 'ITEM', discount_percent_off: 20, discount_duration: 'forever' })
     })
   })
 })

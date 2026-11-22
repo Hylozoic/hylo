@@ -4,14 +4,11 @@ const userFieldsToCopy = [
   'bio',
   'email',
   'extra_info',
-  'facebook_url',
   'first_name',
   'last_login_at',
   'last_name',
   'name',
   'intention',
-  'linkedin_url',
-  'twitter_name',
   'tagline',
   'work'
 ]
@@ -38,6 +35,7 @@ const generateMergeQueries = function (userId, duplicateUserId, knex) {
     ['group_invites', 'invited_by_id'],
     ['group_invites', 'used_by_id'],
     ['user_external_data', 'user_id'],
+    ['user_profile_links', 'user_id'],
     ['reactions', 'user_id']
   ].forEach(args => {
     var table = args[0]

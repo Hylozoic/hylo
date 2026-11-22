@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import {
+  attachmentFromUpload,
   uploadedFileToAttachment,
   filestackPicker
 } from 'client/filestack'
@@ -35,12 +36,12 @@ export default function UploadAttachmentButton ({
   const dispatch = useDispatch()
   const maxSize = useUploadLimit(groupIds)
 
-  const uploadAttachmentComplete = response => {
+  const uploadAttachmentComplete = (response, attachment) => {
     if (!response) {
       return onError(new Error('No response returned from uploader'))
     }
     if (response.error) return onError(response.error)
-    if (response.payload) return onSuccess(response.payload)
+    if (response.payload) return onSuccess(attachmentFromUpload(attachment, response.payload))
   }
 
   // Filestack callbacks
@@ -52,7 +53,7 @@ export default function UploadAttachmentButton ({
       onInitialUpload(attachment)
     } else {
       const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment, { groupIds }))
-      return uploadAttachmentComplete(uploadedAttachment)
+      return uploadAttachmentComplete(uploadedAttachment, attachment)
     }
   }
 

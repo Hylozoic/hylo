@@ -289,7 +289,7 @@ const ViewHeader = () => {
           {spaceAboutUrl && (
             <button
               type='button'
-              className='ml-1 p-0.5 shrink-0 text-foreground/50 hover:text-foreground'
+              className='ml-1 p-0.5 shrink-0 text-foreground-muted hover:text-foreground'
               onClick={() => navigate(spaceAboutUrl)}
               aria-label={t('About')}
             >
@@ -349,7 +349,7 @@ const ViewHeader = () => {
                 </span>
                 <button
                   type='button'
-                  className='p-0.5 shrink-0 text-foreground/50 hover:text-foreground'
+                  className='p-0.5 shrink-0 text-foreground-muted hover:text-foreground'
                   onClick={() => navigate(`${spaceHref}/about`)}
                   aria-label={t('About')}
                 >

@@ -22,6 +22,12 @@ export {
   recordStripePurchase
 } from './contentAccess'
 export {
+  createUserProfileLink,
+  updateUserProfileLink,
+  deleteUserProfileLink,
+  reorderUserProfileLinks
+} from './userProfileLink'
+export {
   createComment,
   createMessage,
   deleteComment,
@@ -209,6 +215,7 @@ export {
   hyloProSubscriptions,
   hyloProGroups,
   hyloProPayments,
+  hyloProChargeEvents,
   grantHyloPro,
   updateHyloProGrant,
   revokeHyloProGrant,

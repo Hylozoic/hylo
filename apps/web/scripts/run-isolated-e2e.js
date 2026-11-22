@@ -332,9 +332,7 @@ const runE2E = async () => {
      * Same placeholders as `apps/backend/test/setup/index.js` — E2E does not call live Stripe.
      */
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_fake_key_for_testing_purposes',
-    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes',
-    /** authenticated.invite-policy.spec.js needs it on even when a local .env names another environment */
-    FEATURE_FLAG_MEMBER_INVITES: process.env.FEATURE_FLAG_MEMBER_INVITES || 'on'
+    STRIPE_API_KEY: process.env.STRIPE_API_KEY || 'sk_test_fake_api_key_for_testing_purposes'
   }
 
   if (skipDb) {
@@ -362,14 +360,14 @@ const runE2E = async () => {
     ...process.env,
     /** Playwright must spawn its own Vite so `/noo` proxy target matches the isolated API port */
     E2E_ISOLATED: '1',
+    /** Lets specs seed rows the baseline does not have (see e2e/helpers/hyloProGrant.js) */
+    E2E_DATABASE_URL: e2eDbUrl,
     E2E_WEB_PORT: e2eWebPort,
     E2E_BACKEND_PORT: e2eBackendPort,
     VITE_API_HOST: `http://localhost:${e2eBackendPort}`,
     PORT: e2eWebPort,
     /** Pipe `[Hylo GraphQL]` / `[Hylo checkLogin]` from the browser to the test runner terminal */
     E2E_FORWARD_BROWSER_LOGS: process.env.E2E_FORWARD_BROWSER_LOGS || '',
-    /** Vite reads VITE_* from the environment; matches the backend's member invites flag */
-    VITE_FEATURE_FLAG_MEMBER_INVITES: process.env.VITE_FEATURE_FLAG_MEMBER_INVITES || 'on',
     ...(e2eNotificationJwt ? { E2E_NOTIFICATION_PAGE_JWT: e2eNotificationJwt } : {})
   }
 

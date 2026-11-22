@@ -2,9 +2,7 @@ import { get } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation } from 'react-router-dom'
 
-import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import EditProfileTab from './EditProfileTab/EditProfileTab'
 import UserGroupsTab from './UserGroupsTab/'
 import BlockedUsersTab from './BlockedUsersTab'
@@ -13,7 +11,6 @@ import LocaleTab from './LocaleTab'
 import AppearanceTab from './AppearanceTab'
 import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
-import PaymentSettingsTab from './PaymentSettingsTab/PaymentSettingsTab'
 import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
 import SupportHyloTab from './SupportHyloTab/SupportHyloTab'
 import FullPageModal from 'routes/FullPageModal'
@@ -26,11 +23,8 @@ import { FETCH_USER_SETTINGS } from 'store/constants'
 import getBlockedUsers from 'store/selectors/getBlockedUsers'
 import getMe from 'store/selectors/getMe'
 import getMyMemberships from 'store/selectors/getMyMemberships'
-import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
-  updateUserSettings,
-  unlinkAccount,
-  registerStripeAccount
+  updateUserSettings
 } from './UserSettings.store'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
 import { setConfirmBeforeClose } from '../FullPageModal/FullPageModal.store'
@@ -38,16 +32,12 @@ import { setConfirmBeforeClose } from '../FullPageModal/FullPageModal.store'
 const UserSettings = () => {
   const { t } = useTranslation()
   const dispatch = useDispatch()
-  const location = useLocation()
 
   const currentUser = useSelector(getMe)
   const blockedUsers = useSelector(getBlockedUsers)
   const memberships = useSelector(state => getMyMemberships(state).sort((a, b) => a.group.name.localeCompare(b.group.name)))
   const confirm = useSelector(state => get('FullPageModal.confirm', state))
   const fetchPending = useSelector(state => state.pending[FETCH_USER_SETTINGS])
-  const queryParams = {
-    registered: getQuerystringParam('registered', location)
-  }
 
   useEffect(() => {
     dispatch(fetchUserSettings())
@@ -69,8 +59,6 @@ const UserSettings = () => {
         <EditProfileTab
           currentUser={currentUser}
           updateUserSettings={(...args) => dispatch(updateUserSettings(...args))}
-          loginWithService={() => {}} // This action is not provided in the original code
-          unlinkAccount={(...args) => dispatch(unlinkAccount(...args))}
           setConfirm={setConfirm}
           fetchLocation={(...args) => dispatch(fetchLocation(...args))}
           fetchPending={fetchPending}
@@ -142,22 +130,6 @@ const UserSettings = () => {
           blockedUsers={blockedUsers}
           unBlockUser={(...args) => dispatch(unBlockUser(...args))}
           loading={fetchPending}
-        />
-      )
-    })
-  }
-
-  if (currentUser && currentUser.hasFeature(PROJECT_CONTRIBUTIONS)) {
-    content.push({
-      name: t('Payment'),
-      path: 'payment',
-      component: (
-        <PaymentSettingsTab
-          currentUser={currentUser}
-          updateUserSettings={(...args) => dispatch(updateUserSettings(...args))}
-          setConfirm={setConfirm}
-          queryParams={queryParams}
-          registerStripeAccount={(...args) => dispatch(registerStripeAccount(...args))}
         />
       )
     })

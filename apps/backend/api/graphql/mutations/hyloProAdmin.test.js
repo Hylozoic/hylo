@@ -8,6 +8,7 @@ import {
   hyloProSubscriptions,
   hyloProGroups,
   hyloProPayments,
+  hyloProChargeEvents,
   grantHyloPro,
   updateHyloProGrant,
   revokeHyloProGrant,
@@ -168,6 +169,7 @@ describe('Hylo Pro management', () => {
     for (const name of STUBBED_NAMESPACES) stripeMock[name] = saved[name]
     await bookshelf.knex('hylo_pro_subscriptions').del()
     await bookshelf.knex('hylo_pro_customers').del()
+    await bookshelf.knex('stripe_logs').del()
   })
 
   // The group's customer and our synced row for its Stripe subscription
@@ -196,6 +198,7 @@ describe('Hylo Pro management', () => {
       hyloProSubscriptions: userId => hyloProSubscriptions(userId, {}),
       hyloProGroups: userId => hyloProGroups(userId, { slugOrId: group.get('slug') }),
       hyloProPayments: userId => hyloProPayments(userId, { groupId: group.id }),
+      hyloProChargeEvents: userId => hyloProChargeEvents(userId, { groupId: group.id }),
       grantHyloPro: userId => grantHyloPro(userId, { groupId: group.id }),
       updateHyloProGrant: (userId, ids) => updateHyloProGrant(userId, { id: ids.grant, expiresAt: future(10) }),
       revokeHyloProGrant: (userId, ids) => revokeHyloProGrant(userId, { id: ids.grant }),
@@ -735,14 +738,75 @@ describe('Hylo Pro management', () => {
         cancelling: 1,
         pastDue: 2,
         grantsExpiringSoon: 1,
+        // None of these rows has a stored amount yet, so each counts at today's plan price
         mrrCents: 2 * HyloProAdminService.monthlyAmount('month') + HyloProAdminService.monthlyAmount('year'),
-        currency: 'usd'
+        currency: 'usd',
+        mrrEstimatedSubscriptions: 3
       })
       expect(metrics.months).to.have.length(6)
       const thisMonth = metrics.months[5]
       expect(thisMonth.month).to.equal(now.toISOString().slice(0, 7))
       expect(thisMonth).to.include({ newSubscriptions: 6, cancellations: 2, ended: 1, grants: 2 })
       expect(metrics.months.slice(0, 5).every(m => m.newSubscriptions === 0 && m.grants === 0)).to.be.true
+    })
+
+    it('computes MRR from what each subscription pays: its own price and discount, per currency, yearly as 1/12', async () => {
+      const row = (id, attrs) => ({
+        group_id: otherGroup.id,
+        source: 'stripe',
+        status: 'active',
+        interval: 'month',
+        currency: 'usd',
+        stripe_subscription_id: id,
+        current_period_end: new Date(PERIOD_END * 1000),
+        ...attrs
+      })
+      await bookshelf.knex('hylo_pro_subscriptions').insert([
+        // An older, lower price: 4500, not today's 6000
+        row('sub_old_price', { amount: 4500 }),
+        // 50% off forever: 3000
+        row('sub_half', { amount: 6000, discount_coupon_id: 'HALF', discount_percent_off: 50, discount_duration: 'forever' }),
+        // Yearly, 120.00 off for the next months: (60000 - 12000) / 12 = 4000
+        row('sub_year', { interval: 'year', amount: 60000, discount_coupon_id: 'Y120', discount_amount_off: 12000, discount_currency: 'usd', discount_duration: 'repeating', discount_ends_at: future(60) }),
+        // A repeating discount that has ended, and a once-only one already used: full price, 6000 each
+        row('sub_ended_discount', { amount: 6000, discount_coupon_id: 'OLD', discount_percent_off: 20, discount_duration: 'repeating', discount_ends_at: future(-1) }),
+        row('sub_once', { amount: 6000, discount_coupon_id: 'FIRST', discount_percent_off: 25, discount_duration: 'once' }),
+        // Not synced with an amount yet: today's monthly plan price, flagged as an estimate
+        row('sub_unsynced', {}),
+        // Another currency, billed every 3 months: 4000 / 3 = 1333.33, kept apart from USD
+        row('sub_eur', { currency: 'eur', amount: 4000, interval_count: 3 }),
+        // Not counted: trialing, and ended
+        row('sub_trial', { status: 'trialing', amount: 6000 }),
+        row('sub_gone', { status: 'canceled', amount: 6000, ended_at: new Date(), current_period_end: new Date() })
+      ])
+
+      const metrics = await hyloProMetrics(staff.id)
+      const usd = 4500 + 3000 + 4000 + 6000 + 6000 + HyloProAdminService.monthlyAmount('month')
+      expect(metrics).to.include({ mrrCents: usd, currency: 'usd', mrrEstimatedSubscriptions: 1, monthlySubscriptions: 6, yearlySubscriptions: 1 })
+      expect(metrics.mrrByCurrency).to.deep.equal([
+        { currency: 'usd', mrrCents: usd, subscriptions: 6 },
+        { currency: 'eur', mrrCents: 1333, subscriptions: 1 }
+      ])
+    })
+
+    it('monthlyRevenue ignores an amount-off discount in another currency and never goes below zero', () => {
+      const base = { source: 'stripe', interval: 'month', amount: 6000, currency: 'usd', discount_coupon_id: 'X', discount_duration: 'forever' }
+      expect(HyloProAdminService.monthlyRevenue({ ...base, discount_amount_off: 1000, discount_currency: 'eur' }).cents).to.equal(6000)
+      expect(HyloProAdminService.monthlyRevenue({ ...base, discount_amount_off: 9000, discount_currency: 'usd' }).cents).to.equal(0)
+      expect(HyloProAdminService.monthlyRevenue({ ...base, interval: 'week', amount: 1200 }).cents).to.equal(5200)
+      // numeric columns come back from Postgres as strings
+      expect(HyloProAdminService.monthlyRevenue({ ...base, discount_percent_off: '12.5000' }).cents).to.equal(5250)
+    })
+
+    it("shows each subscription's stored price, discount and monthly revenue", async () => {
+      await stripeRow({ interval: 'year', amount: 60000, currency: 'usd', interval_count: 1, discount_coupon_id: 'TENOFF', discount_percent_off: 10, discount_duration: 'repeating', discount_ends_at: future(30) })
+      await grantRow()
+      const { items } = await hyloProSubscriptions(staff.id, {})
+      const sub = items.find(i => i.source === 'stripe')
+      expect(sub).to.include({ amount: 60000, currency: 'usd', intervalCount: 1, monthlyRevenueCents: 4500 })
+      expect(sub.discount).to.include({ couponId: 'TENOFF', percentOff: 10, amountOff: null, duration: 'repeating' })
+      const grant = items.find(i => i.source === 'manual')
+      expect(grant).to.include({ amount: null, discount: null, monthlyRevenueCents: null })
     })
 
     it('lists rows by filter and group search, with group and granter', async () => {
@@ -768,6 +832,52 @@ describe('Hylo Pro management', () => {
       expect(page.hasMore).to.be.true
 
       await expect(hyloProSubscriptions(staff.id, { filter: 'bogus' })).to.be.rejectedWith(/filter must be one of/)
+    })
+  })
+  describe('recorded refunds and disputes', () => {
+    async function log (attrs) {
+      const now = new Date()
+      await bookshelf.knex('stripe_logs').insert({ group_id: group.id, currency: 'usd', created_at: now, updated_at: now, ...attrs })
+    }
+
+    beforeEach(async () => {
+      await log({ log_type: HyloProService.LOG_TYPE_REFUND, external_id: 'ch_r', charge_id: 'ch_r', amount: 2000, status: 'partially_refunded', reason: 'requested_by_customer', updated_at: new Date(Date.now() - 2000) })
+      await log({ log_type: HyloProService.LOG_TYPE_DISPUTE, external_id: 'dp_open', charge_id: 'ch_d', amount: 6000, status: 'needs_response', reason: 'fraudulent', updated_at: new Date(Date.now() - 1000) })
+      await log({ log_type: HyloProService.LOG_TYPE_DISPUTE, external_id: 'dp_won', charge_id: 'ch_w', amount: 6000, status: 'won', reason: 'product_not_received', updated_at: new Date(Date.now() - 3000) })
+      // Not Pro: a Connect refund for the same group, and another group's Pro refund
+      await log({ log_type: 'refund', external_id: 'ch_connect', charge_id: 'ch_connect', amount: 500, status: 'refunded' })
+      await log({ group_id: otherGroup.id, log_type: HyloProService.LOG_TYPE_REFUND, external_id: 'ch_other', charge_id: 'ch_other', amount: 6000, status: 'refunded' })
+    })
+
+    it("lists a group's Pro refunds and disputes, most recently updated first, marking open disputes", async () => {
+      const events = await hyloProChargeEvents(staff.id, { groupId: group.id })
+      expect(events.map(e => [e.type, e.externalId, e.status, e.open])).to.deep.equal([
+        ['dispute', 'dp_open', 'needs_response', true],
+        ['refund', 'ch_r', 'partially_refunded', false],
+        ['dispute', 'dp_won', 'won', false]
+      ])
+      expect(events[0]).to.include({ chargeId: 'ch_d', amount: 6000, currency: 'usd', reason: 'fraudulent' })
+      expect(stripeCalls).to.deep.equal([])
+    })
+
+    it("counts open disputes and refunds on the group's Stripe rows, not on grants", async () => {
+      await stripeRow()
+      await grantRow()
+      const { items } = await hyloProSubscriptions(staff.id, { filter: 'all' })
+      expect(items.find(i => i.source === 'stripe')).to.include({ openDisputes: 1, refunds: 1 })
+      expect(items.find(i => i.source === 'manual')).to.include({ openDisputes: 0, refunds: 0 })
+
+      // A single row (as mutations return it) gets the same counts
+      const sub = await HyloProSubscription.where({ group_id: group.id, source: 'stripe' }).fetch()
+      const cancelled = await cancelHyloProSubscription(staff.id, { id: sub.id })
+      expect(cancelled).to.include({ openDisputes: 1, refunds: 1 })
+    })
+
+    it('counts per group, and nothing for no groups', async () => {
+      const counts = await HyloProAdminService.chargeEventCounts([otherGroup.id, group.id])
+      expect(counts.get(String(otherGroup.id))).to.deep.equal({ openDisputes: 0, refunds: 1 })
+      expect(await hyloProChargeEvents(staff.id, { groupId: otherGroup.id })).to.have.length(1)
+      expect((await HyloProAdminService.chargeEventCounts([])).size).to.equal(0)
     })
   })
 })

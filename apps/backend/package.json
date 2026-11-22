@@ -64,6 +64,7 @@
   },
   "dependencies": {
     "@airbnb/node-memwatch": "^3.0.0",
+    "@anthropic-ai/sdk": "^1.8.0",
     "@babel/core": "^7.17.9",
     "@babel/preset-env": "^7.16.11",
     "@babel/register": "^7.17.7",
@@ -271,6 +272,7 @@
       "UserExternalData",
       "UserGroupAgreement",
       "UserExternalData",
+      "UserProfileLink",
       "UserScope",
       "UserSession",
       "UserVerificationCode",
