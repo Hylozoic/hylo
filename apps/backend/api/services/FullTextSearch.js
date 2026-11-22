@@ -1,4 +1,4 @@
-/* globals bookshelf, Group */
+/* globals bookshelf, Group, Skill */
 import { omit } from 'lodash'
 import prefixTsQuery from './Search/prefixTsQuery'
 
@@ -60,7 +60,8 @@ const createView = (lang, knex) => {
         u.created_at
       ) as sort_ts,
       ${wv('u.name', 'A')} ||
-      ${wv("coalesce(string_agg(replace(s.name, '-', ' '), ' '), '')", 'C')} ||
+      ${wv(`coalesce(string_agg(replace(s.name, '-', ' '), ' ') filter (where su.type = ${Skill.Type.HAS}), '')`, 'C')} ||
+      ${wv(`coalesce(string_agg(replace(s.name, '-', ' '), ' ') filter (where su.type = ${Skill.Type.LEARNING}), '')`, 'D')} ||
       ${wv("coalesce(u.bio, '')", 'C')} as ${columnName}
     from users u
     left join skills_users su on u.id = su.user_id
@@ -196,7 +197,10 @@ const applyGroupAccessFilter = (qb, groupAccess) => {
   })
 }
 
-const recencyRankSql = `(rank * case when sort_ts is null then 1 else exp(-extract(epoch from (now() - sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+// Postgres allows a SELECT alias in ORDER BY only when it stands alone.
+// `rank` inside this expression has to be the rank SQL, not the output alias.
+const recencyRankSql = (rankExpr, sortTs = 'sort_ts') =>
+  `(${rankExpr} * case when ${sortTs} is null then 1 else exp(-extract(epoch from (now() - ${sortTs})) / ${recencyHalfLifeSeconds}.0) end)`
 
 const search = (opts) => {
   // Strips tsquery operators and punctuation so user input like "#release!"
@@ -237,7 +241,7 @@ const search = (opts) => {
   }
 
   if (!opts.subquery && !opts.skipOrder) {
-    query = query.orderByRaw(`${recencyRankSql} desc, rank desc`)
+    query = query.orderByRaw(`${recencyRankSql(rank)} desc, rank desc`)
   }
 
   return query
@@ -251,7 +255,7 @@ const runWithStatementTimeout = (queryBuilder) => {
 }
 
 const recencyRankForAlias = (alias) =>
-  `(${alias}.rank * case when ${alias}.sort_ts is null then 1 else exp(-extract(epoch from (now() - ${alias}.sort_ts)) / ${recencyHalfLifeSeconds}.0) end)`
+  recencyRankSql(`${alias}.rank`, `${alias}.sort_ts`)
 
 const buildSearchInGroupsQuery = (groupAccess, opts) => {
   const limit = opts.limit || 20

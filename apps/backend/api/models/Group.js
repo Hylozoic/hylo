@@ -53,8 +53,18 @@ function notificationSettingsFromMembership (membership) {
 const DEFAULT_BANNER = '/default-group-banner.svg'
 const DEFAULT_AVATAR = '/default-group-avatar.svg'
 
+/** Properties stored on a group_joined event. Joins without a label are direct. */
+function joinEventProperties (source, extra, reactivated) {
+  const properties = { source: source || 'direct', ...(extra || {}) }
+  if (reactivated) properties.reactivated = true
+  for (const key of Object.keys(properties)) {
+    if (properties[key] == null) delete properties[key]
+  }
+  return properties
+}
+
 /** Records new and returning members. A return uses the current time so it is not the same row as the original join. */
-function recordJoins (groupId, newMemberships, existingMemberships, reactivatedUserIds, source) {
+function recordJoins (groupId, newMemberships, existingMemberships, reactivatedUserIds, source, extra) {
   for (const membership of newMemberships) {
     track({
       type: EVENT_TYPES.GROUP_JOINED,
@@ -62,7 +72,7 @@ function recordJoins (groupId, newMemberships, existingMemberships, reactivatedU
       groupIds: [groupId],
       object: { type: 'group_membership', id: membership.id },
       occurredAt: membership.get('created_at') || new Date(),
-      properties: { source: source || 'direct' }
+      properties: joinEventProperties(source, extra, false)
     })
   }
   const reactivated = new Set(reactivatedUserIds.map(id => String(id)))
@@ -74,7 +84,7 @@ function recordJoins (groupId, newMemberships, existingMemberships, reactivatedU
       groupIds: [groupId],
       object: { type: 'group_membership', id: membership.id },
       occurredAt: new Date(),
-      properties: { source: source || 'direct', reactivated: true }
+      properties: joinEventProperties(source, extra, true)
     })
   }
 }
@@ -585,7 +595,8 @@ module.exports = bookshelf.Model.extend(merge({
       q.join('group_memberships', 'group_memberships.user_id', 'skills_users.user_id')
       q.where({
         'group_memberships.group_id': this.id,
-        'group_memberships.active': true
+        'group_memberships.active': true,
+        'skills_users.type': Skill.Type.HAS
       })
     })
   },
@@ -704,10 +715,12 @@ module.exports = bookshelf.Model.extend(merge({
   // if a group membership doesn't exist for a user id, create it.
   // make sure the group memberships have the passed-in role and settings
   // (merge on top of existing settings).
+  // analyticsSource (a GroupMembership.JoinSource) and analyticsProperties are
+  // written onto the group_joined event for new and reactivated memberships only.
   async addMembers (usersOrIds, attrs = {}, { transacting } = {}) {
     const groupSettings = this.get('settings') || {}
     const defaultDigestFrequency = groupSettings.default_digest_frequency === 'weekly' ? 'weekly' : 'daily'
-    const { assignAdministrator, analyticsSource, ...membershipAttrs } = attrs
+    const { assignAdministrator, analyticsSource, analyticsProperties, ...membershipAttrs } = attrs
 
     const updatedAttribs = Object.assign(
       {},
@@ -778,7 +791,7 @@ module.exports = bookshelf.Model.extend(merge({
       reactivatedUserIds
     })
 
-    recordJoins(this.id, newMemberships, existingMemberships, reactivatedUserIds, analyticsSource)
+    recordJoins(this.id, newMemberships, existingMemberships, reactivatedUserIds, analyticsSource, analyticsProperties)
 
     return updatedMemberships.concat(newMemberships)
   },
@@ -989,6 +1002,7 @@ module.exports = bookshelf.Model.extend(merge({
     const attributes = mapValues(pick(changes, whitelist), (v, k) => trimAttrs.includes(k) ? trim(v) : v)
     const saneAttrs = clone(attributes)
     const wasAutoAdd = this.get('type') === 'space' && !!this.getSetting('auto_add_members')
+    const hadMurmurationsProfile = this.hasMurmurationsProfile()
 
     if (attributes.settings) {
       // The commons request is only changed through requestPublicListing / reviewPublicListingRequest
@@ -1120,7 +1134,8 @@ module.exports = bookshelf.Model.extend(merge({
       Queue.classMethod('Group', 'addEligibleMembersToSpace', { spaceId: this.id })
     }
 
-    if (this.hasMurmurationsProfile()) {
+    // A group that stops qualifying is re-posted too: the index re-fetches the profile, gets a 404 and drops it
+    if (this.hasMurmurationsProfile() || hadMurmurationsProfile) {
       await Queue.classMethod('Group', 'publishToMurmurations', { groupId: this.id })
     }
     return this
@@ -1235,13 +1250,10 @@ module.exports = bookshelf.Model.extend(merge({
             bio: m.get('bio'),
             contactEmail: m.get('contact_email'),
             contactPhone: m.get('contact_phone'),
-            facebookUrl: m.get('facebook_url'),
-            linkedinUrl: m.get('linkedin_url'),
             location: m.get('location'),
             name: m.get('name'),
             profileUrl: Frontend.Route.profile(m, group),
             tagline: m.get('tagline'),
-            twitterName: m.get('twitter_name'),
             url: m.get('url'),
             // Whether this user was previously in the group and is being reactivated
             reactivated: reactivatedUserIds.includes(m.id),
@@ -1336,6 +1348,7 @@ module.exports = bookshelf.Model.extend(merge({
     for (const { notificationSettings, userIds: ids } of Object.values(usersBySettings)) {
       await space.addMembers(ids, {
         lastReadAt: joinedAt,
+        analyticsSource: GroupMembership.JoinSource.AUTO_ADD,
         settings: {
           showJoinForm: false,
           agreementsAcceptedAt: joinedAt,
@@ -1497,7 +1510,7 @@ module.exports = bookshelf.Model.extend(merge({
       await Group.setupSpaceViews(group.id, attrs.accepted_post_types, data.view_types, { transacting: trx })
 
       // Set lastReadAt when creating a new group to mark creator as having viewed the group already
-      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date() }, { transacting: trx })
+      await group.addMembers([userId], { assignAdministrator: true, lastReadAt: new Date(), analyticsSource: GroupMembership.JoinSource.CREATOR }, { transacting: trx })
 
       // Have to add/request add to parent group after admin has been added to the group
       if (data.parent_ids) {
@@ -1552,6 +1565,9 @@ module.exports = bookshelf.Model.extend(merge({
     const group = await Group.find(id)
     if (group) {
       await group.save({ active: false }, opts)
+      if (group.hasMurmurationsProfile()) {
+        await Queue.classMethod('Group', 'publishToMurmurations', { groupId: group.id })
+      }
       return group.removeMembers(await group.members().fetch(), opts)
     }
   },

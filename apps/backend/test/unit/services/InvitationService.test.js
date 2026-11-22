@@ -2,7 +2,7 @@
 const root = require('root-path')
 require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-const { mockify } = require(root('test/setup/helpers'))
+const { joinEventProperties, latestJoinEvent, mockify } = require(root('test/setup/helpers'))
 const InvitationService = require(root('api/services/InvitationService'))
 
 describe('InvitationService', () => {
@@ -92,6 +92,12 @@ describe('InvitationService', () => {
             active: true
           })
         )
+    })
+
+    it('records invite_link as the source of a membership made with an access code', async function () {
+      const linkUser = await factories.user().save()
+      await InvitationService.use(linkUser.id, null, group.get('access_code'))
+      expect(joinEventProperties(await latestJoinEvent(linkUser.id, group.id)).source).to.equal('invite_link')
     })
 
     it('should join the invitee to group if token is valid', function () {

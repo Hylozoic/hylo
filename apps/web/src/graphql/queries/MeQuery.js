@@ -44,10 +44,17 @@ export default gql`
     contactEmail
     contactPhone
     tagline
-    twitterName
-    linkedinUrl
-    facebookUrl
-    url
+    profileLinks {
+      items {
+        id
+        url
+        title
+        iconUrl
+        sortOrder
+        createdAt
+        updatedAt
+      }
+    }
     intercomHash
     hasStripeAccount
     isProfilePublic

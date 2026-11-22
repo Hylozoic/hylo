@@ -75,7 +75,7 @@ export function SearchControl ({ search, deleteSearch, viewSavedSearch }) {
           <div
             data-tooltip-content={formatParams(search)}
             data-tooltip-id='params'
-            className='text-foreground/50 hover:text-foreground/70 transition-colors cursor-help'
+            className='text-foreground-muted hover:text-foreground/70 transition-colors cursor-help'
           >
             <Info className='w-4 h-4' />
           </div>

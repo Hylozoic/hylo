@@ -72,6 +72,7 @@ Me.fields = {
   messageThreads: many('MessageThread'),
   notifications: many('Notification'),
   posts: many('Post'),
+  profileLinks: many('UserProfileLink'),
   skills: many('Skill'),
   skillsToLearn: many({
     to: 'Skill',

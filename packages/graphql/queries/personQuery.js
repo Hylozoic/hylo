@@ -10,10 +10,6 @@ export default gql`
       bio
       contactPhone
       contactEmail
-      twitterName
-      linkedinUrl
-      facebookUrl
-      url
       tagline
       location
       isProfilePublic

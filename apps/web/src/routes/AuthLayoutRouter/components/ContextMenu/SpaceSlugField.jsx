@@ -49,7 +49,7 @@ function SpaceUrlPreview ({ parentSlug, slug }) {
   }, [fullUrl])
 
   return (
-    <span ref={ref} title={fullUrl} className='block min-w-0 max-w-full truncate text-xs text-foreground/50'>
+    <span ref={ref} title={fullUrl} className='block min-w-0 max-w-full truncate text-xs text-foreground-muted'>
       {fittedUrl}
     </span>
   )

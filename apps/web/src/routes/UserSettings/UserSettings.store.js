@@ -3,7 +3,6 @@ import {
   FETCH_SAVED_SEARCHES,
   DELETE_SAVED_SEARCH,
   SAVE_SEARCH,
-  UNLINK_ACCOUNT,
   VIEW_SAVED_SEARCH
 } from 'store/constants'
 import CreateSavedSearchMutation from '@graphql/mutations/CreateSavedSearchMutation'
@@ -218,20 +217,6 @@ export function viewSavedSearch (search) {
   return {
     type: VIEW_SAVED_SEARCH,
     payload: { search }
-  }
-}
-
-export function unlinkAccount (provider) {
-  return {
-    type: UNLINK_ACCOUNT,
-    graphql: {
-      query: `mutation ($provider: String) {
-        unlinkAccount(provider: $provider) {
-          success
-        }
-      }`,
-      variables: { provider }
-    }
   }
 }
 

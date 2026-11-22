@@ -694,9 +694,6 @@ describe('graphql request handler', () => {
         contact_phone: '5551212',
         location: 'Barcelona, Spain',
         bio: 'secret bio',
-        facebook_url: 'https://facebook.com/member',
-        linkedin_url: 'https://linkedin.com/in/member',
-        twitter_name: 'member',
         last_active_at: new Date()
       }).save()
       await publicGroup.addMembers([member.id])
@@ -708,7 +705,7 @@ describe('graphql request handler', () => {
             items {
               id
               members(first: 5) {
-                items { id name contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName lastActiveAt }
+                items { id name contactEmail contactPhone location bio lastActiveAt }
               }
             }
           }
@@ -743,19 +740,20 @@ describe('graphql request handler', () => {
         contact_phone: '5551212',
         location: 'Barcelona, Spain',
         bio: 'secret bio',
-        facebook_url: 'https://facebook.com/author',
-        linkedin_url: 'https://linkedin.com/in/author',
-        twitter_name: 'author',
-        url: 'https://author.example.com',
         last_active_at: new Date()
       }).save()
+      await UserProfileLink.create({
+        userId: author.id,
+        url: 'https://author.example.com',
+        title: null
+      })
       const authorGroup = await factories.group().save()
       await authorGroup.addMembers([author.id])
       const publicPost = await factories.post({ user_id: author.id, is_public: true }).save()
       await authorGroup.posts().attach(publicPost)
       await factories.comment({ post_id: publicPost.id, user_id: author.id }).save()
 
-      const profileFields = `id name tagline contactEmail contactPhone location bio facebookUrl linkedinUrl twitterName url lastActiveAt
+      const profileFields = `id name tagline contactEmail contactPhone location bio url lastActiveAt
         locationObject { id } memberships { id } membershipsTotal groupRoles { items { id } } skills { items { name } } posts { items { id } }`
       const { executionResult } = await handler.inject({
         document: `{
@@ -776,9 +774,6 @@ describe('graphql request handler', () => {
         contactPhone: null,
         location: null,
         bio: null,
-        facebookUrl: null,
-        linkedinUrl: null,
-        twitterName: null,
         url: null,
         lastActiveAt: null,
         locationObject: null,
@@ -799,9 +794,13 @@ describe('graphql request handler', () => {
         tagline: 'hello there',
         bio: 'Visible bio',
         contact_email: 'hidden@example.com',
-        facebook_url: 'https://facebook.com/public',
         is_profile_public: true
       }).save()
+      await UserProfileLink.create({
+        userId: person.id,
+        url: 'https://example.com/public',
+        title: null
+      })
       const skill = await factories.skill({ name: `dreaming-${suffix}` }).save()
       await skill.users().attach({ user_id: person.id })
       const publicGroup = await factories.group({
@@ -823,7 +822,7 @@ describe('graphql request handler', () => {
             tagline
             bio
             contactEmail
-            facebookUrl
+            url
             skills { items { name } }
             memberships { id group { name } }
           }
@@ -839,7 +838,7 @@ describe('graphql request handler', () => {
         tagline: 'hello there',
         bio: 'Visible bio',
         contactEmail: null,
-        facebookUrl: 'https://facebook.com/public'
+        url: 'https://example.com/public'
       })
       expect(profile.skills.items.map(item => item.name)).to.include(`dreaming-${suffix}`)
       const groupNames = profile.memberships.map(membership => membership.group.name)
