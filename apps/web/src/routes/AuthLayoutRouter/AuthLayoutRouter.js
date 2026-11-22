@@ -74,7 +74,7 @@ import GroupWelcomeModal from 'routes/GroupWelcomeModal'
 import GroupWelcomePage from 'routes/GroupWelcomePage'
 import GroupPageView from 'routes/GroupPageView'
 import GroupDesignedView from 'routes/GroupDesignedView'
-import GroupViewDesigner, { DesignerChatColumn } from 'routes/GroupViewDesigner'
+import GroupViewDesigner, { DesignerNavColumn } from 'routes/GroupViewDesigner'
 import GroupExplorer from 'routes/GroupExplorer'
 import Drawer from './components/Drawer'
 import JoinGroup from 'routes/JoinGroup'
@@ -1054,7 +1054,7 @@ export default function AuthLayoutRouter (props) {
                 {!isCardMenuUser && <Route path='all/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}
                 {currentUser?.isAdmin && <Route path='management/*' element={<ContextMenu currentGroup={null} mapView={false} />} />}
                 <Route path='groups/:joinGroupSlug/join/:accessCode' element={null} />
-                <Route path='groups/:groupSlug/design/:viewId/*' element={<DesignerChatColumn />} />
+                <Route path='groups/:groupSlug/design/:viewId/*' element={<DesignerNavColumn />} />
                 {/* Simple groups: ContextMenu only renders for /settings (the settings sidebar).
                     Group home shows just the GlobalNav + ContextMenuGrid — no sidebar context menu. */}
                 {!isOneColumnGroup && <Route path='groups/:groupSlug/*' element={<ContextMenu context={pathMatchParams?.context} currentGroup={currentGroup} mapView={isMapView} />} />}

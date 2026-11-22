@@ -16,7 +16,7 @@ The assistant is called **Axl**. It greets the steward when the designer opens a
 
 ## The format
 
-A designed view is data, never HTML, CSS or code. It is stored in the view's existing `settings` column as `settings.design`, so there is no migration:
+A designed view is data, never HTML, CSS or code. It is stored in the view's existing `settings` column as `settings.design` (the chat and unsaved drafts are kept elsewhere, see Stored sessions):
 
 ```json
 {
@@ -105,30 +105,49 @@ Before the first message the designer offers **Make some suggestions**: `suggest
 ## The AI turn
 
 - Mutation: `designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON): JSON`, returning `{ reply, view, usage }`. It saves nothing.
-- The conversation is not stored. The browser sends the history and the current design with each message. The model always returns the whole page, which is validated before it reaches the browser.
+- The browser sends the newest 40 messages and the current design with each message. The model always returns the whole page, which is validated before it reaches the browser.
 - A turn costs about $0.03 and takes about 10 seconds with Claude Opus 5.5. Much of the input is the block schema, which defines leaf blocks once and refers to them: listed twice (top level and inside columns) it is too large for structured output. `GROUP_VIEW_DESIGN_MODEL` on the backend picks another model; `CLAUDE_API_KEY` is required.
 - The designer shows tokens and estimated cost for the last message and for the whole design.
 
 ## Phones
 
-The AI's instructions always include designing for a phone as well as a wide screen: columns stack left column first, headings and button labels stay short, two columns are preferred to three, a canvas puts what matters most in its first region, and copy never refers to position on the page. This is in the system prompt in `apps/backend/lib/designedViewDesign.js`. The designer itself is still desktop-only (see below).
+The AI's instructions always include designing for a phone as well as a wide screen: columns stack left column first, headings and button labels stay short, two columns are preferred to three, a canvas puts what matters most in its first region, and copy never refers to position on the page. This is in the system prompt in `apps/backend/lib/designedViewDesign.js`.
+
+The designer works on phones too (decision Q-27). On a phone, or in a window narrower than 640px, the group menu is a drawer, so the chat and the page share the main column as two tabs, **Chat** and **Page**; the Page tab opens when Axl answers. On wider screens the chat sits in place of the menu as before, and a **Preview mobile** toggle above the page shows it in a 390px phone frame.
+
+Blocks lay out by the width the page is given, not the window's (`DesignedView` measures itself), so the preview matches a phone: posts in cards go two across from 640px, columns side by side from 720px (three from 900px), and the hero title grows from 640px. Before the page is measured it falls back to the same layout keyed to the window.
+
+## Stored sessions: chat and drafts
+
+The chat with Axl and the page a steward hasn't saved are kept on the server (decision Q-27), so they survive a reload and can be picked up on another device. Table `group_view_design_sessions`, one row per steward per designed view, with `view_id` null for a page not added to the menu yet:
+
+- `messages`: the conversation, `[{ role, text }]`, up to 200 kept. It stays after the page is saved, so reopening a saved view shows the conversation that made it.
+- `draft`: the page as it stands, its name, the images, PDFs and posts added for it, Axl's suggestions and the running cost; `null` once saved.
+
+A table rather than the view's `settings`: settings are sent to every member who opens the view, a new page has no view row yet, and two stewards designing at once would overwrite each other. Not the `drafts` table either: those rows are one composer's text, listed under My Drafts and deleted on submit, while a design conversation outlives the save. Rows go with their group, user or view (`ON DELETE CASCADE`).
+
+- Query `groupViewDesignSession(groupId: ID!, viewId: ID): JSON` returns `{ messages, draft, updatedAt }` or null. Needs the Administration responsibility only, so a lapsed group can still read its conversation.
+- `saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON): JSON` replaces the row; also needs the `designedViews` feature. Only known fields of the expected shape are kept (`apps/backend/lib/designedViewSessions.js`), up to 512 KB per session.
+- `deleteGroupViewDesignSession(groupId: ID!, viewId: ID): GenericResult`.
+- On the web, `useStoredDesignerSession` loads the row when the designer opens and stores changes 0.8 seconds after the last one. A saved view opens on its saved page unless the stored page has unsaved changes. Saving the page moves the conversation to the view and clears the draft.
 
 ## Limits and gating
 
 - Web flag `DESIGNED_VIEWS` (on outside production) shows the entry in the Add View dialog.
-- Designing, creating and changing a designed view need the Administration responsibility and Hylo Pro (`HYLO_PRO_REQUIRED` in the error's extensions). A view made with Pro keeps showing after Pro lapses and can still be renamed, moved or deleted.
-- 60 design turns per group per hour; 40 messages per conversation; 30 blocks per page.
+- Designing, creating and changing a designed view need the Administration responsibility and the `designedViews` Hylo Pro feature (decision Q-82): `HyloProService.requireProFeature(group, 'designedViews')` on the server, `useProFeature(group, 'designedViews')` on the web, which reads the group's `proFeatures`. Without Pro the error's `extensions.code` is `HYLO_PRO_REQUIRED`; with a plan that leaves the feature out it is `HYLO_PRO_FEATURE_REQUIRED`.
+- Once the feature lapses a designed view keeps showing and can still be renamed, moved or deleted, but its design can't be changed (decision Q-25). The designer then shows the saved page with a note, the chat is closed, and Save only sends a new name.
+- 60 design turns per group per hour; the model is sent the newest 40 messages; 30 blocks per page.
+- No monthly cost cap (decision Q-26). The per-group token limit coming in #1795 plugs in beside `withinDesignTurnLimit` in `apps/backend/api/graphql/mutations/group_views.js`: checked before the model call, with each turn's `usage` (input and output tokens) counted against it afterwards.
 - Spaces cannot have Hylo Pro, so they cannot have designed views.
 
 ## Not done yet
 
-- **Phones.** The designer is a two-column desktop layout. On a phone the chat column covers the page. The canvas works with touch dragging but has no pinch zoom of its own beyond what the browser sends.
+- **Pinch zoom on the canvas.** The canvas works with touch dragging but has no pinch zoom of its own beyond what the browser sends.
 - **Canvas regions are placed by the AI only.** A steward cannot drag a region to a new spot; they ask Axl to move it.
 - **Editing by hand.** A page can only be changed through the chat. There is no way to edit one block's text directly.
 - **Images** can be placed but not cropped or positioned, and an uploaded image cannot be removed from the list.
 - **Creating posts.** Buttons only navigate; a page cannot open the post editor or publish anything.
-- **Conversation history.** Reopening a saved view starts a new conversation from its saved design.
-- **Unsaved drafts** live in the browser tab only and are lost on reload.
+- **Shared conversations.** Each steward has their own conversation and draft for a view; a co-steward doesn't see them.
 - **The sandbox demo** refuses design turns.
 - **Live lists are not cached in the store.** Each block asks the server for its own short list.
 - Every save broadcasts a group update, like other view changes.

@@ -63,10 +63,14 @@ function sql (query) {
   return execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc', query], { encoding: 'utf8' }).trim()
 }
 
-const deleteTestViews = () => sql(`DELETE FROM group_views WHERE type = 'designed' AND name = '${VIEW_NAME}'`)
+const deleteTestViews = () => {
+  sql(`DELETE FROM group_views WHERE type = 'designed' AND name = '${VIEW_NAME}'`)
+  // The designer's stored new page (sessions for saved views go with their view)
+  sql(`DELETE FROM group_view_design_sessions WHERE view_id IS NULL AND group_id = (SELECT id FROM groups WHERE slug = '${GROUP_SLUG}')`)
+}
 
 test.describe('designed views', () => {
-  test.skip(({ isMobile }) => isMobile, 'The designer is a desktop layout for now')
+  test.skip(({ isMobile }) => isMobile, 'Desktop layout; the phone designer is covered by authenticated.designed-view-mobile.spec.js')
   test.skip(!canSeedHyloPro, 'needs E2E_DATABASE_URL to give the group Hylo Pro')
 
   test.beforeAll(() => {
@@ -204,6 +208,8 @@ test.describe('designed views', () => {
     await page.getByTestId('designed-view-edit').click()
     await expect(page.getByTestId('designer-chat-column')).toBeVisible(uiTimeout)
     await expect(page.getByTestId('designer-view-name')).toHaveText(VIEW_NAME)
+    // The conversation with Axl was kept with the saved view
+    await expect(page.getByTestId('designer-chat-column')).toContainText(turn.reply, uiTimeout)
     // A saved view that has not been changed is published
     await expect(page.getByTestId('designer-status')).toHaveText('Published')
     // The images a saved page uses are offered again for further changes

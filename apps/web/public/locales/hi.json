@@ -3841,5 +3841,10 @@
   "Item": "मद",
   "Value": "मान",
   "Share of total": "कुल में हिस्सा",
-  "Add an image or PDF": "चित्र या PDF जोड़ें"
+  "Add an image or PDF": "चित्र या PDF जोड़ें",
+  "Chat or page": "चैट या पेज",
+  "Preview": "पूर्वावलोकन",
+  "Desktop": "डेस्कटॉप",
+  "Preview mobile": "मोबाइल पूर्वावलोकन",
+  "This page stays in the menu, and can still be renamed, moved or deleted.": "यह पेज मेन्यू में बना रहता है, और इसका नाम अब भी बदला जा सकता है, इसे हटाया या दूसरी जगह ले जाया जा सकता है।"
 }

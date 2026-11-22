@@ -10,8 +10,13 @@ import {
   designerSessionKey,
   getDesignerSession,
   resetDesignerSession,
-  updateDesignerSession
+  updateDesignerSession,
+  messagesForModel,
+  MAX_MESSAGES_FOR_MODEL,
+  restoreDesignerSession,
+  storedDesignerSession
 } from './designerSession'
+import { DELETE_GROUP_VIEW_DESIGN_SESSION, deleteGroupViewDesignSession, fetchGroupViewDesignSession, saveGroupViewDesignSession } from 'store/actions/groupViewDesignSession'
 import designGroupViewTurn, { DESIGN_GROUP_VIEW_TURN } from 'store/actions/designGroupViewTurn'
 import { designStatus } from './EditableViewName'
 import fetchDesignedViewBlockData from 'store/actions/fetchDesignedViewBlockData'
@@ -147,5 +152,63 @@ describe('fetchDesignedViewBlockData', () => {
     const members = fetchDesignedViewBlockData('garden', { type: 'members', limit: 8 }).graphql
     expect(members.query).toContain('members(first: $first)')
     expect(members.variables).toEqual({ slug: 'garden', first: 8 })
+  })
+})
+
+describe('stored designer sessions', () => {
+  const design = { version: 1, blocks: [{ type: 'heading', text: 'Hi', level: 1 }] }
+  const savedDesign = { version: 1, blocks: [{ type: 'divider' }] }
+  const messages = [{ role: 'user', text: 'A page' }, { role: 'assistant', text: 'Done' }]
+
+  it('stores the conversation and the page with what was added for it, not the transient state', () => {
+    const session = {
+      ...getDesignerSession('stored:1'),
+      messages,
+      design,
+      name: 'Welcome',
+      dirty: true,
+      sending: true,
+      error: 'x',
+      posts: [{ id: '3', title: 'Potluck', type: 'event' }]
+    }
+    const stored = storedDesignerSession(session)
+    expect(stored.messages).toEqual(messages)
+    expect(Object.keys(stored.draft).sort()).toEqual(['design', 'dirty', 'documents', 'images', 'name', 'nameEdited', 'posts', 'suggestions', 'usageTotal'])
+    expect(stored.draft).toMatchObject({ design, name: 'Welcome', dirty: true, posts: [{ id: '3', title: 'Potluck', type: 'event' }] })
+    resetDesignerSession('stored:1')
+  })
+
+  it('restores a new page from what was stored, and starts empty without it', () => {
+    expect(restoreDesignerSession({}, null)).toMatchObject({ messages: [], design: null, name: '', dirty: false, usageTotal: EMPTY_USAGE_TOTAL })
+    const restored = restoreDesignerSession({}, { messages, draft: { design, name: 'Suggested', nameEdited: false, dirty: true, images: [], posts: [] } })
+    expect(restored).toMatchObject({ messages, design, name: 'Suggested', dirty: true })
+  })
+
+  it('opens a saved view on its saved page unless the stored page was changed, and keeps the conversation', () => {
+    const saved = { design: savedDesign, name: 'Start here', images: [] }
+    const afterSave = restoreDesignerSession(saved, { messages, draft: null })
+    expect(afterSave).toMatchObject({ messages, design: savedDesign, name: 'Start here', dirty: false })
+
+    const unchanged = restoreDesignerSession(saved, { messages, draft: { design, name: 'Old', nameEdited: false, dirty: false } })
+    expect(unchanged).toMatchObject({ design: savedDesign, name: 'Start here', dirty: false })
+
+    const changed = restoreDesignerSession(saved, { messages, draft: { design, name: 'Mine', nameEdited: true, dirty: true, images: [{ url: 'https://x.org/a.jpg', name: 'Image 1' }] } })
+    expect(changed).toMatchObject({ design, name: 'Mine', nameEdited: true, dirty: true, images: [{ url: 'https://x.org/a.jpg', name: 'Image 1' }] })
+  })
+
+  it('sends the model only the newest messages of a long conversation', () => {
+    const long = Array.from({ length: MAX_MESSAGES_FOR_MODEL + 3 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: String(i) }))
+    const sent = messagesForModel(long)
+    expect(sent).toHaveLength(MAX_MESSAGES_FOR_MODEL)
+    expect(sent[sent.length - 1]).toEqual(long[long.length - 1])
+    expect(messagesForModel(messages)).toEqual(messages)
+  })
+
+  it('builds the session queries for a saved view or the page not added yet', () => {
+    expect(fetchGroupViewDesignSession('5').graphql.variables).toEqual({ groupId: '5', viewId: null })
+    expect(saveGroupViewDesignSession('5', '9', messages, null).graphql.variables).toEqual({ groupId: '5', viewId: '9', messages, draft: null })
+    const remove = deleteGroupViewDesignSession('5')
+    expect(remove.type).toEqual(DELETE_GROUP_VIEW_DESIGN_SESSION)
+    expect(remove.graphql.query).toContain('deleteGroupViewDesignSession(groupId: $groupId, viewId: $viewId)')
   })
 })

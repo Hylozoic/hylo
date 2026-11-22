@@ -6,12 +6,11 @@ import TextareaAutosize from 'react-textarea-autosize'
 import { ArrowLeft, FileText, ImagePlus, Lightbulb, Newspaper, Plus, SendHorizontal, Sparkles } from 'lucide-react'
 import PostSelector from 'components/PostSelector'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
-import { designedViewImageUrls } from '@hylo/shared'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
 import { groupUrl } from '@hylo/navigation'
+import useProFeature from 'hooks/useProFeature'
 import useGroupViews from 'hooks/useGroupViews'
 import designGroupViewTurn from 'store/actions/designGroupViewTurn'
-import fetchGroupViews from 'store/actions/fetchGroupViews'
 import suggestGroupViews from 'store/actions/suggestGroupViews'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getHyloProEnabled from 'store/selectors/getHyloProEnabled'
@@ -22,8 +21,8 @@ import {
   addDesignDocument,
   addDesignImage,
   addDesignUsage,
-  imagesFromUrls,
   isPdfUrl,
+  messagesForModel,
   MAX_DESIGN_DOCUMENTS,
   MAX_PICKED_POSTS,
   nameAfterTurn,
@@ -71,24 +70,11 @@ export default function DesignerChatColumn () {
   const listEnd = useRef(null)
 
   const existingView = isNew ? null : groupViews.find(view => view.type === 'designed' && String(view.id) === String(viewId))
-  const groupViewsLoaded = group?.groupViews != null
-  // Only an explicit false blocks the chat; the server checks Hylo Pro either way
-  const withoutPro = group?.hasPro === false
-
-  useEffect(() => {
-    if (groupId && !groupViewsLoaded) dispatch(fetchGroupViews(groupId))
-  }, [dispatch, groupId, groupViewsLoaded])
-
-  // Editing a saved view starts from its saved design and name
-  useEffect(() => {
-    if (!groupId || session.loaded) return
-    if (isNew) {
-      updateDesignerSession(key, { loaded: true })
-    } else if (existingView) {
-      const design = existingView.settings?.design || null
-      updateDesignerSession(key, { loaded: true, design, name: existingView.name || '', images: imagesFromUrls(designedViewImageUrls(design)) })
-    }
-  }, [groupId, isNew, existingView, session.loaded, key])
+  // Designed views are the designedViews Pro feature. Only a known answer blocks the chat (the
+  // group may not have loaded its features yet); the server checks the feature either way. The
+  // stored session is loaded by the designer's main column (useStoredDesignerSession).
+  const hasDesignedViews = useProFeature(group, 'designedViews')
+  const withoutPro = group?.proFeatures != null && !hasDesignedViews
 
   useEffect(() => {
     listEnd.current?.scrollIntoView?.({ block: 'end' })
@@ -104,7 +90,7 @@ export default function DesignerChatColumn () {
     updateDesignerSession(key, { messages, sending: true, error: null })
     setDraft('')
     try {
-      const response = await dispatch(designGroupViewTurn(groupId, messages, session.design, session.images, session.documents, session.posts.map(post => post.id)))
+      const response = await dispatch(designGroupViewTurn(groupId, messagesForModel(messages), session.design, session.images, session.documents, session.posts.map(post => post.id)))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
       const result = response?.payload?.data?.designGroupViewTurn
       if (!result?.view) throw new Error(t('Something went wrong. Please try again.'))
@@ -222,6 +208,7 @@ export default function DesignerChatColumn () {
           <div className='rounded-lg border-2 border-accent/40 bg-accent/10 p-3 text-sm' data-testid='designer-pro-notice'>
             <p className='m-0 font-bold'>{t('Designed views are part of Hylo Pro')}</p>
             <p className='m-0 text-foreground/70'>{t('To design a view or change one, the group needs Hylo Pro.')}</p>
+            {!isNew && <p className='m-0 mt-1 text-foreground/70'>{t('This page stays in the menu, and can still be renamed, moved or deleted.')}</p>}
             {hyloProEnabled && (
               <Link to={groupUrl(groupSlug, 'settings/billing')} className='inline-block mt-1 font-bold text-accent underline'>
                 {t('See Hylo Pro')}

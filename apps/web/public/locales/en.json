@@ -3838,5 +3838,10 @@
   "Item": "Item",
   "Value": "Value",
   "Share of total": "Share of total",
-  "Add an image or PDF": "Add an image or PDF"
+  "Add an image or PDF": "Add an image or PDF",
+  "Chat or page": "Chat or page",
+  "Preview": "Preview",
+  "Desktop": "Desktop",
+  "Preview mobile": "Preview mobile",
+  "This page stays in the menu, and can still be renamed, moved or deleted.": "This page stays in the menu, and can still be renamed, moved or deleted."
 }

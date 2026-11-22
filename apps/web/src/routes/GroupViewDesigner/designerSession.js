@@ -6,9 +6,10 @@ import { useSyncExternalStore } from 'react'
  * are mounted in different parts of the layout, so the session lives here
  * instead of in either component.
  *
- * A session is kept per group and view ('new' for a page not saved yet) for
- * as long as the tab is open, so leaving the designer and coming back does
- * not lose an unsaved design. Nothing here is stored on the server.
+ * A session is kept per group and view ('new' for a page not saved yet). It is
+ * also stored on the server for the steward (see useStoredDesignerSession), so
+ * the chat with Axl and an unsaved page survive a reload and can be picked up
+ * on another device.
  */
 
 const sessions = new Map()
@@ -41,8 +42,11 @@ function emptySession () {
     error: null,
     lastUsage: null,
     usageTotal: EMPTY_USAGE_TOTAL,
-    // True once an existing view's saved design and name have been loaded in
-    loaded: false
+    // True once the stored session, and an existing view's saved design and name, have been loaded in
+    loaded: false,
+    loading: false,
+    // What was last stored on the server (see storedDesignerSession), to only store changes
+    storedSnapshot: null
   }
 }
 
@@ -147,4 +151,59 @@ export const MAX_PICKED_POSTS = 6
 export function addDesignPost (posts, post) {
   if (!post?.id || posts.length >= MAX_PICKED_POSTS || posts.some(picked => String(picked.id) === String(post.id))) return posts
   return [...posts, { id: String(post.id), title: post.title || '', type: post.type || '' }]
+}
+
+// The model is sent at most this many of the newest messages (the server's MAX_DESIGN_MESSAGES);
+// the page itself carries everything decided earlier
+export const MAX_MESSAGES_FOR_MODEL = 40
+
+/**
+ * The newest messages of a stored conversation, to send with a design turn.
+ */
+export function messagesForModel (messages) {
+  return messages.slice(-MAX_MESSAGES_FOR_MODEL)
+}
+
+/**
+ * What is stored on the server for a session: { messages, draft }. The draft is the page as it
+ * stands with what the steward has added for it; it is dropped once the page is saved.
+ */
+export function storedDesignerSession (session) {
+  return {
+    messages: session.messages,
+    draft: {
+      design: session.design,
+      name: session.name,
+      nameEdited: session.nameEdited,
+      dirty: session.dirty,
+      images: session.images,
+      documents: session.documents,
+      posts: session.posts,
+      suggestions: session.suggestions,
+      usageTotal: session.usageTotal
+    }
+  }
+}
+
+/**
+ * The session to start from when the designer opens: `saved` is an existing view's saved page,
+ * { design, name, images } (empty for a new page), and `stored` what the server kept,
+ * { messages, draft } or null. A stored page only replaces the saved one if it was changed
+ * (dirty), and a stored name only if the steward typed it.
+ */
+export function restoreDesignerSession (saved, stored) {
+  const draft = stored?.draft || null
+  const changed = !!draft?.dirty
+  return {
+    messages: Array.isArray(stored?.messages) ? stored.messages : [],
+    design: changed ? draft.design || null : saved.design || null,
+    name: draft?.nameEdited ? draft.name || '' : saved.name || draft?.name || '',
+    nameEdited: !!draft?.nameEdited,
+    dirty: changed,
+    images: changed ? draft.images || [] : saved.images || draft?.images || [],
+    documents: draft?.documents || [],
+    posts: draft?.posts || [],
+    suggestions: draft?.suggestions || null,
+    usageTotal: draft?.usageTotal || EMPTY_USAGE_TOTAL
+  }
 }

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { execFileSync } from 'child_process'
 import { waitPastRootSessionLoading } from './helpers/waitPastRootSessionLoading.js'
 import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGrant.js'
 
@@ -10,7 +11,9 @@ import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGr
 
 test.describe.configure({ timeout: 180000, mode: 'serial' })
 
-const GROUP_SLUG = 'e2e-public-group'
+// Not e2e-public-group: the designer stores each steward's unsaved page per group, and the
+// designed view spec designs a new page there at the same time
+const GROUP_SLUG = 'e2e-private-group'
 const PRO_NOTE = 'e2e designed chart spec'
 const uiTimeout = { timeout: 60000 }
 
@@ -50,11 +53,14 @@ const canvasTurn = {
 }
 
 test.describe('designed view charts', () => {
-  test.skip(({ isMobile }) => isMobile, 'The designer is a desktop layout for now')
+  test.skip(({ isMobile }) => isMobile, 'Desktop layout; the phone designer is covered by authenticated.designed-view-mobile.spec.js')
   test.skip(!canSeedHyloPro, 'needs E2E_DATABASE_URL to give the group Hylo Pro')
 
-  test.beforeAll(() => { if (canSeedHyloPro) grantHyloPro(GROUP_SLUG, PRO_NOTE) })
-  test.afterAll(() => { if (canSeedHyloPro) revokeHyloPro(PRO_NOTE) })
+  // Forget the designer's stored new page, so each run starts from an empty designer
+  const forgetNewPage = () => execFileSync('psql', [process.env.E2E_DATABASE_URL, '-v', 'ON_ERROR_STOP=1', '-tAc',
+    `DELETE FROM group_view_design_sessions WHERE view_id IS NULL AND group_id = (SELECT id FROM groups WHERE slug = '${GROUP_SLUG}')`])
+  test.beforeAll(() => { if (canSeedHyloPro) { forgetNewPage(); grantHyloPro(GROUP_SLUG, PRO_NOTE) } })
+  test.afterAll(() => { if (canSeedHyloPro) { forgetNewPage(); revokeHyloPro(PRO_NOTE) } })
 
   test('draws bar, line and pie charts that fit their columns', async ({ page }) => {
     const turns = [chartTurn]

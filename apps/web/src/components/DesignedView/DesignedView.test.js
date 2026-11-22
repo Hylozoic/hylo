@@ -149,10 +149,39 @@ describe('DesignedView', () => {
   })
 
   it('shows loading and error states for a live list', () => {
-    mockBlockData.mockReturnValueOnce({ items: [], loading: true, error: null })
-    mockBlockData.mockReturnValueOnce({ items: [], loading: false, error: new Error('nope') })
+    // Keyed on the block, not the call order: the page renders again once it has measured its width
+    mockBlockData.mockImplementation((slug, block) => block.type === 'posts'
+      ? { items: [], loading: true, error: null }
+      : { items: [], loading: false, error: new Error('nope') })
     render(<DesignedView groupSlug='garden' design={{ blocks: [{ type: 'posts', limit: 3 }, { type: 'events', limit: 2 }] }} />)
     expect(screen.getByRole('status')).toHaveTextContent('Loading...')
     expect(screen.getByText('This list could not be loaded.')).toBeInTheDocument()
+  })
+
+  describe('laying out by the page\'s own width', () => {
+    const originalObserver = window.ResizeObserver
+    const originalRect = window.HTMLElement.prototype.getBoundingClientRect
+    const atWidth = width => {
+      window.ResizeObserver = class { observe () {} disconnect () {} }
+      window.HTMLElement.prototype.getBoundingClientRect = () => ({ width, height: 0, top: 0, left: 0, right: width, bottom: 0 })
+    }
+    afterEach(() => {
+      window.ResizeObserver = originalObserver
+      window.HTMLElement.prototype.getBoundingClientRect = originalRect
+    })
+    const columns = { blocks: [{ type: 'columns', columns: [[{ type: 'text', text: 'Left' }], [{ type: 'text', text: 'Right' }]] }] }
+
+    it('stacks columns on a phone-wide page, even in a wide window', () => {
+      atWidth(390)
+      const { container } = render(<DesignedView groupSlug='garden' design={columns} />)
+      const grid = container.querySelector('[data-block="columns"]')
+      expect(grid.className).not.toMatch(/grid-cols-2/)
+    })
+
+    it('puts columns side by side on a wide page', () => {
+      atWidth(1200)
+      const { container } = render(<DesignedView groupSlug='garden' design={columns} />)
+      expect(container.querySelector('[data-block="columns"]').className).toMatch(/(^|\s)grid-cols-2/)
+    })
   })
 })

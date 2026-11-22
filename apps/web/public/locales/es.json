@@ -3849,5 +3849,10 @@
   "Item": "Elemento",
   "Value": "Valor",
   "Share of total": "Parte del total",
-  "Add an image or PDF": "Añadir una imagen o un PDF"
+  "Add an image or PDF": "Añadir una imagen o un PDF",
+  "Chat or page": "Chat o página",
+  "Preview": "Vista previa",
+  "Desktop": "Escritorio",
+  "Preview mobile": "Vista previa en móvil",
+  "This page stays in the menu, and can still be renamed, moved or deleted.": "Esta página se queda en el menú y todavía se puede renombrar, mover o eliminar."
 }

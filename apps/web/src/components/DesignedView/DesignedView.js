@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo } from 'react'
+import React, { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, ExternalLink, MessageCircle } from 'lucide-react'
@@ -25,6 +25,33 @@ const PostLinkContext = createContext(null)
 function usePostLink (groupSlug) {
   const postUrlFor = useContext(PostLinkContext)
   return postId => postUrlFor ? postUrlFor(postId) : postUrl(postId, { groupSlug })
+}
+
+// The page's own width in pixels, or null before it is measured. Blocks lay out by the width
+// the page is given rather than the window's, so the designer's phone preview (a phone-wide
+// column on a wide screen) looks the way the page does on a phone.
+const PageWidthContext = createContext(null)
+
+/**
+ * `wideClass` once the page is at least `min` pixels wide; before the page has been measured
+ * (or where it can't be), `viewportClass`, the same layout keyed to the window's width.
+ */
+function byPageWidth (width, min, wideClass, viewportClass) {
+  if (width === null) return viewportClass
+  return width >= min ? wideClass : ''
+}
+
+function usePageWidth (ref) {
+  const [width, setWidth] = useState(null)
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node || typeof window === 'undefined' || typeof window.ResizeObserver === 'undefined') return
+    setWidth(node.getBoundingClientRect().width)
+    const observer = new window.ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [ref])
+  return width
 }
 
 // Where each button destination leads inside the group
@@ -111,11 +138,12 @@ function PostsBlock ({ block, groupSlug }) {
   const { t } = useTranslation()
   const { items, loading, error } = useDesignedViewBlockData(groupSlug, block)
   const cards = block.layout === 'cards'
+  const pageWidth = useContext(PageWidthContext)
   return (
     <section data-block='posts'>
       <BlockTitle>{block.title}</BlockTitle>
       <ListState loading={loading} error={error} empty={items.length === 0} emptyText={t('Nothing here yet.')} />
-      <div className={cn(cards ? 'grid gap-2 grid-cols-1 sm:grid-cols-2' : 'flex flex-col')}>
+      <div className={cn(cards ? ['grid gap-2 grid-cols-1', byPageWidth(pageWidth, 640, 'grid-cols-2', 'sm:grid-cols-2')] : 'flex flex-col')}>
         {items.map(post => <PostRow key={post.id} post={post} groupSlug={groupSlug} card={cards} />)}
       </div>
     </section>
@@ -199,6 +227,7 @@ function ButtonBlock ({ block, groupSlug }) {
 // A banner image with its title over a dark scrim, so the text stays readable on any picture
 function HeroBlock ({ block }) {
   const centered = block.align === 'center'
+  const pageWidth = useContext(PageWidthContext)
   return (
     <div
       data-block='hero'
@@ -207,7 +236,7 @@ function HeroBlock ({ block }) {
       <img src={block.imageUrl} alt='' className='absolute inset-0 w-full h-full object-cover m-0' />
       {(block.title || block.subtitle) && (
         <div className={cn('relative bg-gradient-to-t from-black/75 via-black/45 to-transparent p-6 pt-16', centered && 'text-center')}>
-          {block.title && <h1 className='text-3xl sm:text-4xl font-bold m-0 text-white'>{block.title}</h1>}
+          {block.title && <h1 className={cn('text-3xl font-bold m-0 text-white', byPageWidth(pageWidth, 640, 'text-4xl', 'sm:text-4xl'))}>{block.title}</h1>}
           {block.subtitle && <p className='m-0 mt-1 text-base text-white/90 whitespace-pre-line'>{block.subtitle}</p>}
         </div>
       )}
@@ -225,6 +254,7 @@ function ImageBlock ({ block }) {
 }
 
 function Block ({ block, groupSlug }) {
+  const pageWidth = useContext(PageWidthContext)
   switch (block.type) {
     case 'hero':
       return <HeroBlock block={block} />
@@ -261,7 +291,9 @@ function Block ({ block, groupSlug }) {
       return (
         <div
           data-block='columns'
-          className={cn('grid gap-6 grid-cols-1', block.columns.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3')}
+          className={cn('grid gap-6 grid-cols-1', block.columns.length === 2
+            ? byPageWidth(pageWidth, 720, 'grid-cols-2', 'lg:grid-cols-2')
+            : byPageWidth(pageWidth, 900, 'grid-cols-3', 'lg:grid-cols-3'))}
         >
           {block.columns.map((column, index) => (
             <div key={index} className='flex flex-col gap-4 min-w-0'>
@@ -285,6 +317,8 @@ function Block ({ block, groupSlug }) {
 export default function DesignedView ({ design, groupSlug, className, postUrlFor = null }) {
   const { t } = useTranslation()
   const view = useMemo(() => sanitizeDesignedView(design), [design])
+  const rootRef = useRef(null)
+  const pageWidth = usePageWidth(rootRef)
 
   // A page with a canvas gives the canvas the whole view, edge to edge; ordinary pages keep a
   // comfortable reading width with padding around them
@@ -296,21 +330,23 @@ export default function DesignedView ({ design, groupSlug, className, postUrlFor
 
   return (
     <PostLinkContext.Provider value={postUrlFor}>
-      <div className={cn('w-full', className)} data-testid='designed-view'>
-        {hasCanvas
-          ? (
-            <div className='flex flex-col w-full text-foreground'>
-              {view.blocks.map((block, index) => block.type === 'canvas'
-                ? <DesignedCanvas key={index} block={block} fill renderBlock={(inner, innerIndex) => <Block key={innerIndex} block={inner} groupSlug={groupSlug} />} />
-                : <div key={index} className='px-4 py-2'><Block block={block} groupSlug={groupSlug} /></div>)}
-            </div>
-            )
-          : (
-            <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
-              {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
-            </div>
-            )}
-      </div>
+      <PageWidthContext.Provider value={pageWidth}>
+        <div ref={rootRef} className={cn('w-full', className)} data-testid='designed-view'>
+          {hasCanvas
+            ? (
+              <div className='flex flex-col w-full text-foreground'>
+                {view.blocks.map((block, index) => block.type === 'canvas'
+                  ? <DesignedCanvas key={index} block={block} fill renderBlock={(inner, innerIndex) => <Block key={innerIndex} block={inner} groupSlug={groupSlug} />} />
+                  : <div key={index} className='px-4 py-2'><Block block={block} groupSlug={groupSlug} /></div>)}
+              </div>
+              )
+            : (
+              <div className='flex flex-col gap-4 w-full max-w-[960px] mx-auto p-4 text-foreground'>
+                {view.blocks.map((block, index) => <Block key={index} block={block} groupSlug={groupSlug} />)}
+              </div>
+              )}
+        </div>
+      </PageWidthContext.Provider>
     </PostLinkContext.Provider>
   )
 }

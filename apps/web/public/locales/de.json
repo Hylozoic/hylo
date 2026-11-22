@@ -3841,5 +3841,10 @@
   "Item": "Eintrag",
   "Value": "Wert",
   "Share of total": "Anteil am Gesamtwert",
-  "Add an image or PDF": "Bild oder PDF hinzufügen"
+  "Add an image or PDF": "Bild oder PDF hinzufügen",
+  "Chat or page": "Chat oder Seite",
+  "Preview": "Vorschau",
+  "Desktop": "Desktop",
+  "Preview mobile": "Mobile Vorschau",
+  "This page stays in the menu, and can still be renamed, moved or deleted.": "Diese Seite bleibt im Menü und kann weiterhin umbenannt, verschoben oder gelöscht werden."
 }
