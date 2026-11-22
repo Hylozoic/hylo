@@ -1815,6 +1815,15 @@ CREATE TABLE public.hylo_pro_subscriptions (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     tier character varying(16) DEFAULT 'pro'::character varying NOT NULL,
     features jsonb,
+    amount integer,
+    currency character varying(3),
+    interval_count integer,
+    discount_coupon_id character varying(255),
+    discount_percent_off numeric(7,4),
+    discount_amount_off integer,
+    discount_currency character varying(3),
+    discount_duration character varying(16),
+    discount_ends_at timestamp with time zone,
     CONSTRAINT hylo_pro_subscriptions_source_check CHECK (((source)::text = ANY ((ARRAY['stripe'::character varying, 'manual'::character varying])::text[]))),
     CONSTRAINT hylo_pro_subscriptions_tier_check CHECK (((tier)::text = ANY ((ARRAY['pro'::character varying, 'pro_plus'::character varying, 'custom'::character varying])::text[])))
 );

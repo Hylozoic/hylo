@@ -203,6 +203,7 @@ import {
   hyloProSubscriptions,
   hyloProGroups,
   hyloProPayments,
+  hyloProChargeEvents,
   grantHyloPro,
   updateHyloProGrant,
   revokeHyloProGrant,
@@ -679,6 +680,7 @@ export function makeAuthenticatedQueries ({ fetchOne, fetchMany }) {
     hyloProSubscriptions: (root, args, context) => hyloProSubscriptions(context.currentUserId, args),
     hyloProGroups: (root, { slugOrId }, context) => hyloProGroups(context.currentUserId, { slugOrId }),
     hyloProPayments: (root, { groupId, after }, context) => hyloProPayments(context.currentUserId, { groupId, after }),
+    hyloProChargeEvents: (root, { groupId }, context) => hyloProChargeEvents(context.currentUserId, { groupId }),
     supportHylo: (root, args, context) => SupporterService.supportInfo(context.currentUserId),
     groupSupporterInfo: (root, { groupId }, context) => SupporterService.groupSupportInfo(context.currentUserId, groupId),
     supporterGrants: (root, args, context) => SupporterService.listGrants(context.currentUserId)

@@ -588,6 +588,8 @@ type Query {
   hyloProGroups(slugOrId: String!): [HyloProAdminGroup]
   # Hylo Pro payments by a group's platform Stripe customer, newest first. groupId is the group's id (not a slug); after = the last charge id seen, for the next page
   hyloProPayments(groupId: ID!, after: String): HyloProPaymentPage
+  # Hylo staff only: a group's Pro refunds and disputes, as recorded from Stripe webhooks
+  hyloProChargeEvents(groupId: ID!): [HyloProChargeEvent]
   # The current user's Hylo supporter status, linked Open Collective contributions and badge setting
   supportHylo: SupportHyloInfo
 
@@ -4395,6 +4397,51 @@ type HyloProAdminSubscription {
   canceledAt: Date
   endedAt: Date
   createdAt: Date
+  # Stripe rows, as of the last sync: price per billing period in cents, before discounts (null until synced)
+  amount: Int
+  currency: String
+  # Billing period length in units of interval (e.g. 3 for every 3 months)
+  intervalCount: Int
+  # The discount applied to the subscription, if any
+  discount: HyloProDiscount
+  # Stripe rows: what this subscription adds to MRR (in its currency, discount included, yearly as 1/12); null until synced
+  monthlyRevenueCents: Int
+  # Stripe rows: the group's Pro disputes still waiting for an outcome, and its refunded Pro payments
+  openDisputes: Int
+  refunds: Int
+}
+
+type HyloProDiscount {
+  couponId: String
+  percentOff: Float
+  # In cents of currency
+  amountOff: Int
+  currency: String
+  # 'once', 'repeating' or 'forever'
+  duration: String
+  # When a repeating discount stops applying
+  endsAt: Date
+}
+
+# A refund or dispute of a Hylo Pro payment, recorded from Stripe webhooks
+type HyloProChargeEvent {
+  id: ID
+  # 'refund' or 'dispute'
+  type: String
+  # The Stripe charge refunded or disputed
+  chargeId: String
+  # Stripe dispute id (disputes) or charge id (refunds)
+  externalId: String
+  # Refunds: total refunded on the payment so far; disputes: the disputed amount. In cents
+  amount: Int
+  currency: String
+  reason: String
+  # Refunds: refunded or partially_refunded; disputes: Stripe's dispute status
+  status: String
+  # Disputes only: still waiting for an outcome
+  open: Boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 type HyloProAdminGroup {
@@ -4447,11 +4494,23 @@ type HyloProMetrics {
   pastDue: Int
   # Active grants ending within 30 days
   grantsExpiringSoon: Int
-  # Monthly recurring revenue in cents (yearly plans count 1/12)
+  # Monthly recurring revenue in cents of `currency` (the plan currency), from what each paying
+  # subscription pays as of its last sync, discounts included; yearly plans count 1/12
   mrrCents: Int
   currency: String
+  # MRR per currency, never converted; the plan currency first
+  mrrByCurrency: [HyloProCurrencyRevenue]
+  # Paying subscriptions not yet synced with their own amount, counted at today's plan price
+  mrrEstimatedSubscriptions: Int
   # The last six months, oldest first
   months: [HyloProMetricsMonth]
+}
+
+type HyloProCurrencyRevenue {
+  currency: String
+  mrrCents: Int
+  # Paying subscriptions in this currency
+  subscriptions: Int
 }
 
 type HyloProPayment {

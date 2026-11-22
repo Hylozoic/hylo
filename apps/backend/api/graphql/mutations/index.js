@@ -215,6 +215,7 @@ export {
   hyloProSubscriptions,
   hyloProGroups,
   hyloProPayments,
+  hyloProChargeEvents,
   grantHyloPro,
   updateHyloProGrant,
   revokeHyloProGrant,

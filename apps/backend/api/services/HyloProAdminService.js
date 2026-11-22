@@ -98,16 +98,89 @@ function monthKey (date) {
 }
 
 /**
- * Monthly recurring revenue in cents for one subscription, from the plan amounts in
- * HyloProService.PLANS — the CURRENT prices, not what each subscription actually pays. That's
- * right while there is one price per interval and no coupons; if prices change or discounts are
- * added, compute MRR from each subscription's own price instead.
+ * Monthly recurring revenue in cents at today's plan price for `interval` (HyloProService.PLANS), a
+ * yearly plan as 1/12. Only the fallback for Stripe rows synced before amounts were stored (see
+ * monthlyRevenue); the daily re-sync fills those in.
  */
 function monthlyAmount (interval) {
   const plan = HyloProService.PLANS[interval]
   if (!plan) return 0
   return interval === 'year' ? Math.round(plan.unitAmount / 12) : plan.unitAmount
 }
+
+// Billing periods of one `interval` per month, to turn a period's price into a monthly one
+const PERIODS_PER_MONTH = { day: 365 / 12, week: 52 / 12, month: 1, year: 1 / 12 }
+
+/**
+ * Whether a Stripe row's stored discount lowers what it pays from now on. A 'once' discount only
+ * applied to the first invoice, so it isn't recurring revenue lost; a 'repeating' one stops at
+ * discount_ends_at; 'forever' always applies.
+ */
+function discountApplies (attrs, now) {
+  if (!attrs.discount_coupon_id) return false
+  if (attrs.discount_duration === 'once') return false
+  const endsAt = toDate(attrs.discount_ends_at)
+  return !endsAt || endsAt.getTime() > toDate(now).getTime()
+}
+
+/**
+ * What a Stripe row pays per month, from what was stored at its last sync (amount, currency,
+ * interval, interval_count and discount): `{ cents, currency, estimated }`. cents is unrounded so
+ * a total of many rows rounds once. A percent-off discount reduces the price by that percent; an
+ * amount-off one by that amount per billing period (only when it's in the price's currency, as
+ * Stripe requires). The result is normalised to a month: a yearly price counts 1/12, a weekly one
+ * 52/12. A row synced before amounts were stored has no amount: it's counted at today's plan
+ * price for its interval, in the plan currency, with estimated true.
+ */
+function monthlyRevenue (row, now = new Date()) {
+  const attrs = typeof row.get === 'function' ? row.attributes : row
+  if (attrs.amount === null || attrs.amount === undefined) {
+    return { cents: monthlyAmount(attrs.interval), currency: HyloProService.CURRENCY, estimated: true }
+  }
+  const currency = (attrs.currency || HyloProService.CURRENCY).toLowerCase()
+  let perPeriod = Number(attrs.amount)
+  if (discountApplies(attrs, now)) {
+    if (attrs.discount_percent_off !== null && attrs.discount_percent_off !== undefined) {
+      perPeriod = perPeriod * (1 - Number(attrs.discount_percent_off) / 100)
+    } else if (attrs.discount_amount_off !== null && attrs.discount_amount_off !== undefined &&
+      (attrs.discount_currency || '').toLowerCase() === currency) {
+      perPeriod = perPeriod - Number(attrs.discount_amount_off)
+    }
+  }
+  const perMonth = PERIODS_PER_MONTH[attrs.interval]
+  if (!perMonth) return { cents: 0, currency, estimated: false }
+  const count = Number(attrs.interval_count) || 1
+  return { cents: Math.max(perPeriod, 0) * perMonth / count, currency, estimated: false }
+}
+
+/**
+ * MRR of paying Stripe rows, per currency: `[{ currency, mrrCents, subscriptions }]`, the plan
+ * currency first, then by currency code. Amounts in different currencies are never converted or
+ * added together (there's no exchange rate to use that wouldn't be out of date); each currency gets
+ * its own total. `estimated` counts rows valued at today's plan price (see monthlyRevenue).
+ */
+function revenueByCurrency (rows, now = new Date()) {
+  const totals = new Map()
+  let estimated = 0
+  for (const row of rows) {
+    const { cents, currency, estimated: isEstimate } = monthlyRevenue(row, now)
+    if (isEstimate) estimated++
+    const total = totals.get(currency) || { currency, cents: 0, subscriptions: 0 }
+    total.cents += cents
+    total.subscriptions++
+    totals.set(currency, total)
+  }
+  const planCurrency = HyloProService.CURRENCY
+  const byCurrency = [...totals.values()]
+    .map(({ currency, cents, subscriptions }) => ({ currency, mrrCents: Math.round(cents), subscriptions }))
+    .sort((a, b) => (b.currency === planCurrency) - (a.currency === planCurrency) || a.currency.localeCompare(b.currency))
+  return { byCurrency, estimated }
+}
+
+// Dispute statuses that are final (https://docs.stripe.com/api/disputes/object): any other status
+// is a dispute or inquiry still waiting for an outcome
+const CLOSED_DISPUTE_STATUSES = ['won', 'lost', 'warning_closed', 'prevented']
+const CHARGE_EVENTS_LIMIT = 100
 
 const MAX_BIGINT = BigInt('9223372036854775807')
 
@@ -230,14 +303,19 @@ module.exports = {
   STRIPE_MAX_TRIAL_DAYS,
   EXTEND_LIMIT,
   LIST_FILTERS,
+  CLOSED_DISPUTE_STATUSES,
   monthlyAmount,
+  monthlyRevenue,
+  revenueByCurrency,
 
   /**
    * Hylo Pro numbers for the management page, all derived from hylo_pro_subscriptions.
    * "Active" uses the same rules as Group.hasPro (HyloProSubscription.whereActive). Paid
    * subscriptions and recurring revenue count the same rows: active and past_due (still in grace)
-   * Stripe subscriptions, at the current plan prices (see monthlyAmount), a yearly plan as 1/12 per
-   * month. Trialing subscriptions (e.g. extended ones) pay nothing now and are counted separately.
+   * Stripe subscriptions, each at what it pays as of its last sync, discounts included (see
+   * monthlyRevenue), normalised to a month. Revenue is totalled per currency (mrrByCurrency);
+   * mrrCents is the plan currency's total. Trialing subscriptions (e.g. extended ones) pay nothing
+   * now and are counted separately.
    */
   async metrics (now = new Date()) {
     const knex = bookshelf.knex
@@ -246,7 +324,7 @@ module.exports = {
     const soon = new Date(now.getTime() + EXPIRING_SOON_DAYS * DAY_MS)
     const firstMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (METRICS_MONTHS - 1), 1))
 
-    const [[active], [{ count: pastDue }], eventCounts] = await Promise.all([
+    const [[active], [{ count: pastDue }], eventCounts, payingRows] = await Promise.all([
       knex('hylo_pro_subscriptions')
         .modify(q => HyloProSubscription.whereActive(q, now))
         .select(knex.raw(`
@@ -277,7 +355,14 @@ module.exports = {
             from hylo_pro_subscriptions where source = :stripeSource and ended_at >= :firstMonth
         ) events
         group by month, field
-      `, { stripeSource, firstMonth })
+      `, { stripeSource, firstMonth }),
+      // The rows MRR counts, with what each pays
+      knex('hylo_pro_subscriptions')
+        .modify(q => HyloProSubscription.whereActive(q, now))
+        .where('source', stripeSource)
+        .whereNot('status', 'trialing')
+        .select('interval', 'amount', 'currency', 'interval_count', 'discount_coupon_id', 'discount_percent_off',
+          'discount_amount_off', 'discount_currency', 'discount_duration', 'discount_ends_at')
     ])
 
     // Months from oldest to current, UTC
@@ -293,6 +378,8 @@ module.exports = {
 
     const payingMonthly = Number(active.paying_monthly)
     const payingYearly = Number(active.paying_yearly)
+    const revenue = revenueByCurrency(payingRows, now)
+    const planRevenue = revenue.byCurrency.find(r => r.currency === HyloProService.CURRENCY)
     return {
       activeGroups: Number(active.active_groups),
       stripeGroups: Number(active.stripe_groups),
@@ -303,8 +390,10 @@ module.exports = {
       cancelling: Number(active.cancelling),
       pastDue: Number(pastDue),
       grantsExpiringSoon: Number(active.expiring_soon),
-      mrrCents: payingMonthly * monthlyAmount('month') + payingYearly * monthlyAmount('year'),
+      mrrCents: planRevenue ? planRevenue.mrrCents : 0,
       currency: HyloProService.CURRENCY,
+      mrrByCurrency: revenue.byCurrency,
+      mrrEstimatedSubscriptions: revenue.estimated,
       months
     }
   },
@@ -543,6 +632,58 @@ module.exports = {
     await stripe.subscriptions.update(subscriptionId, { trial_end: trialEnd, proration_behavior: 'none' })
     console.log(`Hylo Pro: admin ${adminId} extended subscription ${subscriptionId} (group ${row.get('group_id')}) by ${extra} days to ${new Date(trialEnd * 1000).toISOString()}`)
     return resync(row)
+  },
+
+  /**
+   * The Pro refunds and disputes recorded for groups from Stripe webhooks (stripe_logs rows of type
+   * HyloProService.LOG_TYPE_REFUND / LOG_TYPE_DISPUTE): per group, how many disputes are still open
+   * (not in CLOSED_DISPUTE_STATUSES) and how many payments have been refunded. Groups with neither
+   * are left out.
+   *
+   * @returns {Promise<Map<string, { openDisputes: number, refunds: number }>>} keyed by group id
+   */
+  async chargeEventCounts (groupIds) {
+    const ids = [...new Set((groupIds || []).filter(Boolean).map(String))]
+    if (ids.length === 0) return new Map()
+    const rows = await bookshelf.knex('stripe_logs')
+      .whereIn('group_id', ids)
+      .whereIn('log_type', [HyloProService.LOG_TYPE_REFUND, HyloProService.LOG_TYPE_DISPUTE])
+      .groupBy('group_id')
+      .select('group_id', bookshelf.knex.raw(
+        `count(*) filter (where log_type = ? and status not in (${CLOSED_DISPUTE_STATUSES.map(() => '?').join(', ')})) as open_disputes,
+         count(*) filter (where log_type = ?) as refunds`,
+        [HyloProService.LOG_TYPE_DISPUTE, ...CLOSED_DISPUTE_STATUSES, HyloProService.LOG_TYPE_REFUND]
+      ))
+    return new Map(rows.map(row => [String(row.group_id), { openDisputes: Number(row.open_disputes), refunds: Number(row.refunds) }]))
+  },
+
+  /**
+   * A group's recorded Pro refunds and disputes (see chargeEventCounts), most recently updated
+   * first. One row per refunded payment (amount = total refunded on it so far) and one per dispute.
+   */
+  async listChargeEvents ({ groupId }) {
+    const rows = await bookshelf.knex('stripe_logs')
+      .where('group_id', groupIdOf(groupId))
+      .whereIn('log_type', [HyloProService.LOG_TYPE_REFUND, HyloProService.LOG_TYPE_DISPUTE])
+      .orderBy('updated_at', 'desc')
+      .orderBy('id', 'desc')
+      .limit(CHARGE_EVENTS_LIMIT)
+    return rows.map(row => {
+      const isDispute = row.log_type === HyloProService.LOG_TYPE_DISPUTE
+      return {
+        id: row.id,
+        type: isDispute ? 'dispute' : 'refund',
+        chargeId: row.charge_id,
+        externalId: row.external_id,
+        amount: row.amount,
+        currency: row.currency,
+        reason: row.reason,
+        status: row.status,
+        open: isDispute && !CLOSED_DISPUTE_STATUSES.includes(row.status),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }
+    })
   },
 
   /**

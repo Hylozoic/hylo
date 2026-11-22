@@ -172,6 +172,50 @@ function portalFeaturesMatch (actual, wanted) {
     sorted(actual.subscription_update?.default_allowed_updates) === sorted(wanted.subscription_update.default_allowed_updates)
 }
 
+// Subscription fields to expand when reading a subscription, so its discounts and their coupons
+// come back as objects (see discountColumns)
+const SUBSCRIPTION_EXPAND = ['discounts.source.coupon']
+
+/**
+ * The discount that applies to a subscription's price, as the hylo_pro_subscriptions discount_*
+ * columns (all null when there's none). Reads the subscription's discounts, then its first item's.
+ * Since API 2025-09-30.clover a discount's coupon is under `source.coupon` (before, `coupon`); an
+ * unexpanded discount or coupon (just an id) can't be read and counts as no discount, with a warning.
+ * Hylo Pro Checkout takes one promotion code, so only the first discount is kept.
+ */
+function discountColumns (subscription) {
+  const discounts = [
+    ...(subscription.discounts || []),
+    ...(subscription.items?.data?.[0]?.discounts || [])
+  ].filter(Boolean)
+  const discount = discounts[0]
+  const coupon = discount && typeof discount === 'object'
+    ? (discount.source?.coupon || discount.coupon)
+    : null
+  if (discounts.length > 1) console.warn(`Hylo Pro subscription ${subscription.id} has ${discounts.length} discounts; only the first is counted`)
+  if (discount && (!coupon || typeof coupon !== 'object')) {
+    console.warn(`Hylo Pro subscription ${subscription.id}: couldn't read its discount's coupon, storing no discount`)
+  }
+  if (!coupon || typeof coupon !== 'object') {
+    return {
+      discount_coupon_id: null,
+      discount_percent_off: null,
+      discount_amount_off: null,
+      discount_currency: null,
+      discount_duration: null,
+      discount_ends_at: null
+    }
+  }
+  return {
+    discount_coupon_id: coupon.id || null,
+    discount_percent_off: coupon.percent_off ?? null,
+    discount_amount_off: coupon.amount_off ?? null,
+    discount_currency: coupon.amount_off != null ? (coupon.currency || null) : null,
+    discount_duration: coupon.duration || null,
+    discount_ends_at: dateFromUnix(discount.end)
+  }
+}
+
 // Inserts a stripe_logs row, or updates the one with the same log_type and external_id
 async function upsertStripeLog (row, { transacting } = {}) {
   const knex = transacting || bookshelf.knex
@@ -195,6 +239,8 @@ module.exports = {
   PRO_REQUIRED,
   FEATURE_REQUIRED,
   tierForPrice,
+  discountColumns,
+  SUBSCRIPTION_EXPAND,
 
   /**
    * Throws unless the group has Pro feature `key` now (a GraphQLError with code FEATURE_REQUIRED and
@@ -710,7 +756,7 @@ module.exports = {
    */
   async syncSubscriptionById (subscriptionId, { transacting } = {}) {
     return withLock(`hylo_pro_subscription:${subscriptionId}`, async trx => {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId, { expand: SUBSCRIPTION_EXPAND })
       return this.syncSubscription(subscription, { transacting: trx })
     }, { transacting })
   },
@@ -759,6 +805,12 @@ module.exports = {
       stripe_customer_id: customerId,
       stripe_subscription_id: subscription.id,
       stripe_price_id: price?.id || null,
+      // What this subscription pays, for MRR (HyloProAdminService.monthlyRevenue): its own price,
+      // which may differ from today's plan prices, and any discount
+      amount: price?.unit_amount != null ? price.unit_amount * (item.quantity || 1) : null,
+      currency: price?.currency || null,
+      interval_count: price?.recurring?.interval_count || null,
+      ...discountColumns(subscription),
       // Since API 2025-03-31 the billing period lives on the subscription item
       current_period_start: dateFromUnix(item?.current_period_start || subscription.current_period_start),
       current_period_end: dateFromUnix(item?.current_period_end || subscription.current_period_end),

@@ -837,5 +837,77 @@ describe('HyloProService', () => {
       const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
       expect(row.get('status')).to.equal('past_due')
     })
+
+    it('reads the subscription with its discounts and stores what it pays: price, quantity, currency, period and discount', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const retrieved = []
+      stripeMock.subscriptions = {
+        retrieve: async (id, params) => {
+          retrieved.push([id, params])
+          return subscriptionFixture({
+            metadata,
+            items: { data: [{ id: 'si_1', quantity: 2, current_period_end: PERIOD_END, price: { id: 'price_year', unit_amount: 50000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } } }] },
+            // API 2025-09-30.clover and later: the coupon is under source.coupon
+            discounts: [{ id: 'di_1', end: PERIOD_END, source: { type: 'coupon', coupon: { id: 'LAUNCH', percent_off: 12.5, amount_off: null, currency: null, duration: 'repeating' } } }]
+          })
+        }
+      }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+
+      expect(retrieved).to.deep.equal([['sub_pro_1', { expand: ['discounts.source.coupon'] }]])
+      const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(100000)
+      expect(row.get('currency')).to.equal('usd')
+      expect(row.get('interval')).to.equal('year')
+      expect(row.get('interval_count')).to.equal(1)
+      expect(row.get('discount_coupon_id')).to.equal('LAUNCH')
+      expect(Number(row.get('discount_percent_off'))).to.equal(12.5)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('discount_duration')).to.equal('repeating')
+      expect(new Date(row.get('discount_ends_at')).getTime()).to.equal(PERIOD_END * 1000)
+    })
+
+    it('clears a discount that has been removed, and reads an older-style discount.coupon', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const price = { id: 'price_month', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } }
+      let subscription = subscriptionFixture({
+        metadata,
+        items: { data: [{ id: 'si_1', current_period_end: PERIOD_END, price }] },
+        discounts: [{ id: 'di_1', end: null, coupon: { id: 'TENOFF', percent_off: null, amount_off: 1000, currency: 'usd', duration: 'forever' } }]
+      })
+      stripeMock.subscriptions = { retrieve: async () => subscription }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      let row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(6000)
+      expect(row.get('discount_coupon_id')).to.equal('TENOFF')
+      expect(row.get('discount_amount_off')).to.equal(1000)
+      expect(row.get('discount_currency')).to.equal('usd')
+      expect(row.get('discount_ends_at')).to.equal(null)
+
+      subscription = { ...subscription, discounts: [] }
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('discount_coupon_id')).to.equal(null)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('amount')).to.equal(6000)
+    })
+  })
+
+  describe('discountColumns', () => {
+    it('stores no discount when the discount or its coupon was not expanded', () => {
+      const none = { discount_coupon_id: null, discount_percent_off: null, discount_amount_off: null, discount_currency: null, discount_duration: null, discount_ends_at: null }
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: ['di_1'] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: [{ id: 'di_1', source: { coupon: 'LAUNCH' } }] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1' })).to.deep.equal(none)
+    })
+
+    it("falls back to the first item's discounts", () => {
+      const columns = HyloProService.discountColumns({ id: 'sub_1', discounts: [], items: { data: [{ discounts: [{ id: 'di_2', end: null, source: { coupon: { id: 'ITEM', percent_off: 20, duration: 'forever' } } }] }] } })
+      expect(columns).to.include({ discount_coupon_id: 'ITEM', discount_percent_off: 20, discount_duration: 'forever' })
+    })
   })
 })
