@@ -39,6 +39,9 @@ import {
   convertGroupToSpace,
   convertSpaceToChildGroup,
   createAffiliation,
+  createUserProfileLink,
+  updateUserProfileLink,
+  reorderUserProfileLinks,
   createComment,
   createFundingRound,
   createGroup,
@@ -71,6 +74,7 @@ import {
   reviewPublicListingRequest,
   publicListingRequests,
   deleteAffiliation,
+  deleteUserProfileLink,
   deleteComment,
   deleteFundingRound,
   deleteGroup,
@@ -732,6 +736,8 @@ export function makeMutations ({ fetchOne }) {
 
     createAffiliation: (root, { data }, context) => createAffiliation(context.currentUserId, data),
 
+    createUserProfileLink: (root, { data }, context) => createUserProfileLink(context.currentUserId, data),
+
     createComment: (root, { data }, context) => createComment(context.currentUserId, data, context),
 
     createFundingRound: (root, { data }, context) => createFundingRound(context.currentUserId, data),
@@ -816,6 +822,12 @@ export function makeMutations ({ fetchOne }) {
     declineJoinRequest: (root, { joinRequestId }, context) => declineJoinRequest(context.currentUserId, joinRequestId),
 
     deleteAffiliation: (root, { id }, context) => deleteAffiliation(context.currentUserId, id),
+
+    updateUserProfileLink: (root, { id, data }, context) => updateUserProfileLink(context.currentUserId, id, data),
+
+    reorderUserProfileLinks: (root, { ids }, context) => reorderUserProfileLinks(context.currentUserId, ids),
+
+    deleteUserProfileLink: (root, { id }, context) => deleteUserProfileLink(context.currentUserId, id),
 
     deleteComment: (root, { id }, context) => deleteComment(context.currentUserId, id),
 

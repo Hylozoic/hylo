@@ -61,6 +61,8 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    - Match the surrounding code's style, naming and comment density (Standard.js, Tailwind for new web styling).
    - Any new user-facing web string must be added to **every** file in `apps/web/public/locales/` with a real translation.
    - Add or update a unit test when the fix is testable.
+   - If the issue is too big for one PR, don't open a series yourself. Report `blocked` with a proposed split that follows "Splitting a feature into several PRs" in CLAUDE.md: what each PR would contain and why it can be reviewed on its own. The supervisor or a human decides the split.
+   - When `FEEDBACK` concerns a PR in a series, make the change on the branch whose code it's about, then rebase the later branches. Never fix it in the newest PR.
 
 5. **Verify locally** — only checks that don't touch a database run locally; backend and e2e tests run in CI, which isolates each run:
    ```bash

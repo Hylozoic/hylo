@@ -21,9 +21,10 @@ module.exports = {
 
     for (const u of users) {
       const userData = u.pick([
-        'id', 'name', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio',
-        'url', 'twitter_name', 'facebook_url', 'linkedin_url'
+        'id', 'name', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio'
       ])
+      const profileLinks = await u.profileLinks().fetch()
+      userData.profile_links = profileLinks.map(link => link.get('url')).join(', ')
       const membership = await GroupMembership.forPair(u.id, groupId).fetch()
       const joinedAtRaw = membership?.get('created_at')
       userData.joined_at = joinedAtRaw
@@ -76,8 +77,7 @@ module.exports = {
     // send data as CSV response
     output(results, [
       'id', 'name', 'joined_at', 'roles', 'contact_email', 'contact_phone', 'location', 'avatar_url', 'tagline', 'bio',
-      { key: 'url', header: 'personal_url' },
-      'twitter_name', 'facebook_url', 'linkedin_url',
+      'profile_links',
       'skills', 'skills_to_learn',
       'affiliations',
       'groups',
@@ -97,8 +97,13 @@ module.exports = {
 
       const userData = user.pick([
         'id', 'name', 'email', 'contact_email', 'contact_phone', 'avatar_url', 'tagline', 'bio',
-        'url', 'twitter_name', 'facebook_url', 'linkedin_url', 'created_at', 'updated_at'
+        'created_at', 'updated_at'
       ])
+      const profileLinks = await user.profileLinks().fetch()
+      userData.profile_links = profileLinks.map(link => ({
+        url: link.get('url'),
+        title: link.get('title')
+      }))
 
       const locationObject = await user.locationObject().fetch()
       userData.location = locationObject ? {

@@ -33,9 +33,6 @@ Person.fields = {
   avatarUrl: attr(),
   bannerUrl: attr(),
   lastActiveAt: attr(),
-  twitterName: attr(),
-  facebookUrl: attr(),
-  linkedinUrl: attr(),
   url: attr(),
   location: attr(),
   isProfilePublic: attr(),
@@ -51,6 +48,7 @@ Person.fields = {
     through: 'PersonSkillsToLearn',
     throughFields: ['person', 'skillToLearn']
   }),
+  profileLinks: many('UserProfileLink'),
   postsTotal: attr()
 }
 
@@ -64,6 +62,5 @@ export const PERSON_PROP_TYPES = {
 }
 
 export const firstName = person => (person.name || '').split(' ')[0]
-export const twitterUrl = twitterName => twitterName && `https://twitter.com/${twitterName}`
 
 export const AXOLOTL_ID = '13986'

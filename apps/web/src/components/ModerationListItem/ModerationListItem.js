@@ -71,7 +71,7 @@ const ModerationListItem = ({
       <div className='flex items-center justify-between border-b border-foreground/10 pb-4'>
         <div className='flex items-center gap-2'>
           {anonymous && !canModerate
-            ? (<span className='text-foreground/50'>{t('Anonymous')}</span>)
+            ? (<span className='text-foreground-muted'>{t('Anonymous')}</span>)
             : (
               <div className='flex items-center gap-2'>
                 <Button variant='link' className='p-0' to={reporterUrl}>
@@ -79,7 +79,7 @@ const ModerationListItem = ({
                   <span className='over:text-accent/80 font-medium text-foreground'>{reporter.name}</span>
                 </Button>
               </div>)}
-          <div className='text-foreground/50 text-sm flex flex-row gap-1 items-center flex-wrap'>
+          <div className='text-foreground-muted text-sm flex flex-row gap-1 items-center flex-wrap'>
             <span>{t('reported this on')}</span>
             <span>{format(new Date(createdAt), 'MMM d, yyyy')}</span>
             {spaceModerationUrl && (
@@ -101,12 +101,12 @@ const ModerationListItem = ({
 
       <div className='py-4 space-y-6'>
         <div>
-          <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Complaint')}</h3>
+          <h3 className='text-foreground-muted text-center text-sm mb-2'>{t('Complaint')}</h3>
           <p className='text-foreground/100'>{text}</p>
         </div>
 
         <div>
-          <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Reported content')}</h3>
+          <h3 className='text-foreground-muted text-center text-sm mb-2'>{t('Reported content')}</h3>
           <div className='rounded-lg p-0 h-98 overflow-hidden shadow-xl border-2 border-foreground/10 border-b-0'>
             <PostListRow
               post={post}
@@ -120,13 +120,13 @@ const ModerationListItem = ({
         <div className='space-y-4'>
           {agreements.length > 0 && (
             <div className='space-y-2'>
-              <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Group Agreements broken')}</h3>
+              <h3 className='text-foreground-muted text-center text-sm mb-2'>{t('Group Agreements broken')}</h3>
               <MultiSelect items={agreements} />
               <a
                 href={groupAgreementsUrl}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
+                className='text-foreground-muted hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
               >
                 {t('View group agreements')}
               </a>
@@ -134,13 +134,13 @@ const ModerationListItem = ({
           )}
           {platformAgreements.length > 0 && (
             <div className='space-y-2 pt-4 border-t border-foreground/10'>
-              <h3 className='text-foreground/50 text-center text-sm mb-2'>{t('Platform Agreements broken')}</h3>
+              <h3 className='text-foreground-muted text-center text-sm mb-2'>{t('Platform Agreements broken')}</h3>
               <MultiSelect items={platformAgreements} />
               <a
                 href={agreementsURL}
                 target='_blank'
                 rel='noopener noreferrer'
-                className='text-foreground/50 hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
+                className='text-foreground-muted hover:text-foreground/80 text-sm border-2 border-foreground/10 rounded-lg p-1 px-2 w-fit mx-auto block hover:scale-105 transition-all'
               >
                 {t('View platform agreements')}
               </a>
@@ -155,7 +155,7 @@ const ModerationListItem = ({
             onClick={handleClearModerationAction}
             variant='outline'
           >
-            {t('Clear')} <span className='text-xs text-foreground/50'>{t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
+            {t('Clear')} <span className='text-xs text-foreground-muted'>{t('This will remove the report from the moderation queue, and remove the flag from the post.')}</span>
           </Button>
         </div>
       )}

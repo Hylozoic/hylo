@@ -23,6 +23,7 @@ import ModerationAction from './ModerationAction'
 import Notification from './Notification'
 import Person, { PersonSkillsToLearn, Reaction } from './Person'
 import PersonConnection from './PersonConnection'
+import UserProfileLink from './UserProfileLink'
 import PlatformAgreement from './PlatformAgreement'
 import Post, { PostFollower, PostCommenter, ProjectMember, ProposalOption, PostUser } from './Post'
 import PostMembership from './PostMembership'
@@ -68,6 +69,7 @@ const ORM_MODELS = [
   Person,
   PersonConnection,
   PersonSkillsToLearn,
+  UserProfileLink,
   PlatformAgreement,
   Post,
   PostCommenter,

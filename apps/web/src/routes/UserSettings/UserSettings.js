@@ -28,7 +28,6 @@ import getMyMemberships from 'store/selectors/getMyMemberships'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import {
   updateUserSettings,
-  unlinkAccount,
   registerStripeAccount
 } from './UserSettings.store'
 import { fetchLocation } from 'components/LocationInput/LocationInput.store'
@@ -68,8 +67,6 @@ const UserSettings = () => {
         <EditProfileTab
           currentUser={currentUser}
           updateUserSettings={(...args) => dispatch(updateUserSettings(...args))}
-          loginWithService={() => {}} // This action is not provided in the original code
-          unlinkAccount={(...args) => dispatch(unlinkAccount(...args))}
           setConfirm={setConfirm}
           fetchLocation={(...args) => dispatch(fetchLocation(...args))}
           fetchPending={fetchPending}

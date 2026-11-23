@@ -40,6 +40,20 @@ describe('useUploadFiles', () => {
     expect(failed).toHaveLength(0)
   })
 
+  it('keeps an uploaded mp4 as a file when the server labels it as a video embed', async () => {
+    const mp4 = new window.File(['x'], 'clip.mp4', { type: 'video/mp4' })
+    uploadFile.mockResolvedValue({ url: 'https://cdn.filestackcontent.com/abc', filename: 'clip.mp4', mimetype: 'video/mp4', handle: 'abc' })
+    mockDispatch.mockResolvedValue({ payload: { url: 'https://s3/clip.mp4', attachmentType: 'video', type: 'post', id: 'new' } })
+    const onUploaded = jest.fn()
+
+    const { result } = renderHook(() => useUploadFiles({ type: 'post' }))
+    const { uploaded, failed } = await result.current([mp4], onUploaded)
+
+    expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ url: 'https://s3/clip.mp4', attachmentType: 'file', filename: 'clip.mp4' }))
+    expect(uploaded).toHaveLength(1)
+    expect(failed).toHaveLength(0)
+  })
+
   it('keeps going after a failure and reports it, whether the upload rejects or returns an error', async () => {
     const a = new window.File(['x'], 'a.pdf', { type: 'application/pdf' })
     const b = new window.File(['x'], 'b.pdf', { type: 'application/pdf' })

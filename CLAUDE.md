@@ -65,6 +65,8 @@ git checkout -b <issue-number>-short-description
 
 ### 4. Test your work
 
+**Before you push, follow the worker instructions in `.claude/agents/hylo-worker.md`** (verification, screenshots, PR steps). Run the full backend suite (`cd apps/backend && yarn test`) and the full web suite (`cd apps/web && yarn test --watchAll=false`), not only the suites you touched, and record the result in the PR test plan. If a suite cannot run on your machine (for example it needs the test database), say so in the test plan instead of leaving it out.
+
 **Unit tests:**
 ```bash
 cd apps/web && yarn test --watchAll=false --testPathPattern=<relevant-pattern>
@@ -101,6 +103,22 @@ gh release upload "untagged-5c3bf358d6724b65a174" screenshot.png --repo Hylozoic
 # Embed in PR body
 # ![description](https://github.com/Hylozoic/hylo/releases/download/untagged-5c3bf358d6724b65a174/screenshot.png)
 ```
+#### Splitting into several PRs
+
+Separate features or bug fixes should be split into separate PRs so its easier to review and merge each one individually.
+
+For a single feature-set that must be deployed and used together use one PR, unless the change is really too big to review as a whole. When you split, split for the reviewer, not by the order you built things in.
+
+- **Order the series backend first, then features:**
+  1. **Backend changes and migrations.** Migrations go here only when they've been permitted. Every migration and schema change the feature needs goes in this first PR.
+  2. **Front-end changes, one PR per feature.** Where one part of a feature-set ends and the next begins is a judgement call: aim for pieces a reviewer can understand and try on their own. These PRs can include backend changes their feature needs, but no migrations, and ideally no edits to what earlier PRs added.
+
+  When the feature set is one shared backend change with several features built on it, the first PR is that backend change and each later PR covers one of the features.
+- **After the first PR, later PRs only add; they never rewrite earlier ones.** Don't change behaviour, defaults, signatures, names or comments that an earlier PR in the series introduced, and don't add or edit migrations. If an earlier PR needs to change, change it on that PR's branch and rebase the PRs after it.
+  Check before opening or updating any PR after the first: `git diff <earlier-branch> <last-branch> -- <files the earlier PR added>` should show only additions.
+- **No abandoned approaches in the history.** If you changed direction partway through, squash or rewrite the commits so the PR shows only the final design.
+- **Plan the split before writing code.** Each PR's description should say what it contains, what it depends on, and what the later PRs will add. Keep every description true to its own code.
+- **Each PR builds and passes tests on top of the ones before it**, so the series can be merged in order and stopped at any point.
 
 ## Autonomous Agent Workflow
 

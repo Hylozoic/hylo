@@ -30,7 +30,7 @@ export default function TrackSettingsFields ({
       <h3 className='text-base font-semibold'>{t('Track Settings')}</h3>
 
       <div className='flex flex-col relative border-2 border-transparent shadow-md transition-all duration-200 focus-within:border-2 group focus-within:border-focus bg-input rounded-tr-md rounded-br-md rounded-bl-md mb-2 mt-10' data-tour='track-completion'>
-        <h3 className='px-2 py-1 text-xs text-foreground/60 absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
+        <h3 className='px-2 py-1 text-xs text-foreground-muted absolute -top-[36px] -translate-x-[2px] bg-input rounded-t-md border-t-2 border-x-2 border-transparent border-b-0 group-focus-within:text-foreground/80 group-focus-within:border-t-focus group-focus-within:border-x-focus transition-colors duration-200'>
           {t('Completion Message')}
         </h3>
         <HyloEditor
@@ -80,7 +80,7 @@ export default function TrackSettingsFields ({
 
       <div className='grid grid-cols-1 sm:grid-cols-2 gap-3' data-tour='track-unit-term'>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term')}</div>
+          <div className='text-xs text-foreground-muted w-[90px]'>{t('Unit term')}</div>
           <input
             className='p-2 border-none bg-transparent w-full outline-none'
             maxLength='40'
@@ -91,7 +91,7 @@ export default function TrackSettingsFields ({
           />
         </div>
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2 focus-within:border-focus'>
-          <div className='text-xs text-foreground/50 w-[90px]'>{t('Unit term plural')}</div>
+          <div className='text-xs text-foreground-muted w-[90px]'>{t('Unit term plural')}</div>
           <input
             className='p-2 border-none bg-transparent w-full outline-none'
             maxLength='40'
