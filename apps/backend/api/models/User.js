@@ -35,6 +35,12 @@ module.exports = bookshelf.Model.extend(merge({
     return this.hasMany(Affiliation).where('is_active', true)
   },
 
+  profileLinks: function () {
+    return this.hasMany(UserProfileLink).query(q => {
+      q.orderBy('sort_order').orderBy('id')
+    })
+  },
+
   blockedUsers: function () {
     return this.belongsToMany(User, 'blocked_users', 'user_id', 'blocked_user_id')
   },
@@ -74,6 +80,8 @@ module.exports = bookshelf.Model.extend(merge({
     }
 
     if (scope.includes('profile')) {
+      const links = await this.profileLinks().fetch()
+      const firstLink = links.models[0]
       returnData = Object.assign(returnData, {
         birthdate: null,
         family_name: null,
@@ -87,7 +95,7 @@ module.exports = bookshelf.Model.extend(merge({
         preferred_username: null,
         profile: Frontend.Route.profile(this),
         updated_at: this.get('updated_at'),
-        website: this.get('url'),
+        website: firstLink ? firstLink.get('url') : null,
         zoneinfo: null
       })
     }
@@ -359,6 +367,7 @@ module.exports = bookshelf.Model.extend(merge({
     DELETE FROM user_day_activity WHERE user_id = ${this.id};
     DELETE FROM user_milestones WHERE user_id = ${this.id};
     DELETE FROM anonymous_events WHERE user_id = ${this.id};
+    DELETE FROM user_profile_links WHERE user_id = ${this.id};
     UPDATE activity_events SET target_user_id = NULL WHERE target_user_id = ${this.id};
     DELETE FROM posts_tags WHERE post_id in (select id from posts WHERE user_id = ${this.id});
     DELETE FROM reactions WHERE user_id = ${this.id};
@@ -372,7 +381,6 @@ module.exports = bookshelf.Model.extend(merge({
     bio = NULL,
     banner_url = NULL,
     location = NULL,
-    url = NULL,
     tagline = NULL,
     location_id = NULL,
     contact_email = NULL,
@@ -380,9 +388,6 @@ module.exports = bookshelf.Model.extend(merge({
     email = '${uuidv4()}@hylo.com',
     first_name = NULL,
     last_name = NULL,
-    twitter_name = NULL,
-    linkedin_url = NULL,
-    facebook_url = NULL,
     work = NULL,
     intention = NULL,
     extra_info = NULL
@@ -444,22 +449,6 @@ module.exports = bookshelf.Model.extend(merge({
     const saneAttrs = omit(attrs, 'settings')
 
     if (typeof saneAttrs.name === 'string') saneAttrs.name = saneAttrs.name.trim()
-
-    if (!isEmpty(saneAttrs.twitter_name)) {
-      if (saneAttrs.twitter_name.match(/^\s*$/)) {
-        saneAttrs.twitter_name = null
-      } else if (saneAttrs.twitter_name.match(/^@/)) {
-        saneAttrs.twitter_name = saneAttrs.twitter_name.substring(1)
-      }
-    }
-    const urlAttrs = ['url', 'facebook_url', 'linkedin_url']
-
-    urlAttrs.forEach(key => {
-      const normalized = addProtocol(saneAttrs[key])
-      if (!isEmpty(normalized)) {
-        saneAttrs[key] = normalized
-      }
-    })
 
     if (attrs.settings) this.addSetting(attrs.settings)
 
@@ -543,8 +532,8 @@ module.exports = bookshelf.Model.extend(merge({
     // tags and password, which are used later)
     const whitelist = pick(changes, [
       'avatar_url', 'banner_url', 'bio', 'contact_email', 'contact_phone',
-      'extra_info', 'facebook_url', 'intention', 'is_profile_public', 'linkedin_url', 'location', 'location_id',
-      'name', 'password', 'settings', 'tagline', 'twitter_name', 'url', 'work',
+      'extra_info', 'intention', 'is_profile_public', 'location', 'location_id',
+      'name', 'password', 'settings', 'tagline', 'work',
       'new_notification_count', 'calendar_token'
     ])
 
@@ -566,8 +555,8 @@ module.exports = bookshelf.Model.extend(merge({
         // Save the updated fields to send a Zapier trigger for, before we save and lose the changes
         const changedForTrigger = pick(this.changed, [
           'avatar_url', 'bio', 'contact_email', 'contact_phone',
-          'facebook_url', 'linkedin_url', 'location', 'location_id',
-          'name', 'tagline', 'twitter_name', 'url'
+          'location', 'location_id',
+          'name', 'tagline'
         ])
 
         await this.save(Object.assign({ updated_at: new Date() }, this.changed), { patch: true, transacting })
@@ -627,18 +616,7 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   unlinkAccount (provider) {
-    const fieldName = {
-      facebook: 'facebook_url',
-      linkedin: 'linkedin_url',
-      twitter: 'twitter_name'
-    }[provider]
-
-    if (!fieldName) throw new Error(`${provider} not a supported provider`)
-
-    return Promise.join(
-      LinkedAccount.query().where({ user_id: this.id, provider_key: provider }).del(),
-      this.save({ [fieldName]: null })
-    )
+    return LinkedAccount.query().where({ user_id: this.id, provider_key: provider }).del()
   },
 
   getMessageThreadWith (userId) {
@@ -1102,14 +1080,4 @@ function validateUserAttributes (attrs, { existingUser, transacting } = {}) {
 
   return User.isEmailUnique(attrs.email, oldEmail, { transacting })
     .then(unique => unique || Promise.reject(new GraphQLError('duplicate-email')))
-}
-
-export function addProtocol (url) {
-  if (isEmpty(url)) return url
-  const regex = /^(http:\/\/|https:\/\/)/
-  if (regex.test(url)) {
-    return url
-  } else {
-    return 'https://' + url
-  }
 }

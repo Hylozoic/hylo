@@ -145,12 +145,12 @@ export default function SpaceSelector ({
             </li>
           )}
           {suggestionSections.length === 0 && (
-            <li className='m-0 p-1 text-sm text-foreground/50'>{t('No matching spaces')}</li>
+            <li className='m-0 p-1 text-sm text-foreground-muted'>{t('No matching spaces')}</li>
           )}
           {suggestionSections.map(section => (
             <li key={section.key} className='m-0 p-0'>
               {section.label && (
-                <div className='text-[11px] font-semibold uppercase tracking-wide text-foreground/50 px-1 pt-1'>
+                <div className='text-[11px] font-semibold uppercase tracking-wide text-foreground-muted px-1 pt-1'>
                   {section.label}
                 </div>
               )}
@@ -278,17 +278,17 @@ const SelectedSpace = forwardRef((props, ref) => {
         <SpaceAvatar space={space} />
         <span className='truncate text-sm'>{space.name}</span>
         {space.isDraft && (
-          <span className='text-[10px] font-semibold text-foreground/50 shrink-0'>{t('Draft')}</span>
+          <span className='text-[10px] font-semibold text-foreground-muted shrink-0'>{t('Draft')}</span>
         )}
         {space.status === 'archived' && (
-          <span className='text-[10px] font-semibold text-foreground/50 shrink-0'>{t('Archived')}</span>
+          <span className='text-[10px] font-semibold text-foreground-muted shrink-0'>{t('Archived')}</span>
         )}
       </div>
       <div className='flex flex-row gap-2 items-center shrink-0'>
         <button
           type='button'
           onClick={handleTrashClick}
-          className='text-foreground/50 hover:text-destructive'
+          className='text-foreground-muted hover:text-destructive'
           aria-label={t('Remove space')}
         >
           <Trash2 className='w-4 h-4' />
@@ -314,7 +314,7 @@ function Suggestion ({ space, onSelect }) {
         <SpaceAvatar space={space} />
         <span className='truncate'>{space.name}</span>
         {space.isDraft && (
-          <span className='text-[10px] font-semibold text-foreground/50 shrink-0'>{t('Draft')}</span>
+          <span className='text-[10px] font-semibold text-foreground-muted shrink-0'>{t('Draft')}</span>
         )}
       </a>
     </li>

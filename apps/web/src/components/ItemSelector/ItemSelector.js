@@ -238,7 +238,7 @@ export default function ItemSelector ({
       <div className='flex-1 min-w-0'>
         <div className='font-medium text-foreground truncate'>{item.name}</div>
         {item.memberships && item.memberships.length > 0 && (
-          <div className='text-xs text-foreground/60 truncate'>
+          <div className='text-xs text-foreground-muted truncate'>
             {item.memberships.map(m => m.group?.name).filter(Boolean).join(', ')}
           </div>
         )}
@@ -304,17 +304,17 @@ export default function ItemSelector ({
             {showDropdown && (
               <div className='absolute z-50 w-full mt-1 bg-card border border-foreground/20 rounded-md shadow-lg max-h-60 overflow-y-auto'>
                 {loading && displayItems.length === 0 && (
-                  <div className='p-4 text-center text-foreground/60'>
+                  <div className='p-4 text-center text-foreground-muted'>
                     {t('Searching...')}
                   </div>
                 )}
                 {showNoResults && (
-                  <div className='p-4 text-center text-foreground/60'>
+                  <div className='p-4 text-center text-foreground-muted'>
                     {emptyMessage || t('No results found')}
                   </div>
                 )}
                 {(showEmptySearchHint || showTypeToSearchHint) && (
-                  <div className='p-4 text-center text-foreground/60'>
+                  <div className='p-4 text-center text-foreground-muted'>
                     {t('Type at least 2 characters to search')}
                   </div>
                 )}

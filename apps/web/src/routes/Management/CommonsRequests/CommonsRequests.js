@@ -105,7 +105,7 @@ export default function CommonsRequests () {
       {loading
         ? <Loading />
         : groups.length === 0
-          ? <div className='text-foreground/50 p-4 border border-foreground/20 rounded-md'>{t('No requests.')}</div>
+          ? <div className='text-foreground-muted p-4 border border-foreground/20 rounded-md'>{t('No requests.')}</div>
           : (
             <ul className='divide-y divide-foreground/10 border border-foreground/20 rounded-md' data-testid='commons-requests-list'>
               {groups.map(group => {
@@ -125,7 +125,7 @@ export default function CommonsRequests () {
                             {t(STATUS_LABELS[request.status] || request.status)}
                           </span>
                         </div>
-                        <p className='text-xs text-foreground/50 m-0 mt-1'>
+                        <p className='text-xs text-foreground-muted m-0 mt-1'>
                           {t('Requested {{date}}', { date: formatDate(request.requestedAt) })}
                           {request.requestedBy && (
                             <>
@@ -139,7 +139,7 @@ export default function CommonsRequests () {
                           <p className='text-sm text-foreground mt-2 mb-0 whitespace-pre-wrap'>{request.message}</p>
                         )}
                         {!isPending && request.reviewedAt && (
-                          <p className='text-xs text-foreground/50 m-0 mt-2'>
+                          <p className='text-xs text-foreground-muted m-0 mt-2'>
                             {t('Reviewed {{date}}', { date: formatDate(request.reviewedAt) })}
                             {request.reviewedBy?.name && ` · ${t('by')} ${request.reviewedBy.name}`}
                           </p>

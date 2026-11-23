@@ -819,7 +819,7 @@ const NativeDateTimePicker = React.forwardRef(({ value, onChange, disabled = fal
     </div>
   )
   const hasTimeInput = granularity !== 'day'
-  const overlayClass = 'pointer-events-none absolute inset-y-0 left-2 flex items-center text-base text-foreground/50'
+  const overlayClass = 'pointer-events-none absolute inset-y-0 left-2 flex items-center text-base text-foreground-muted'
 
   // A grid with minmax(0, 1fr) tracks, so the columns are sized by the container and never by
   // the inputs' intrinsic width (which WebKit on iOS computes its own way). Date and time sit

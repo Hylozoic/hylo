@@ -31,7 +31,7 @@ function renderToSuggestion ({ item, handleChoice }) {
           ? (
             <span className='flex min-w-0 items-center gap-1.5'>
               <span className='truncate'>{parentName}</span>
-              <span className='text-foreground/50 shrink-0'>/</span>
+              <span className='text-foreground-muted shrink-0'>/</span>
               {item.icon && (
                 <LucideIcon name={item.icon} className='h-3.5 w-3.5 shrink-0' />
               )}

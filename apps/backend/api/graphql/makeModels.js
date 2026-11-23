@@ -188,13 +188,19 @@ export default function makeModels (userId, isAdmin, apiClient) {
   const fieldsReturning = (value, fields) => Object.fromEntries(fields.map(f => [f, () => value]))
   const publicProfileAttribute = column => person =>
     person.get('is_profile_public') ? person.get(column) : null
+  // Url of the first profile link, which is the person's website.
+  async function firstProfileLinkUrl (person) {
+    const links = await person.profileLinks().fetch()
+    const first = links && links.models && links.models[0]
+    return first ? first.get('url') : null
+  }
   const anonymousPersonGetters = {
     ...fieldsReturning(null, ['contactEmail', 'contactPhone', 'lastActiveAt', 'messageThreadId']),
     bio: publicProfileAttribute('bio'),
-    facebookUrl: publicProfileAttribute('facebook_url'),
-    linkedinUrl: publicProfileAttribute('linkedin_url'),
-    twitterName: publicProfileAttribute('twitter_name'),
-    url: publicProfileAttribute('url'),
+    url: async person => {
+      if (!person.get('is_profile_public')) return null
+      return firstProfileLinkUrl(person)
+    },
 
     // Total fields must stay as getters because _loadMany never calls the tap callback,
     // which would leave the standard .Total Promise hanging forever.
@@ -353,15 +359,11 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'hasRegistered',
         'intercomHash',
         'is_profile_public',
-        'linkedin_url',
         'location',
-        'facebook_url',
         'name',
         'new_notification_count',
         'tagline',
-        'twitter_name',
-        'updated_at',
-        'url'
+        'updated_at'
       ],
       relations: [
         'groups',
@@ -370,6 +372,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'locationObject',
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
+        { profileLinks: { querySet: true } },
         { groupInvitesPending: { querySet: true } },
         {
           joinRequests: {
@@ -412,6 +415,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // Never expose null names to clients — they call .split() etc.
         name: p => p.get('name') || '',
         pendingEmail: u => getPendingEmail(u),
+        url: firstProfileLinkUrl,
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -573,10 +577,6 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'banner_url',
         'bio',
         'is_profile_public',
-        'twitter_name',
-        'linkedin_url',
-        'facebook_url',
-        'url',
         'last_active_at',
         'tagline'
       ],
@@ -588,6 +588,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         contactPhone: p => userId ? p.get('contact_phone') : null,
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
         location: p => (userId || p.get('is_profile_public')) ? p.get('location') : null,
+        url: firstProfileLinkUrl,
         locationObject: async p => {
           if (!userId && !p.get('is_profile_public')) return null
           await p.load('locationObject')
@@ -631,6 +632,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         // locationObject only via getter above (redacted for anonymous)
         { groupRoles: { querySet: true, filter: filterGroupRolesByGroup } },
         { affiliations: { querySet: true } },
+        { profileLinks: { querySet: true, filter: allowPublicProfileRelation } },
         { eventsAttending: { querySet: true } },
         // This fix is required for web and mobile, to avoid action posts showing up in member profiles
         {
@@ -1656,6 +1658,26 @@ export default function makeModels (userId, isAdmin, apiClient) {
       attributes: [
         'text'
       ]
+    },
+
+    UserProfileLink: {
+      model: UserProfileLink,
+      attributes: [
+        'id',
+        'url',
+        'title',
+        'icon_url',
+        'sort_order',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [{ user: { alias: 'person' } }],
+      getters: {
+        iconUrl: upl => upl.get('icon_url'),
+        sortOrder: upl => upl.get('sort_order'),
+        createdAt: upl => upl.get('created_at'),
+        updatedAt: upl => upl.get('updated_at')
+      }
     },
 
     Affiliation: {

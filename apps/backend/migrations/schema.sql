@@ -2647,9 +2647,6 @@ CREATE TABLE public.users (
     date_deactivated timestamp with time zone,
     bio text,
     banner_url character varying(255),
-    twitter_name character varying(255),
-    linkedin_url character varying(255),
-    facebook_url character varying(255),
     work text,
     intention text,
     extra_info text,
@@ -2657,7 +2654,6 @@ CREATE TABLE public.users (
     updated_at timestamp with time zone,
     settings jsonb DEFAULT '{}'::jsonb,
     location character varying(255),
-    url character varying(255),
     tagline character varying(255),
     location_id bigint,
     contact_email character varying(255),
@@ -2666,6 +2662,64 @@ CREATE TABLE public.users (
     calendar_token character varying(255),
     is_profile_public boolean DEFAULT false
 );
+
+
+--
+-- Name: user_profile_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_profile_links (
+    id integer NOT NULL,
+    user_id bigint NOT NULL,
+    url character varying(255) NOT NULL,
+    title character varying(255),
+    icon_url character varying(255),
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: user_profile_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.user_profile_links_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: user_profile_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.user_profile_links_id_seq OWNED BY public.user_profile_links.id;
+
+
+--
+-- Name: user_profile_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_profile_links ALTER COLUMN id SET DEFAULT nextval('public.user_profile_links_id_seq'::regclass);
+
+
+--
+-- Name: user_profile_links user_profile_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_profile_links
+    ADD CONSTRAINT user_profile_links_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_profile_links_user_id_sort_order_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_profile_links_user_id_sort_order_index ON public.user_profile_links USING btree (user_id, sort_order);
 
 
 --
@@ -4324,6 +4378,14 @@ ALTER TABLE ONLY public.zapier_triggers_groups ALTER COLUMN id SET DEFAULT nextv
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT pk_users PRIMARY KEY (id);
+
+
+--
+-- Name: user_profile_links user_profile_links_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_profile_links
+    ADD CONSTRAINT user_profile_links_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

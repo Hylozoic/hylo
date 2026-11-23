@@ -106,7 +106,7 @@ const TextInput = forwardRef(({
         <label
           htmlFor={id}
           className={cn(
-            'block absolute left-[18px] top-[50%] -translate-y-1/2 text-foreground/60 text-base transition-all duration-200',
+            'block absolute left-[18px] top-[50%] -translate-y-1/2 text-foreground-muted text-base transition-all duration-200',
             (active || hasValue) && 'text-[10px] top-[5%] translate-y-0 left-[14px]'
           )}
         >
@@ -117,7 +117,7 @@ const TextInput = forwardRef(({
       {showClearButton &&
         <div
           className={cn(
-            'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer transition-colors text-foreground/60 hover:text-foreground/100'
+            'absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer transition-colors text-foreground-muted hover:text-foreground/100'
           )}
           onClick={clear}
           role='button'
