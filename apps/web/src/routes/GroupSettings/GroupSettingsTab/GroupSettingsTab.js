@@ -34,6 +34,7 @@ import {
 import { bgImageStyle, cn } from 'util/index'
 import SaveButton from '../SaveButton'
 import SettingsSection from '../SettingsSection'
+import GroupSupporterSection from './GroupSupporterSection'
 
 import general from '../GroupSettings.module.scss'
 
@@ -421,6 +422,7 @@ function GroupSettingsTab ({ currentUser, group, fetchLocation, fetchPending, up
           </div>
         </div>
       </SettingsSection>
+      <GroupSupporterSection group={group} />
       <SaveButton save={save} changed={changed} error={error} />
     </div>
   )

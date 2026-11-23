@@ -89,6 +89,7 @@ import {
   NAV_STYLE_TWO_COLUMN
 } from 'util/navigationLayout'
 
+import SupportHyloModal from 'components/SupportHyloModal/SupportHyloModal'
 import styles from './GlobalNav.module.scss'
 
 // Mouse drags start once the pointer travels a few pixels. Touch needs a hold
@@ -547,6 +548,7 @@ export default function GlobalNav (props) {
   const { show: showIntercom } = useIntercom()
   const { showPreferences } = useCookieConsent()
   const [showSupportModal, setShowSupportModal] = useState(false)
+  const [showSupportHyloModal, setShowSupportHyloModal] = useState(false)
   const dispatch = useDispatch()
   const stackGroups = currentUser?.settings?.stackGroups === true
   const rawNavItems = useSelector(getMyGlobalNavItems)
@@ -1296,16 +1298,15 @@ export default function GlobalNav (props) {
                   <span>{t('Download App')}</span>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem asChild>
-                <a href='https://opencollective.com/hylo' target='_blank' rel='noreferrer' className='text-foreground hover:text-foreground'>
-                  <Heart className='mr-2 h-4 w-4' />
-                  <span>{t('Contribute to Hylo')}</span>
-                </a>
+              <DropdownMenuItem onClick={() => setShowSupportHyloModal(true)} data-testid='nav-support-hylo'>
+                <Heart className='mr-2 h-4 w-4' />
+                <span>{t('Contribute to Hylo')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {/* Outside the menu: selecting Feedback & Support closes it, and this
               dialog has to outlive that close */}
+          <SupportHyloModal open={showSupportHyloModal} onOpenChange={setShowSupportHyloModal} />
           {showSupportModal && (
             <ModalDialog
               closeModal={() => setShowSupportModal(false)}

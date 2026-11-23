@@ -36,6 +36,8 @@ Person.fields = {
   url: attr(),
   location: attr(),
   isProfilePublic: attr(),
+  // Hylo supporter badge: opted in and currently supporting (#1754)
+  isSupporter: attr(),
   locationObject: fk({
     to: 'Location',
     as: 'locationObject'

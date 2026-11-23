@@ -309,13 +309,14 @@ export const MY_CONTEXT_VIEWS = (profileUrl) => [
   { type: 'groups', context: 'my', icon: 'Users', name: 'view-my-groups', id: 'view-my-groups', order: 15 },
   { type: 'invitations', context: 'my', icon: 'Mail', name: 'view-my-invites', id: 'view-my-invites', order: 16 },
   { type: 'transactions', context: 'my', icon: 'CreditCard', name: 'view-my-transactions', id: 'view-my-transactions', order: 17 },
-  { type: 'notifications', context: 'my', icon: 'Bell', name: 'view-my-notifications', id: 'view-my-notifications', order: 18 },
-  { type: 'appearance', context: 'my', icon: 'Palette', name: 'view-my-appearance', id: 'view-my-appearance', order: 19 },
-  { type: 'locale', context: 'my', icon: 'Languages', name: 'view-my-locale', id: 'view-my-locale', order: 20 },
-  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'view-my-blocked-users', id: 'view-my-blocked-users', order: 21 },
-  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'view-my-saved-searches', id: 'view-my-saved-searches', order: 22 },
-  { type: 'account', context: 'my', icon: 'Shield', name: 'view-my-account', id: 'view-my-account', order: 23 },
-  { type: 'logout', name: 'view-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 24 }
+  { type: 'support', context: 'my', icon: 'HeartHandshake', name: 'view-my-support', id: 'view-my-support', order: 18 },
+  { type: 'notifications', context: 'my', icon: 'Bell', name: 'view-my-notifications', id: 'view-my-notifications', order: 19 },
+  { type: 'appearance', context: 'my', icon: 'Palette', name: 'view-my-appearance', id: 'view-my-appearance', order: 20 },
+  { type: 'locale', context: 'my', icon: 'Languages', name: 'view-my-locale', id: 'view-my-locale', order: 21 },
+  { type: 'blocked-users', context: 'my', icon: 'UserX', name: 'view-my-blocked-users', id: 'view-my-blocked-users', order: 22 },
+  { type: 'saved-searches', context: 'my', icon: 'Search', name: 'view-my-saved-searches', id: 'view-my-saved-searches', order: 23 },
+  { type: 'account', context: 'my', icon: 'Shield', name: 'view-my-account', id: 'view-my-account', order: 24 },
+  { type: 'logout', name: 'view-my-logout', icon: 'LogOut', id: 'view-my-logout', order: 25 }
 ]
 
 /**
@@ -327,8 +328,9 @@ export const MANAGEMENT_CONTEXT_VIEWS = [
   { type: 'link', name: 'view-management-site-banners', link: '/management/banners', icon: 'Flag', id: 'view-management-site-banners', order: 2 },
   { type: 'link', name: 'view-management-commons-requests', link: '/management/commons-requests', icon: 'Inbox', id: 'view-management-commons-requests', order: 3 },
   { type: 'link', name: 'view-management-email-testers', link: '/management/email-testers', icon: 'Mail', id: 'view-management-email-testers', order: 4 },
-  { type: 'text', name: 'view-management-paid-content', id: 'view-management-paid-content', order: 5 },
-  { type: 'link', name: 'view-management-disputes-refunds', link: '/management/paid-content/stripe-analytics', icon: 'Scale', id: 'view-management-disputes-refunds', order: 6 }
+  { type: 'link', name: 'view-management-supporters', link: '/management/supporters', icon: 'HeartHandshake', id: 'view-management-supporters', order: 5 },
+  { type: 'text', name: 'view-management-paid-content', id: 'view-management-paid-content', order: 6 },
+  { type: 'link', name: 'view-management-disputes-refunds', link: '/management/paid-content/stripe-analytics', icon: 'Scale', id: 'view-management-disputes-refunds', order: 7 }
 ]
 
 /** Returns static menu views for My Home, Public, or Management contexts. */

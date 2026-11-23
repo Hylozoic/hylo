@@ -578,6 +578,15 @@ type Query {
 
   # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
   publicListingRequests(status: String): [Group]
+
+  # The current user's Hylo supporter status, linked Open Collective contributions and badge setting
+  supportHylo: SupportHyloInfo
+
+  # A group's Hylo supporter status and badge setting (group administrators only)
+  groupSupporterInfo(groupId: ID!): GroupSupporterInfo
+
+  # Active supporter status grants made by Hylo staff (admin only)
+  supporterGrants: [SupporterGrant]
 }
 
 union Update = Message | MessageThread | Notification
@@ -917,6 +926,8 @@ union FeedItemContent = Post | Interstitial
 # A Hylo Group
 type Group {
   id: ID
+  # Whether to show a Hylo supporter badge: the group opted in and currently supports Hylo. Never exposes amounts
+  isSupporter: Boolean
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
   # Whether the current user has a currently valid user scope for this group or space
@@ -2299,6 +2310,8 @@ type NotificationQuerySet {
 # A user of Hylo
 type Person {
   id: ID
+  # Whether to show a Hylo supporter badge: the person opted in and currently supports Hylo. Never exposes amounts
+  isSupporter: Boolean
   # Whether the current user may start a direct message with this person (never true for themself)
   canMessage: Boolean
   # The URL of this person's avatar image
@@ -3324,6 +3337,83 @@ type EmailEnabledTester {
   updatedAt: Date
 }
 
+# The current user's Hylo supporter details (#1754). Amounts are never exposed
+type SupportHyloInfo {
+  # Whether the Open Collective check is available (false until the integration token is set up)
+  checkAvailable: Boolean
+  # supporter or none
+  supporterStatus: String
+  # Whether this person chose to show their supporter badge
+  showSupporterBadge: Boolean
+  # Whether any linked contribution was made incognito on Open Collective
+  hasIncognitoContributions: Boolean
+  # Whether Hylo staff gave this person supporter status
+  manualGrant: Boolean
+  # When the supporter status from Hylo staff ends, if it does
+  manualGrantExpiresAt: Date
+  contributions: [SupporterContribution]
+  # Groups this person administers, which their support can count for
+  adminGroups: [Group]
+}
+
+# A contribution to Hylo's Open Collective linked to the current user
+type SupporterContribution {
+  id: ID
+  # ONETIME, MONTHLY or YEARLY
+  frequency: String
+  # The Open Collective order status, e.g. ACTIVE, PAID, CANCELLED
+  status: String
+  createdAt: Date
+  lastChargedAt: Date
+  isIncognito: Boolean
+  # Whether this contribution currently makes its owner a supporter
+  qualifies: Boolean
+  # The group this contribution counts for, if any
+  group: Group
+}
+
+type GroupSupporterInfo {
+  # supporter or none
+  supporterStatus: String
+  showSupporterBadge: Boolean
+}
+
+type OpenCollectiveCheckResult {
+  # Whether the email matched any contributor on Open Collective
+  found: Boolean
+  linkedCount: Int
+  # Whether a matching Open Collective account is already linked to another Hylo account
+  linkedElsewhere: Boolean
+  # supporter or none
+  supporterStatus: String
+}
+
+type SupportIntent {
+  token: String
+  # The tag to pass to Open Collective, hylo-<token>
+  tag: String
+}
+
+type SupportConfirmation {
+  # confirmed, pending, email_match or unmatched
+  outcome: String
+  # supporter or none
+  supporterStatus: String
+  # The group the contribution now counts for, if any
+  group: Group
+}
+
+# Supporter status given by Hylo staff to a person or a group
+type SupporterGrant {
+  id: ID
+  user: Person
+  group: Group
+  note: String
+  expiresAt: Date
+  createdAt: Date
+  grantedBy: Person
+}
+
 # A group's request to be added to the commons (have allowInPublic turned on)
 type PublicListingRequest {
   # pending, approved or denied
@@ -3957,6 +4047,20 @@ type Mutation {
   requestPublicListing(groupId: ID!, message: String): Group
   # Approve or deny a group's pending request to be added to the commons; the requester is emailed either way (admin only)
   reviewPublicListingRequest(groupId: ID!, approved: Boolean!, message: String): Group
+  # Look up the current user's verified email on Hylo's Open Collective and link the contributions found
+  checkOpenCollectiveContributions: OpenCollectiveCheckResult
+  # Count one of your contributions for a group you administer, or for no group (groupId null)
+  attributeSupportContribution(contributionId: ID!, groupId: ID): SupporterContribution
+  # Show or hide the supporter badge for yourself, or for a group you administer
+  setSupporterBadgeVisibility(groupId: ID, show: Boolean!): Boolean
+  # Start a donation on Open Collective, optionally counting it for a group you administer
+  createSupportIntent(groupId: ID): SupportIntent
+  # Check a donation after returning from Open Collective (orderId is the orderIdV2 Open Collective adds to the return URL)
+  confirmSupportIntent(orderId: String!): SupportConfirmation
+  # Give a person or a group supporter status, e.g. for non-monetary contributions (admin only)
+  grantSupporterStatus(userId: ID, groupId: ID, note: String, expiresAt: Date): SupporterGrant
+  # Remove supporter status given by Hylo staff (admin only)
+  revokeSupporterStatus(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email

@@ -183,6 +183,8 @@ Group.modelName = 'Group'
 
 Group.fields = {
   accessibility: attr(),
+  // Hylo supporter badge: opted in and currently supporting (#1754)
+  isSupporter: attr(),
   acceptedPostTypes: attr(),
   activeProjects: many({
     to: 'Post',

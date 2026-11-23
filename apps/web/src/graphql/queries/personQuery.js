@@ -21,6 +21,7 @@ export default
       }
     }
     location
+    isSupporter
     isProfilePublic
     locationObject {
       id
