@@ -7,6 +7,7 @@ import { AnalyticsEvents } from '@hylo/shared'
 import { formatError } from '../../util'
 import getMe from 'store/selectors/getMe'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getReturnToPath from 'store/selectors/getReturnToPath'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { sendEmailVerification as sendEmailVerificationAction, verifyEmail } from '../Signup.store'
 import Loading from 'components/Loading'
@@ -17,6 +18,7 @@ export default function VerifyEmail (props) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const currentUser = useSelector(getMe)
+  const returnToPath = useSelector(getReturnToPath)
   const location = useLocation()
   const email = currentUser?.email || getQuerystringParam('email', location)
   const token = getQuerystringParam('token', location)
@@ -28,7 +30,7 @@ export default function VerifyEmail (props) {
   const { t } = useTranslation()
 
   const sendEmailVerification = async email => {
-    const { payload } = await dispatch(sendEmailVerificationAction(email))
+    const { payload } = await dispatch(sendEmailVerificationAction(email, returnToPath))
     const { success, error } = payload.getData()
 
     if (error) setError(error)

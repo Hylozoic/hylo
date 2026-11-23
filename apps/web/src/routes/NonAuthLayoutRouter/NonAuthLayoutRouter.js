@@ -49,8 +49,13 @@ export default function NonAuthLayoutRouter (props) {
 
   useEffect(() => {
     if (returnToPath && returnToPath !== '/') {
-      // Clears location state on page reload
-      navigate('.', { replace: true, state: null })
+      // Stay on this page without returnToUrl, and clear location state on page reload.
+      // Not navigate('.'): inside RootRouter's '*' route that resolves to '/', which
+      // falls through to /login, so a /signup?returnToUrl= link opened the login page
+      const params = new URLSearchParams(location.search)
+      params.delete('returnToUrl')
+      const search = params.toString()
+      navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true, state: null })
       dispatch(setReturnToPath(returnToPath))
     }
 

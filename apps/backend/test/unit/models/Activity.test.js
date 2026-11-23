@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-expressions */
-import { mapValues } from 'lodash'
+const { mapValues } = require('lodash')
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))

@@ -97,7 +97,7 @@ export default function PaywallOfferingsSection ({ group, sellingGroup }) {
     if (!currentUser) {
       const returnToUrl = location.pathname + location.search
       dispatch(setReturnToPath(returnToUrl))
-      navigate('/login?returnToUrl=' + encodeURIComponent(returnToUrl))
+      navigate('/signup?returnToUrl=' + encodeURIComponent(returnToUrl))
       return
     }
 

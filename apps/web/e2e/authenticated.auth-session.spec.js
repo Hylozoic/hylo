@@ -46,17 +46,18 @@ test.describe('authenticated: logout and session', () => {
       }
     })
 
+    // Sign in afresh so this test signs out only its own session. The desktop and
+    // phone projects (and retries) share session-mutate-user.json, and signed out,
+    // the public group below shows its public page rather than /login.
+    await page.context().clearCookies()
+    await ensureHyloCookieConsent(page)
+    await gotoLoginAndWaitForEmail(page)
+    await signInWithSessionMutate(page)
+
     // Group stream: phone chevron toggles the nav drawer. /my/posts can treat
     // it as back (one-column My home), so create/settings never enter the viewport.
-    // Retries reuse session-mutate-user.json after this test DELETEs that session,
-    // so restore auth via the login form when we landed on /login.
     await page.goto('/groups/e2e-public-group/all')
     await waitPastRootSessionLoading(page)
-    if (/\/login/.test(page.url())) {
-      await signInWithSessionMutate(page)
-      await page.goto('/groups/e2e-public-group/all')
-      await waitPastRootSessionLoading(page)
-    }
     await expect(page.locator('#center-column-container')).toBeVisible(uiTimeout)
 
     await openGlobalNavSettingsMenu(page)
@@ -73,8 +74,7 @@ test.describe('authenticated: logout and session', () => {
     expect(pageErrors, pageErrors.join('\n')).toEqual([])
   })
 
-  // The test above DELETEs the server session saved in session-mutate-user.json.
-  // Start logged out so this spec does not depend on that now-invalid cookie.
+  // Start logged out and sign in here, so this test also signs out only its own session.
   test.describe(() => {
     test.use({ storageState: { cookies: [], origins: [] } })
 

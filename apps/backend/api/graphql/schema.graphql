@@ -3845,7 +3845,7 @@ type Mutation {
   # Save a post to your saved posts list
   savePost(postId: ID): Post
   # When a new person signs up, send them an email to verify their email address so they can finish registering
-  sendEmailVerification(email: String!): GenericResult,
+  sendEmailVerification(email: String!, returnToUrl: String): GenericResult,
   # Send a password reset email
   sendPasswordReset(email: String!): GenericResult,
   # set options for a proposal

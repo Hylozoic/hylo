@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import Button from 'components/ui/button'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Helmet } from 'react-helmet'
 import { checkForStorageAccess, formatError } from '../util'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
+import getReturnToPath from 'store/selectors/getReturnToPath'
 import checkLogin from 'store/actions/checkLogin'
 import { sendEmailVerification as sendEmailVerificationAction } from './Signup.store'
 import loginWithService from 'store/actions/loginWithService'
@@ -18,10 +19,11 @@ export default function Signup (props) {
   const [email, setEmail] = useState(location.state?.email)
   const [error, setError] = useState(getQuerystringParam('error', location))
   const [redirectTo, setRedirectTo] = useState()
+  const returnToPath = useSelector(getReturnToPath)
   const { t } = useTranslation()
 
   const sendEmailVerification = async email => {
-    const { payload } = await dispatch(sendEmailVerificationAction(email))
+    const { payload } = await dispatch(sendEmailVerificationAction(email, returnToPath))
     const { success, error } = payload.getData()
 
     if (error) setError(error)
