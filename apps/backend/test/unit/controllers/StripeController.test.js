@@ -2,17 +2,27 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-/* global ContentAccess, StripeProduct, SubscriptionChangeEvent */
+const { mockify, unspyify } = require(root('test/setup/helpers'))
+/* global bookshelf, ContentAccess, StripeProduct, SubscriptionChangeEvent, Frontend, Queue */
 
 let currentWebhookEvent = null
 
 describe('StripeController.webhook', () => {
   let StripeController
+  let originalHandlers
   let req
   let res
 
   before(() => {
     StripeController = require(root('api/controllers/StripeController'))
+    originalHandlers = {
+      handleInvoicePaid: StripeController.handleInvoicePaid,
+      handleInvoicePaymentFailed: StripeController.handleInvoicePaymentFailed
+    }
+  })
+
+  afterEach(() => {
+    Object.assign(StripeController, originalHandlers)
   })
 
   after(() => {
@@ -245,5 +255,298 @@ describe('StripeController.webhook', () => {
     expect(payload.applied).to.equal(true)
     expect(payload.appliedFromWebhookType).to.equal('customer.subscription.deleted')
     expect(payload.appliedFromWebhookEventId).to.equal('evt_lifetime_deleted')
+  })
+})
+
+describe('subscription email links', () => {
+  let StripeController, user, group, product, queued
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user().save()
+    group = await factories.group().save()
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_links',
+      stripe_price_id: 'price_links',
+      name: 'Monthly Membership',
+      description: 'monthly',
+      price_in_cents: 1000,
+      currency: 'usd',
+      renewal_policy: 'automatic',
+      duration: 'month',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    queued = []
+    mockify(Queue, 'classMethod', (className, methodName, data) => {
+      queued.push({ className, methodName, data })
+      return Promise.resolve()
+    })
+  })
+
+  afterEach(() => unspyify(Queue, 'classMethod'))
+
+  it('links the payment failed email to my transactions', async () => {
+    await ContentAccess.create({
+      user_id: user.id,
+      granted_by_group_id: group.id,
+      group_id: group.id,
+      product_id: product.id,
+      access_type: ContentAccess.Type.STRIPE_PURCHASE,
+      stripe_session_id: 'cs_links_failed',
+      stripe_subscription_id: 'sub_links_failed',
+      status: ContentAccess.Status.ACTIVE
+    })
+
+    await StripeController.handleInvoicePaymentFailed({
+      data: { object: { id: 'in_links_failed', subscription: 'sub_links_failed', last_payment_error: { message: 'Card declined' } } }
+    })
+
+    const email = queued.find(q => q.methodName === 'sendPaymentFailed')
+    expect(email).to.exist
+    expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
+    expect(Frontend.Route.myTransactions()).to.match(/\/my\/transactions$/)
+  })
+
+  it('links the renewal reminder email to my transactions', async () => {
+    await ContentAccess.create({
+      user_id: user.id,
+      granted_by_group_id: group.id,
+      group_id: group.id,
+      product_id: product.id,
+      access_type: ContentAccess.Type.STRIPE_PURCHASE,
+      stripe_session_id: 'cs_links_reminder',
+      stripe_subscription_id: 'sub_links_reminder',
+      status: ContentAccess.Status.ACTIVE,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    })
+
+    await ContentAccess.sendRenewalReminders()
+
+    const email = queued.find(q => q.methodName === 'sendSubscriptionRenewalReminder')
+    expect(email).to.exist
+    expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    expect(email.data.data.update_payment_url).to.equal(Frontend.Route.myTransactions())
+  })
+
+  describe('with a stubbed subscription', () => {
+    let stripeClient, originalSubscriptionRetrieve
+    const now = Math.floor(Date.now() / 1000)
+
+    beforeEach(() => {
+      stripeClient = require('stripe')()
+      originalSubscriptionRetrieve = stripeClient.subscriptions.retrieve
+      stripeClient.subscriptions.retrieve = async () => ({ current_period_start: now, current_period_end: now + 30 * 24 * 60 * 60 })
+    })
+
+    afterEach(() => {
+      stripeClient.subscriptions.retrieve = originalSubscriptionRetrieve
+    })
+
+    it('links the purchase confirmation email to my transactions', async () => {
+      await StripeController.handleCheckoutSessionCompleted({
+        data: {
+          object: {
+            id: 'cs_links_purchase',
+            payment_status: 'paid',
+            mode: 'subscription',
+            subscription: 'sub_links_purchase',
+            created: now,
+            amount_total: 1000,
+            currency: 'usd',
+            metadata: { userId: String(user.id), groupId: String(group.id), offeringId: String(product.id) }
+          }
+        }
+      })
+
+      const email = queued.find(q => q.methodName === 'sendPurchaseConfirmation')
+      expect(email).to.exist
+      expect(email.data.data.is_subscription).to.be.ok
+      expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    })
+
+    it('links the subscription renewed email to my transactions', async () => {
+      await ContentAccess.create({
+        user_id: user.id,
+        granted_by_group_id: group.id,
+        group_id: group.id,
+        product_id: product.id,
+        access_type: ContentAccess.Type.STRIPE_PURCHASE,
+        stripe_session_id: 'cs_links_renewed',
+        stripe_subscription_id: 'sub_links_renewed',
+        status: ContentAccess.Status.ACTIVE
+      })
+
+      await StripeController.handleInvoicePaid({
+        data: {
+          object: {
+            id: 'in_links_renewed',
+            subscription: 'sub_links_renewed',
+            billing_reason: 'subscription_cycle',
+            amount_paid: 1000,
+            currency: 'usd',
+            created: now
+          }
+        }
+      })
+
+      const email = queued.find(q => q.methodName === 'sendSubscriptionRenewed')
+      expect(email).to.exist
+      expect(email.data.data.manage_subscription_url).to.equal(Frontend.Route.myTransactions())
+    })
+  })
+})
+
+describe('StripeController.handleChargeRefunded', () => {
+  let StripeController, stripeClient, originalRetrieve, originalList, sessionListCalls, user, group, product, sentEmails
+
+  const chargeRefundedEvent = {
+    id: 'evt_charge_refunded',
+    type: 'charge.refunded',
+    data: {
+      object: {
+        id: 'ch_refunded',
+        payment_intent: 'pi_refunded',
+        amount: 1500,
+        amount_refunded: 1500,
+        refunded: true,
+        currency: 'usd'
+      }
+    }
+  }
+
+  const purchase = (attrs = {}) => ContentAccess.create({
+    user_id: user.id,
+    granted_by_group_id: group.id,
+    group_id: group.id,
+    product_id: product.id,
+    access_type: ContentAccess.Type.STRIPE_PURCHASE,
+    stripe_session_id: 'cs_refunded',
+    status: ContentAccess.Status.ACTIVE,
+    ...attrs
+  })
+
+  before(() => {
+    StripeController = require(root('api/controllers/StripeController'))
+    stripeClient = require('stripe')()
+  })
+
+  beforeEach(async () => {
+    await setup.clearDb()
+    user = await factories.user({ settings: { locale: 'fr' } }).save()
+    group = await factories.group({ name: 'Garden Club' }).save()
+    product = await StripeProduct.create({
+      group_id: group.id,
+      stripe_product_id: 'prod_refunded',
+      stripe_price_id: 'price_refunded',
+      name: 'Season Pass',
+      description: 'season',
+      price_in_cents: 1500,
+      currency: 'usd',
+      renewal_policy: 'manual',
+      duration: 'season',
+      access_grants: { groupIds: [group.id] },
+      publish_status: 'published'
+    })
+    originalRetrieve = stripeClient.paymentIntents.retrieve
+    originalList = stripeClient.checkout.sessions.list
+    // Checkout never writes the real session id onto the payment intent
+    stripeClient.paymentIntents.retrieve = async () => ({ metadata: { session_id: 'placeholder' } })
+    sessionListCalls = []
+    stripeClient.checkout.sessions.list = async (params, options) => {
+      sessionListCalls.push({ params, options })
+      return { data: params.payment_intent === 'pi_refunded' ? [{ id: 'cs_refunded' }] : [] }
+    }
+    sentEmails = []
+    mockify(Queue, 'classMethod', (className, methodName, data) => {
+      if (className === 'Email' && methodName === 'sendRefundProcessed') sentEmails.push(data)
+      return Promise.resolve()
+    })
+  })
+
+  afterEach(() => {
+    stripeClient.paymentIntents.retrieve = originalRetrieve
+    stripeClient.checkout.sessions.list = originalList
+    unspyify(Queue, 'classMethod')
+  })
+
+  it('emails the member once for a refund issued from the Stripe dashboard', async () => {
+    const groupAccess = await purchase()
+    const roleAccess = await purchase({ metadata: { accessType: 'role' } })
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    expect(sessionListCalls).to.deep.equal([{ params: { payment_intent: 'pi_refunded', limit: 1 }, options: {} }])
+    expect((await ContentAccess.where({ id: groupAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect((await ContentAccess.where({ id: roleAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sentEmails).to.have.length(1)
+    expect(sentEmails[0].email).to.equal(user.get('email'))
+    expect(sentEmails[0].locale).to.equal('fr-FR')
+    expect(sentEmails[0].data).to.include({
+      offering_name: 'Season Pass',
+      group_name: 'Garden Club',
+      refund_amount_formatted: '$15.00',
+      currency: 'USD',
+      refund_reason: null
+    })
+  })
+
+  it('sends nothing when the refund was made through Hylo, which already emailed the member', async () => {
+    await purchase({ status: ContentAccess.Status.REFUNDED })
+    const otherAccess = await purchase()
+
+    await StripeController.handleChargeRefunded(chargeRefundedEvent)
+
+    expect((await ContentAccess.where({ id: otherAccess.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    expect(sentEmails).to.have.length(0)
+  })
+
+  it('looks the session up on the connected account and logs the refund for its group', async () => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_refunded' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({ ...chargeRefundedEvent, account: 'acct_refunded' })
+
+    expect(sessionListCalls[0].options).to.deep.equal({ stripeAccount: 'acct_refunded' })
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.REFUNDED)
+    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
+    expect(String(log.group_id)).to.equal(String(group.id))
+    expect(Number(log.amount)).to.equal(1500)
+  })
+
+  it('does nothing when no checkout session matches the payment intent', async () => {
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      data: { object: { ...chargeRefundedEvent.data.object, payment_intent: 'pi_subscription_invoice' } }
+    })
+
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(sentEmails).to.have.length(0)
+  })
+
+  it('keeps access and sends nothing for a partial refund, but still logs it', async () => {
+    const stripeAccount = await factories.stripeAccount({ stripe_account_external_id: 'acct_partial' }).save()
+    await group.save({ stripe_account_id: stripeAccount.id }, { patch: true })
+    const access = await purchase()
+
+    await StripeController.handleChargeRefunded({
+      ...chargeRefundedEvent,
+      account: 'acct_partial',
+      data: { object: { ...chargeRefundedEvent.data.object, amount_refunded: 500, refunded: false } }
+    })
+
+    expect((await ContentAccess.where({ id: access.id }).fetch()).get('status')).to.equal(ContentAccess.Status.ACTIVE)
+    expect(sentEmails).to.have.length(0)
+    const log = await bookshelf.knex('stripe_logs').where({ log_type: 'refund', external_id: 'ch_refunded' }).first()
+    expect(Number(log.amount)).to.equal(500)
   })
 })

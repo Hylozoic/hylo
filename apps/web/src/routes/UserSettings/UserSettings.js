@@ -2,7 +2,7 @@ import { get } from 'lodash/fp'
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSelector, useDispatch } from 'react-redux'
-import { useLocation } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import EditProfileTab from './EditProfileTab/EditProfileTab'
@@ -121,6 +121,10 @@ const UserSettings = () => {
       name: t('Saved Searches'),
       path: 'saved-searches',
       component: <SavedSearchesTab />
+    },
+    {
+      path: 'subscriptions',
+      component: <Navigate to='/my/transactions' replace />
     }
   ]
 
