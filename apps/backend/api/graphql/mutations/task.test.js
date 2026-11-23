@@ -3,6 +3,7 @@ import setup from '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import { assignAdministrator } from '../../../test/setup/roleHelpers'
 import { createPost, updatePost } from './post'
+import { createSpace } from './spaces'
 import {
   assignTask,
   createTaskStatus,
@@ -12,6 +13,7 @@ import {
   updateTaskStatus
 } from './task'
 import { placementsForPost } from '../../models/task/placement'
+import { sendTaskDueReminders } from '../../models/task/notifications'
 import { createRequestHandler } from '../index'
 
 describe('tasks', () => {
@@ -73,6 +75,24 @@ describe('tasks', () => {
       const task = await Post.find(post.id)
       expect(task.get('task_category')).to.equal('active')
       expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(String(review.id))
+    })
+
+    it('keeps a new post sent with the project type (an older client) a project, off the board', async () => {
+      const post = await newTask(steward.id, { type: 'project', memberIds: [member.id] })
+      const saved = await Post.find(post.id)
+      expect(saved.get('type')).to.equal('project')
+      expect(saved.get('task_category')).to.not.exist
+      expect((await placementIn(post.id, group.id)).taskStatusId).to.equal(null)
+      expect((await saved.members().fetch()).map(m => m.id)).to.deep.equal([member.id])
+    })
+
+    it('leaves an existing project post a project when it is edited', async () => {
+      const project = await factories.post({ type: 'project', user_id: steward.id, name: 'Old project' }).save()
+      await project.groups().attach(group)
+      await updatePost(steward.id, { id: project.id, data: { type: 'project', title: 'Old project, renamed', groupIds: [group.id] } })
+      const saved = await Post.find(project.id)
+      expect(saved.get('type')).to.equal('project')
+      expect(saved.get('name')).to.equal('Old project, renamed')
     })
 
     it('assigns the people passed as members', async () => {
@@ -191,6 +211,128 @@ describe('tasks', () => {
     })
   })
 
+  describe('project spaces', () => {
+    const projectSpace = (attrs = {}) => createSpace(steward.id, {
+      parentGroupId: group.id,
+      name: `Project ${Math.random()}`,
+      acceptedPostTypes: ['task'],
+      viewTypes: ['tasks', 'chat', 'members'],
+      accessibility: Group.Accessibility.OPEN,
+      ...attrs
+    })
+
+    it('starts with the columns given when the space is created, and opens on Tasks', async () => {
+      const space = await projectSpace({
+        taskStatuses: [
+          { name: 'Ideas', category: 'todo' },
+          { name: ' Building ' },
+          { name: 'Shipped', category: 'done' }
+        ]
+      })
+      const statuses = await columns(space.id)
+      expect(statuses.map(s => [s.get('name'), s.get('category'), s.get('order')])).to.deep.equal([
+        ['Ideas', 'todo', 0], ['Building', 'active', 1], ['Shipped', 'done', 2]
+      ])
+      expect(space.get('home_route')).to.match(/tasks/)
+    })
+
+    it('refuses starting columns with no done column, and creates no space', async () => {
+      const name = `No done ${Math.random()}`
+      await expect(projectSpace({ name, taskStatuses: [{ name: 'Only', category: 'todo' }] }))
+        .to.be.rejectedWith(/finished tasks/)
+      expect(Number(await Group.where({ name }).count())).to.equal(0)
+    })
+
+    it('falls back to the default columns when none are given', async () => {
+      const space = await projectSpace()
+      const statuses = await TaskStatus.ensureForGroup(space.id)
+      expect(statuses.map(s => s.get('name'))).to.deep.equal(TaskStatus.DEFAULTS.map(d => d.name))
+    })
+
+    it('taking a task in an open project space joins the space', async () => {
+      const space = await projectSpace()
+      const post = await createPost(steward.id, { type: 'task', title: 'open task', groupIds: [space.id] })
+      expect(await GroupMembership.forPair(member.id, space.id).fetch()).to.not.exist
+
+      await assignTask(member.id, { postId: post.id })
+      expect(await GroupMembership.forPair(member.id, space.id).fetch()).to.exist
+      const members = await (await Post.find(post.id)).members().fetch()
+      expect(members.map(m => m.id)).to.deep.equal([member.id])
+    })
+
+    it('does not let someone into a space they could not join themselves', async () => {
+      const closed = await projectSpace({ accessibility: Group.Accessibility.CLOSED })
+      const post = await createPost(steward.id, { type: 'task', title: 'closed task', groupIds: [closed.id] })
+      await expect(assignTask(member.id, { postId: post.id })).to.be.rejectedWith(/permission/)
+      await expect(assignTask(outsider.id, { postId: post.id })).to.be.rejectedWith(/permission/)
+      expect(await GroupMembership.forPair(member.id, closed.id).fetch()).to.not.exist
+    })
+  })
+
+  describe('notifications', () => {
+    const activitiesFor = async (postId, readerId) =>
+      (await bookshelf.knex('activities').where({ post_id: postId, reader_id: readerId }).orderBy('id'))
+
+    it('tells someone when another person assigns them, but not when they take a task themselves', async () => {
+      const post = await newTask(steward.id)
+      await assignTask(steward.id, { postId: post.id, userId: member.id })
+      const activities = await activitiesFor(post.id, member.id)
+      expect(activities.map(a => a.meta.reasons)).to.deep.equal([['taskAssigned']])
+      expect(String(activities[0].actor_id)).to.equal(String(steward.id))
+
+      const own = await newTask(steward.id)
+      await assignTask(member.id, { postId: own.id })
+      expect(await activitiesFor(own.id, member.id)).to.have.length(0)
+    })
+
+    it('tells the creator and assignees about a status change, once for several quick moves', async () => {
+      const post = await newTask(steward.id, { memberIds: [member.id] })
+      const doing = await columnNamed(group.id, 'In progress')
+      const review = await columnNamed(group.id, 'Ready for review')
+      const statusChanges = async readerId =>
+        (await activitiesFor(post.id, readerId)).filter(a => a.meta.reasons.includes('taskStatusChanged'))
+
+      // The steward (creator) moves it: only the assignee hears about it
+      await moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: doing.id })
+      expect(await statusChanges(steward.id)).to.have.length(0)
+      expect((await statusChanges(member.id)).map(a => a.meta.statusName)).to.deep.equal(['In progress'])
+
+      // A second move straight after updates that notification rather than adding one
+      await moveTask(steward.id, { postId: post.id, groupId: group.id, taskStatusId: review.id })
+      expect((await statusChanges(member.id)).map(a => a.meta.statusName)).to.deep.equal(['Ready for review'])
+
+      // The assignee moves it: the creator hears about it
+      await moveTask(member.id, { postId: post.id, groupId: group.id, taskStatusId: doing.id })
+      expect((await statusChanges(steward.id)).map(a => a.meta.statusName)).to.deep.equal(['In progress'])
+    })
+
+    it('reminds assignees the day before and on the day a task is due, once each', async () => {
+      const now = new Date('2026-11-20T15:00:00Z') // 3pm UTC
+      const dueTomorrow = await newTask(steward.id, { title: 'due tomorrow', memberIds: [member.id], endTime: new Date('2026-11-21T17:00:00Z').getTime(), timezone: 'UTC' })
+      const dueNextWeek = await newTask(steward.id, { title: 'due later', memberIds: [member.id], endTime: new Date('2026-11-27T17:00:00Z').getTime(), timezone: 'UTC' })
+      const dueReasons = async postId =>
+        (await activitiesFor(postId, member.id)).filter(a => a.meta.reasons.includes('taskDueSoon')).map(a => a.meta.when)
+
+      await sendTaskDueReminders(now)
+      await sendTaskDueReminders(now)
+      expect(await dueReasons(dueTomorrow.id)).to.deep.equal(['tomorrow'])
+      expect(await dueReasons(dueNextWeek.id)).to.deep.equal([])
+
+      // Before 8am on the due day nothing goes out; later that day the "today" reminder does
+      await sendTaskDueReminders(new Date('2026-11-21T06:00:00Z'))
+      expect(await dueReasons(dueTomorrow.id)).to.deep.equal(['tomorrow'])
+      await sendTaskDueReminders(new Date('2026-11-21T09:00:00Z'))
+      expect(await dueReasons(dueTomorrow.id)).to.deep.equal(['tomorrow', 'today'])
+
+      // Completed tasks are not reminded about
+      const done = await columnNamed(group.id, 'Complete')
+      const finished = await newTask(steward.id, { memberIds: [member.id], endTime: new Date('2026-11-21T17:00:00Z').getTime(), timezone: 'UTC' })
+      await moveTask(steward.id, { postId: finished.id, groupId: group.id, taskStatusId: done.id })
+      await sendTaskDueReminders(now)
+      expect(await dueReasons(finished.id)).to.deep.equal([])
+    })
+  })
+
   describe('through GraphQL', () => {
     it('moves a task and returns its board placement and the group\'s columns', async () => {
       const post = await newTask(steward.id, { title: 'via graphql' })
@@ -225,6 +367,49 @@ describe('tasks', () => {
       expect(task.canEdit).to.equal(true)
       expect(task.taskPlacements).to.have.length(1)
       expect(task.taskPlacements[0]).to.include({ groupId: String(group.id), taskStatusId: String(done.id) })
+      const { executionResult: events } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") { taskEvents { type meta actor { id name } post { id title } } } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(events.errors).to.not.exist
+      const mine = events.data.group.taskEvents.filter(e => e.post.id === String(post.id))
+      expect(mine.map(e => e.type)).to.deep.equal(['created', 'moved', 'completed'])
+      expect(mine[1].meta.toStatusName).to.equal('Complete')
+      expect(mine[1].actor.id).to.equal(String(member.id))
+
+      // The board: each column with its tasks in order, and a "my tasks" filter
+      const ordering = await createTaskStatus(steward.id, { groupId: group.id, name: 'Board order' })
+      const one = await newTask(steward.id, { title: 'board one', taskStatusId: ordering.id })
+      const two = await newTask(steward.id, { title: 'board two', taskStatusId: ordering.id, memberIds: [member.id] })
+      await moveTask(steward.id, { postId: two.id, groupId: group.id, taskStatusId: ordering.id, index: 0 })
+      const { executionResult: board } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") { taskStatuses {
+          id tasksTotal tasks { id title } mine: tasks(assigneeId: "${member.id}") { title } mineTotal: tasksTotal(assigneeId: "${member.id}")
+        } } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(board.errors).to.not.exist
+      const column = board.data.group.taskStatuses.find(s => s.id === String(ordering.id))
+      expect(column.tasks.map(t => t.title)).to.deep.equal(['board two', 'board one'])
+      expect(column.tasksTotal).to.equal(2)
+      expect(column.mine.map(t => t.title)).to.deep.equal(['board two'])
+      expect(column.mineTotal).to.equal(1)
+      expect(one.id).to.exist
+
+      // "Load more": the next page of one column, read through its own group only
+      const otherColumn = (await columns(otherGroup.id))[0] || (await TaskStatus.ensureForGroup(otherGroup.id))[0]
+      const { executionResult: page } = await createRequestHandler().inject({
+        document: `{ group(id: "${group.id}") {
+          next: taskStatus(id: "${ordering.id}") { id tasksTotal tasks(first: 1, offset: 1) { title } }
+          elsewhere: taskStatus(id: "${otherColumn.id}") { id }
+        } }`,
+        serverContext: { req, res: factories.mock.response() }
+      })
+      expect(page.errors).to.not.exist
+      expect(page.data.group.next.tasks.map(t => t.title)).to.deep.equal(['board one'])
+      expect(page.data.group.next.tasksTotal).to.equal(2)
+      expect(page.data.group.elsewhere).to.equal(null)
+
       const statuses = task.groups[0].taskStatuses
       expect(statuses.map(s => s.category)).to.include.members(['todo', 'active', 'done'])
       expect(statuses.map(s => s.order)).to.deep.equal(statuses.map((s, i) => i))

@@ -85,6 +85,12 @@ exports.pt = {
     ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
     : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
+  textForTask: ({ post, actor, reason, meta = {} }) => {
+    const name = post.summary()
+    if (reason === 'taskAssigned') return `${actor.get('name')} atribuiu a você a tarefa "${name}"`
+    if (reason === 'taskStatusChanged') return `${actor.get('name')} moveu "${name}" para ${meta.statusName}`
+    return meta.when === 'today' ? `"${name}" vence hoje` : `"${name}" vence amanhã`
+  },
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

@@ -194,6 +194,10 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForPostModeratedFulfillment({ post, actor, reason })
   },
 
+  textForTask: function (post, actor, reason, meta, locale) {
+    return getLocaleStrings(locale).textForTask({ post, actor, reason, meta })
+  },
+
   textForTrackCompleted: function (trackName, actor, locale) {
     return getLocaleStrings(locale).textForTrackCompleted({ actor, trackName })
   },

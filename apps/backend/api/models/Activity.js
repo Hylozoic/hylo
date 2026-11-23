@@ -178,6 +178,9 @@ module.exports = bookshelf.Model.extend({
     TrackEnrollment: 'trackEnrollment',
     PostFulfilled: 'postFulfilled',
     PostUnfulfilled: 'postUnfulfilled',
+    TaskAssigned: 'taskAssigned', // someone else put you on a task
+    TaskStatusChanged: 'taskStatusChanged', // a task you are on or created moved to another column
+    TaskDueSoon: 'taskDueSoon', // a task you are on is due tomorrow or today
     FundingRoundNewSubmission: 'fundingRoundNewSubmission', // New submission to a funding round
     FundingRoundPhaseTransition: 'fundingRoundPhaseTransition', // Phase transition in a funding round
     FundingRoundReminder: 'fundingRoundReminder' // Reminder for funding round deadline

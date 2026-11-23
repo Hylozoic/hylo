@@ -60,6 +60,25 @@ module.exports = bookshelf.Model.extend({
     return transacting ? seed(transacting) : bookshelf.knex.transaction(seed)
   },
 
+  /**
+   * Narrows a posts query to the active tasks in one column, in board order.
+   * Uses subqueries rather than joins so it composes with the post visibility filter.
+   */
+  tasksQuery: function (q, statusId, { assigneeId, ordered = true } = {}) {
+    q.where('posts.active', true)
+    q.whereIn('posts.id', bookshelf.knex('groups_posts').where('task_status_id', statusId).select('post_id'))
+    if (assigneeId) {
+      q.whereIn('posts.id', bookshelf.knex('posts_users')
+        .where({ user_id: assigneeId, active: true })
+        .whereNotNull('project_role_id')
+        .select('post_id'))
+    }
+    if (ordered) {
+      q.orderByRaw('(select gp.task_position from groups_posts gp where gp.post_id = posts.id and gp.task_status_id = ?) asc nulls last', [statusId])
+      q.orderBy('posts.id', 'asc')
+    }
+  },
+
   /** The first column of a category, or null when the board has none. */
   firstOfCategory: function (statuses, category) {
     return statuses.find(s => s.get('category') === category) || null

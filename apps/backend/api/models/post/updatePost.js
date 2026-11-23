@@ -102,7 +102,7 @@ export function afterUpdatingPost (post, opts) {
       updateFollowers(post, transacting)
     ]))
     .then(() => post.isEvent() && Queue.classMethod('Post', 'processEventUpdated', { postId: post.id, eventInviteeIds, userId, eventChanges }))
-    .then(() => post.get('type') === 'project' && memberIds && post.setProjectMembers(memberIds, { transacting }))
+    .then(() => post.get('type') === 'project' && memberIds && post.setPostMembers(memberIds, { transacting }))
     .then(() => post.isTask() && memberIds && setTaskAssignees({ post, userIds: memberIds, actorId: userId, transacting }))
     // A task that was added to another group needs a column on that group's board
     .then(() => post.isTask() && placeTaskOnBoards(post, { transacting }))
