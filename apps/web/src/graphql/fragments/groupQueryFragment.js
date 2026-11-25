@@ -43,6 +43,7 @@ export default function groupQueryFragment () {
       autoAddMembers
     }
     proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+    proState
     slug
     type
     parentId

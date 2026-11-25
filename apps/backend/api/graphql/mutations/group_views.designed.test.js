@@ -115,6 +115,45 @@ describe('designed views', () => {
     })
   })
 
+  describe('as the Pro state changes', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    // A Stripe subscription whose renewal failed `daysAgo` days ago
+    const pastDue = daysAgo => HyloProSubscription.forge({
+      group_id: group.id,
+      source: 'stripe',
+      tier: 'pro',
+      status: 'past_due',
+      stripe_subscription_id: 'sub_designed_views',
+      current_period_start: new Date(Date.now() - daysAgo * DAY),
+      current_period_end: new Date(Date.now() + 30 * DAY)
+    }).save()
+
+    it('keeps designing during the grace period after a failed payment', async () => {
+      const view = await create(admin.id)
+      await removePro()
+      await pastDue(2)
+      expect(await Group.find(group.id).then(g => g.proState())).to.equal('grace')
+
+      const updated = await updateGroupView({ userId: admin.id, id: view.id, settings: { design } })
+      expect(updated.get('settings')).to.deep.equal({ design: storedDesign })
+    })
+
+    it('once lapsed, keeps the view and lets it be renamed, but refuses changing its design', async () => {
+      const view = await create(admin.id)
+      await removePro()
+      await pastDue(8)
+      expect(await Group.find(group.id).then(g => g.proState())).to.equal('lapsed')
+
+      const error = await updateGroupView({ userId: admin.id, id: view.id, settings: { design } }).catch(err => err)
+      expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_REQUIRED', feature: 'designedViews' })
+      await expect(create(admin.id)).to.be.rejectedWith(/part of Hylo Pro/)
+
+      const renamed = await updateGroupView({ userId: admin.id, id: view.id, name: 'Still here' })
+      expect(renamed.get('name')).to.equal('Still here')
+      expect(renamed.get('settings')).to.deep.equal({ design: storedDesign })
+    })
+  })
+
   describe('with a Hylo Pro plan that leaves out designedViews', () => {
     const planWithout = () => HyloProSubscription.forge({
       group_id: group.id, source: 'manual', status: 'active', features: { designedViews: false }
