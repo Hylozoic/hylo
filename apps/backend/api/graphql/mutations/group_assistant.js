@@ -194,13 +194,14 @@ async function fetchThread (groupId, limit = THREAD_PAGE) {
   return rows.reverse().map(presentMessage)
 }
 
-/**
- * The newest messages of the thread (rows from fetchThreadRows) as the model is given them, oldest first. Axl's messages are
- * stored with the names of members who do not share put back in (member_refs lists them), so
- * those names, and any full name of such a member a steward typed, become aliases again here.
- */
+/** The newest messages of the thread the model is given, as stored, oldest first. */
 const fetchThreadRows = async groupId => (await threadQuery(groupId).orderBy('group_assistant_messages.id', 'desc').limit(HISTORY_FOR_MODEL)).reverse()
 
+/**
+ * Rows from fetchThreadRows as the model is given them. Axl's messages are stored with the names
+ * of members who do not share put back in (member_refs lists them), so those names, and any full
+ * name of such a member a steward typed, become aliases again here.
+ */
 function threadForModel (rows, aliases) {
   return rows.map(row => {
     const refs = Array.isArray(row.member_refs) ? row.member_refs : []
