@@ -13,10 +13,9 @@ import { withStandardConference } from './event/mixin'
 import { writeStringToS3 } from '../../lib/uploader/storage'
 import { safeFetch } from '../../lib/safeFetch'
 
-import mixpanel from '../../lib/mixpanel'
 import { EVENT_TYPES } from '../../lib/analytics/trackActivity'
 import { track } from '../../lib/analytics/track'
-import { AnalyticsEvents, LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
+import { LocationHelpers, POST_TYPE_TO_TYPED_VIEW } from '@hylo/shared'
 import HasSettings from './mixins/HasSettings'
 import findOrCreateThread from './post/findOrCreateThread'
 import { finishQueuedChatSpaceConversion } from './space/convertChatSpaceToDiscussion'
@@ -1257,13 +1256,6 @@ module.exports = bookshelf.Model.extend(merge({
         })
         // TODO: what to do with the response? check if succeeded or not?
       }
-    }
-
-    for (const member of members) {
-      mixpanel.track(AnalyticsEvents.GROUP_NEW_MEMBER, {
-        distinct_id: member.id,
-        groupId: [groupId]
-      })
     }
   },
 

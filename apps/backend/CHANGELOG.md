@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+- Stop sending the "Group New Member Joined" event to Mixpanel. It was attributed to the person who was added, so people added by an admin or auto-added to a space were counted as active users without having opened Hylo. Joins are still recorded in our own analytics.
+
 ## [7.1.12] - 2026-11-11
 
 ### Changed
