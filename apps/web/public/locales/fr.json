@@ -3836,6 +3836,7 @@
   "Regular": "Normale",
   "Thick": "Épaisse",
   "Group themes are part of Hylo Pro": "Les thèmes de groupe font partie de Hylo Pro",
+  "This group doesn't have Hylo Pro. As Hylo staff you can save and import a theme here. The group's stewards will be able to remove it but not change it.": "Ce groupe n'a pas Hylo Pro. En tant que membre de l'équipe Hylo, vous pouvez enregistrer et importer un thème ici. Les administrateurs du groupe pourront le supprimer, mais pas le modifier.",
   "This group's theme stays as it is. To change it, the group needs Hylo Pro. You can still try changes here, or reset to Hylo's default look.": "Le thème de ce groupe reste tel quel. Pour le modifier, le groupe a besoin de Hylo Pro. Vous pouvez toujours essayer des changements ici ou revenir à l'apparence par défaut de Hylo.",
   "You can try colors, fonts and corners here and preview them. To save a theme, the group needs Hylo Pro.": "Vous pouvez essayer ici des couleurs, des polices et des coins, et les prévisualiser. Pour enregistrer un thème, le groupe a besoin de Hylo Pro.",
   "See Hylo Pro": "Voir Hylo Pro",

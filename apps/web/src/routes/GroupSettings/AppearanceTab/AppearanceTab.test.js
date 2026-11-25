@@ -6,6 +6,7 @@ import { IMPORT_GROUP_THEME_FROM_URL } from 'store/actions/importGroupThemeFromU
 import { themes, defaultTheme } from '../../../themes'
 import { presetToDraft, prepareThemeForSave } from 'util/groupThemeEditor'
 import { PREVIEW_STYLE_ID } from './useGroupThemePreview'
+import getMe from 'store/selectors/getMe'
 import AppearanceTab from './AppearanceTab'
 
 const mockDispatch = jest.fn()
@@ -23,6 +24,8 @@ jest.mock('config/featureFlags', () => ({
 
 jest.mock('hooks/useAppearance', () => () => ({ effectiveColorScheme: 'light' }))
 
+jest.mock('store/selectors/getMe', () => ({ __esModule: true, default: jest.fn() }))
+
 const savedTheme = { light: { background: '150 22% 86%' }, radius: 'xl' }
 
 function renderTab (theme = null, { hasGroupThemes = true } = {}) {
@@ -36,6 +39,7 @@ const saveButton = () => screen.getByRole('button', { name: 'Save theme' })
 describe('AppearanceTab group theme editor', () => {
   beforeEach(() => {
     isHyloProEnabled.mockReturnValue(true)
+    getMe.mockReturnValue(undefined)
     mockDispatch.mockReset()
     mockDispatch.mockResolvedValue({ type: UPDATE_GROUP_THEME, payload: {} })
     window.confirm = jest.fn(() => true)
@@ -220,6 +224,23 @@ describe('AppearanceTab group theme editor', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
       await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
       expect(mockDispatch.mock.calls[0][0].graphql.variables).toEqual({ groupId: '42', theme: null })
+    })
+
+    it('lets Hylo staff save and import a theme even where Hylo Pro cannot be bought', async () => {
+      isHyloProEnabled.mockReturnValue(false)
+      getMe.mockReturnValue({ id: '1', isAdmin: true })
+      renderTab(null, { hasGroupThemes: false })
+      expect(screen.queryByTestId('group-theme-pro-notice')).toBeNull()
+      expect(screen.getByTestId('group-theme-staff-notice')).toHaveTextContent('As Hylo staff you can save and import a theme here')
+
+      fireEvent.change(screen.getByLabelText('Start from a website'), { target: { value: 'example.org' } })
+      expect(screen.getByRole('button', { name: 'Import look' })).toBeEnabled()
+
+      fireEvent.click(screen.getByTestId('group-theme-preset-snow'))
+      expect(saveButton()).toBeEnabled()
+      fireEvent.click(saveButton())
+      await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
+      expect(mockDispatch.mock.calls[0][0].type).toEqual(UPDATE_GROUP_THEME)
     })
 
     it('shows no notice when the group has Pro', () => {

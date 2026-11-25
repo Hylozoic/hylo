@@ -852,6 +852,56 @@ describe('mutations/group', () => {
           isConfigured: () => true, withinLimit: async () => true, importTheme: async () => ({})
         })).to.be.rejectedWith(/doesn't include groupThemes/)
       })
+
+      describe('for Hylo staff', () => {
+        let staff, oldAdmins
+
+        before(async () => {
+          staff = await factories.user().save()
+          await staff.joinGroup(group, { assignAdministrator: true })
+          oldAdmins = process.env.HYLO_ADMINS
+          process.env.HYLO_ADMINS = String(staff.id)
+        })
+
+        after(() => {
+          if (oldAdmins === undefined) delete process.env.HYLO_ADMINS
+          else process.env.HYLO_ADMINS = oldAdmins
+        })
+
+        it('lets staff save and import a theme on a group without Pro', async () => {
+          await removePro()
+          await updateGroupTheme(staff.id, group.id, theme)
+          expect((await savedSettings()).theme).to.deep.equal(theme)
+
+          const suggestion = { roles: { light: {}, dark: {} } }
+          expect(await importGroupThemeFromUrl(staff.id, group.id, 'https://example.org', {
+            isConfigured: () => true, withinLimit: async () => true, importTheme: async () => suggestion
+          })).to.deep.equal(suggestion)
+        })
+
+        it('still refuses a non-staff steward, who can only remove the staff-saved theme', async () => {
+          await removePro()
+          await updateGroupTheme(staff.id, group.id, theme)
+
+          const error = await updateGroupTheme(admin.id, group.id, { light: { background: '1 2% 3%' } }).catch(err => err)
+          expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_REQUIRED', feature: 'groupThemes' })
+          expect((await savedSettings()).theme).to.deep.equal(theme)
+
+          await updateGroupTheme(admin.id, group.id, null)
+          expect(await savedSettings()).to.not.have.property('theme')
+        })
+
+        it('still needs the Administration responsibility', async () => {
+          await removePro()
+          const outsider = await factories.user().save()
+          process.env.HYLO_ADMINS = `${staff.id},${outsider.id}`
+          try {
+            await expect(updateGroupTheme(outsider.id, group.id, theme)).to.be.rejectedWith(/right responsibilities/)
+          } finally {
+            process.env.HYLO_ADMINS = String(staff.id)
+          }
+        })
+      })
     })
 
     describe('importGroupThemeFromUrl', () => {

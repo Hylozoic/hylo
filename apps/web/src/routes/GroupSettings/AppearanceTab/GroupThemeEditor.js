@@ -118,7 +118,10 @@ export default function GroupThemeEditor ({ group }) {
   const { effectiveColorScheme } = useAppearance()
   // Themes are the groupThemes Hylo Pro feature. Without it, stewards can still try the editor
   // and preview a theme, but only the server-side check actually protects saving.
+  // Hylo staff (isAdmin) can save and import themes in any group, with or without the feature.
   const hasGroupThemes = useProFeature(group, 'groupThemes')
+  const isStaff = !!currentUser?.isAdmin
+  const canEditTheme = hasGroupThemes || isStaff
   const hyloProEnabled = isHyloProEnabled(currentUser)
 
   const savedKey = JSON.stringify(sanitizeGroupTheme(group?.settings?.theme) || null)
@@ -152,7 +155,7 @@ export default function GroupThemeEditor ({ group }) {
   const issueCount = issues.light.length + issues.dark.length
   const { theme: themeToSave, valid } = useMemo(() => prepareThemeForSave(draft), [draft])
   const contrastAllowsSave = canSaveWithContrastIssues({ issueCount, override })
-  const canSave = hasGroupThemes && dirty && valid && contrastAllowsSave && !saving
+  const canSave = canEditTheme && dirty && valid && contrastAllowsSave && !saving
 
   // The page follows the scheme being edited, so stewards see what they change.
   // This is a preview only: the viewer's own setting is not touched and comes
@@ -222,7 +225,16 @@ export default function GroupThemeEditor ({ group }) {
         {t("Give this group its own colors, corner radius and border width. The global navigation keeps each member's own theme.")}
       </p>
 
-      {!hasGroupThemes && (
+      {!hasGroupThemes && isStaff && (
+        <div className='mb-6 flex items-start gap-2 rounded-lg border-2 border-accent/40 bg-accent/10 p-4 text-sm' data-testid='group-theme-staff-notice'>
+          <Sparkles className='h-4 w-4 mt-0.5 shrink-0 text-accent' />
+          <p className='m-0 text-foreground/70'>
+            {t("This group doesn't have Hylo Pro. As Hylo staff you can save and import a theme here. The group's stewards will be able to remove it but not change it.")}
+          </p>
+        </div>
+      )}
+
+      {!hasGroupThemes && !isStaff && (
         <div className='mb-6 flex items-start gap-2 rounded-lg border-2 border-accent/40 bg-accent/10 p-4 text-sm' data-testid='group-theme-pro-notice'>
           <Sparkles className='h-4 w-4 mt-0.5 shrink-0 text-accent' />
           <div>
@@ -241,7 +253,7 @@ export default function GroupThemeEditor ({ group }) {
         </div>
       )}
 
-      <GroupThemeImport groupId={group.id} disabled={!hasGroupThemes} onImport={result => edit(applyImportedTheme(draft, result))} />
+      <GroupThemeImport groupId={group.id} disabled={!canEditTheme} onImport={result => edit(applyImportedTheme(draft, result))} />
 
       <div className='mb-6'>
         <label className='text-sm font-medium mb-2 block'>{t('Start from a preset')}</label>

@@ -237,8 +237,10 @@ export async function updateGroup (userId, groupId, changes, context) {
  * Group themes are the `groupThemes` Hylo Pro feature: changing a theme and
  * importing one need it now. A theme saved while the group had it keeps showing
  * after it lapses, and can still be removed (as designed views do).
+ * Hylo staff (HYLO_ADMINS) can save and import themes without the feature.
  */
-function requireGroupThemes (group) {
+async function requireGroupThemes (userId, group) {
+  if (await Admin.isSuperAdmin(userId)) return
   return HyloProService.requireProFeature(group, 'groupThemes')
 }
 
@@ -265,7 +267,7 @@ export async function updateGroupTheme (userId, groupId, theme, context) {
   }
 
   // Clearing a theme (null) is always allowed, so a group whose Pro lapsed can go back to the default look
-  if (cleanTheme) await requireGroupThemes(group)
+  if (cleanTheme) await requireGroupThemes(userId, group)
 
   // Update only the theme key in one statement, so a concurrent change to
   // another setting is not overwritten with a stale copy.
@@ -564,7 +566,7 @@ async function withinThemeImportLimit (groupId) {
 export async function importGroupThemeFromUrl (userId, groupId, url, deps = {}) {
   const group = await getStewardedGroup(userId, groupId, Responsibility.constants.RESP_ADMINISTRATION)
 
-  await requireGroupThemes(group)
+  await requireGroupThemes(userId, group)
 
   if (!(deps.isConfigured || isThemeImportConfigured)()) {
     throw new GraphQLError('Importing a theme from a website is not set up on this server')
