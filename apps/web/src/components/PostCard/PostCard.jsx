@@ -311,6 +311,7 @@ export default function PostCard (props) {
             <FlagGroupContent
               type='post'
               linkData={{ id: post.id, slug: group?.slug, type: 'post' }}
+              groupNames={(post.groups || []).map(postGroup => postGroup.name)}
               onClose={() => setFlaggingVisible(false)}
               onFlag={() => onFlagPost({ post })}
             />

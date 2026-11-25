@@ -3310,6 +3310,8 @@
   "Time": "समय",
   "Something went wrong sending your request. Please try again.": "आपका अनुरोध भेजने में कुछ गलत हो गया। कृपया फिर से प्रयास करें।",
   "Your request has been sent to the Hylo team": "आपका अनुरोध Hylo टीम को भेज दिया गया है",
+  "Your report has been sent to moderators of the {{groups}}": "आपकी रिपोर्ट {{groups}} के मॉडरेटरों को भेज दी गई है",
+  "Your report has been sent to moderators": "आपकी रिपोर्ट मॉडरेटरों को भेज दी गई है",
   "Request sent on {{date}}": "अनुरोध {{date}} को भेजा गया",
   "The Hylo team will review it and email you when they've made a decision.": "Hylo टीम इसकी समीक्षा करेगी और निर्णय लेने पर आपको ईमेल करेगी।",
   "Your request from {{date}} was not approved": "{{date}} का आपका अनुरोध स्वीकृत नहीं हुआ",

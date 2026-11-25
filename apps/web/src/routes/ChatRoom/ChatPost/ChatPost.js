@@ -420,6 +420,7 @@ export default function ChatPost ({
             <FlagGroupContent
               type='post'
               linkData={{ id, slug: group.slug, type: 'post' }}
+              groupNames={postGroups.map(postGroup => postGroup.name)}
               onClose={() => setFlaggingVisible(false)}
               onFlag={() => onFlagPost({ post })}
             />

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
+import { toast } from 'sonner'
 import Button from 'components/ui/button'
 import Checkbox from 'components/ui/checkbox'
 import { Label } from 'components/ui/label'
@@ -18,9 +19,10 @@ import { groupUrl } from '@hylo/navigation'
 import Tooltip from 'components/Tooltip'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
+import { flagReportMessage } from 'components/FlagContent/flagReportMessage'
 
-const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
-  const { t } = useTranslation()
+const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content', groupNames = [] }) => {
+  const { t, i18n } = useTranslation()
   const dispatch = useDispatch()
   const { id, slug } = linkData || {}
   const effectiveGroupSlug = useEffectiveGroupSlug()
@@ -106,6 +108,8 @@ const FlagGroupContent = ({ onClose, onFlag, linkData, type = 'content' }) => {
     if (onFlag) {
       onFlag({ postId: id, groupId: group.id })
     }
+    const reportGroups = groupNames.length ? groupNames : [group?.name]
+    toast.success(flagReportMessage(t, i18n.language, reportGroups))
     closeModal()
     return true
   }

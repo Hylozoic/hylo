@@ -3310,6 +3310,8 @@
   "Time": "Uhrzeit",
   "Something went wrong sending your request. Please try again.": "Beim Senden deiner Anfrage ist etwas schiefgelaufen. Bitte versuche es erneut.",
   "Your request has been sent to the Hylo team": "Deine Anfrage wurde an das Hylo-Team gesendet",
+  "Your report has been sent to moderators of the {{groups}}": "Dein Bericht wurde an die Moderatoren von {{groups}} gesendet",
+  "Your report has been sent to moderators": "Dein Bericht wurde an die Moderatoren gesendet",
   "Request sent on {{date}}": "Anfrage gesendet am {{date}}",
   "The Hylo team will review it and email you when they've made a decision.": "Das Hylo-Team prüft sie und schickt dir eine E-Mail, sobald eine Entscheidung gefallen ist.",
   "Your request from {{date}} was not approved": "Deine Anfrage vom {{date}} wurde nicht genehmigt",

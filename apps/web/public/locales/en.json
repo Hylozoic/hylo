@@ -3306,6 +3306,8 @@
   "Time": "Time",
   "Something went wrong sending your request. Please try again.": "Something went wrong sending your request. Please try again.",
   "Your request has been sent to the Hylo team": "Your request has been sent to the Hylo team",
+  "Your report has been sent to moderators of the {{groups}}": "Your report has been sent to moderators of the {{groups}}",
+  "Your report has been sent to moderators": "Your report has been sent to moderators",
   "Request sent on {{date}}": "Request sent on {{date}}",
   "The Hylo team will review it and email you when they've made a decision.": "The Hylo team will review it and email you when they've made a decision.",
   "Your request from {{date}} was not approved": "Your request from {{date}} was not approved",

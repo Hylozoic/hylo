@@ -362,6 +362,7 @@ function SubmissionCard ({ currentPhase, post, canManageRound, canVote, round, l
           <FlagGroupContent
             type='post'
             linkData={flagPostData}
+            groupNames={(post.groups || []).map(postGroup => postGroup.name)}
             onClose={() => setFlaggingVisible(false)}
           />,
           document.body

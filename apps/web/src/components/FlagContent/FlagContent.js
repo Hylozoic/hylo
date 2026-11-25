@@ -4,14 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
 import { createPortal } from 'react-dom'
 import TextareaAutosize from 'react-textarea-autosize'
+import { toast } from 'sonner'
 import Button from 'components/ui/button'
 import Icon from 'components/Icon'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { submitFlagContent } from './FlagContent.store'
+import { flagReportMessage } from './flagReportMessage'
 import { rootDomId } from 'client/util'
 
-function FlagContent ({ linkData, onClose, type = 'content' }) {
-  const { t } = useTranslation()
+function FlagContent ({ linkData, onClose, type = 'content', groupNames = [] }) {
+  const { t, i18n } = useTranslation()
   const [highlightRequired, setHighlightRequired] = useState(false)
   const [reasonRequired, setReasonRequired] = useState(false)
   const [explanation, setExplanation] = useState('')
@@ -51,6 +53,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
       updateSelected(selectedCategory)
     } else {
       dispatch(submitFlagContent(selectedCategory, trim(explanation), linkData))
+      toast.success(flagReportMessage(t, i18n.language, groupNames))
       closeModal()
       return true
     }
@@ -106,7 +109,7 @@ function FlagContent ({ linkData, onClose, type = 'content' }) {
               <SelectTrigger className='w-full'>
                 {selectedCategory ? options.find(opt => opt.id === selectedCategory)?.label : t('Select a reason')}
               </SelectTrigger>
-              <SelectContent className='z-[1002]'>
+              <SelectContent className='z-[1200]'>
                 {options.map(option => (
                   <SelectItem key={option.id} value={option.id}>
                     {option.label}

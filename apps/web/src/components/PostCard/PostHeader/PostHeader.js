@@ -537,6 +537,7 @@ function PostHeader (props) {
           <FlagContent
             type='post'
             linkData={flagPostData}
+            groupNames={(postGroups || []).map(postGroup => postGroup.name)}
             onClose={() => setFlaggingVisible(false)}
           />,
           document.body
@@ -547,6 +548,7 @@ function PostHeader (props) {
           <FlagGroupContent
             type='post'
             linkData={flagPostData}
+            groupNames={(postGroups || []).map(postGroup => postGroup.name)}
             onClose={() => setFlaggingVisible(false)}
           />,
           document.body
