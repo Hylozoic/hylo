@@ -31,26 +31,28 @@ it('renders chat activity header, timestamp, messages, and a link to the group c
 })
 
 it('renders nothing when the card has no chats left', () => {
-  render(<ChatActivityCard post={{
+  const post = {
     id: 'notice-1',
     type: 'chat_activity',
     noticeData: { postCount: 0, recentPostIds: [] },
     noticePosts: [],
     groups: [{ id: '1', name: 'Buy Nothing', slug: 'buy-nothing' }]
-  }} />)
+  }
+  render(<ChatActivityCard post={post} />)
 
   expect(screen.queryByTestId('chat-activity-card')).not.toBeInTheDocument()
 })
 
 it('renders nothing when the saved count is stale but no chats are left to show', () => {
-  render(<ChatActivityCard post={{
+  const post = {
     id: 'notice-1',
     type: 'chat_activity',
     createdTimestamp: '6d ago',
     noticeData: { postCount: 1, recentPostIds: ['9'] },
     noticePosts: [],
     groups: [{ id: '1', name: 'Hylo Dev Circle', slug: 'hylo-dev-circle' }]
-  }} />)
+  }
+  render(<ChatActivityCard post={post} />)
 
   expect(screen.queryByTestId('chat-activity-card')).not.toBeInTheDocument()
 })
