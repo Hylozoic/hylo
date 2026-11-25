@@ -43,7 +43,20 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    MAIN=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    cp "$MAIN/apps/web/.env" apps/web/.env
    cp "$MAIN/apps/backend/.env" apps/backend/.env   # gitignored — never commit
+   cp "$MAIN/apps/backend/.env.test" apps/backend/.env.test   # gitignored — never commit
    ```
+   **Give the worktree its own test database.** Several workers share this machine's Postgres server, and backend tests wipe and rebuild their database's schema on every run. Two workers on one database break each other's runs. So each worktree points its `.env.test` at a database of its own, on the same server:
+   ```bash
+   # one database per worktree, named after it. It must END in "test": the guard in
+   # apps/backend/test/setup/index.js rejects names that don't start or end with "test"
+   TEST_DB=hylo_$(basename "$WT" | tr -c 'a-zA-Z0-9\n' '_' | cut -c1-50)_test
+   DB_URL=$(grep '^DATABASE_URL=' apps/backend/.env.test | cut -d= -f2-)
+   psql "${DB_URL%/*}/postgres" -qc "create database $TEST_DB" 2>&1 | grep -v 'already exists' || true
+   perl -pi -e "s#^(DATABASE_URL=.*/)[^/?\s]+#\${1}$TEST_DB#" apps/backend/.env.test
+   grep '^DATABASE_URL=' apps/backend/.env.test   # check it ends in /$TEST_DB
+   ```
+   The test setup builds the schema from `migrations/schema.sql` on every run, so the empty database needs nothing else. The pre-push hook runs from the worktree, so it uses this database too. Never point `.env.test` at the shared `hylotest` or at any database another worker named. Redis needs no isolation, because backend tests don't connect to it. Report `TEST_DB` in your result so the supervisor can drop it (`dropdb`) when it removes the worktree.
+
    Run every later command inside `$WT`. For new work, if a branch for this issue already exists, stop and report `blocked` — don't reuse or delete someone else's work.
 
    **With `FEEDBACK`:** reuse the worktree if it still exists; otherwise the supervisor removed it after the last round, so recreate it from the existing branch and install the same way:
@@ -51,7 +64,7 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    git fetch origin $BRANCH
    WT=../hylo-worktrees/$BRANCH
    git worktree add "$WT" $BRANCH && cd "$WT" && git pull --ff-only origin $BRANCH
-   # then the same `yarn workspaces focus ...`, `yarn build-packages` and .env copies as above
+   # then the same `yarn workspaces focus ...`, `yarn build-packages`, .env copies and own test database as above
    ```
    If `git worktree add` fails because the branch is checked out somewhere else (usually a human testing it in the main checkout), don't force it — report `blocked` saying the branch needs to be released.
 
@@ -64,10 +77,12 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    - If the issue is too big for one PR, don't open a series yourself. Report `blocked` with a proposed split that follows "Splitting a feature into several PRs" in CLAUDE.md: what each PR would contain and why it can be reviewed on its own. The supervisor or a human decides the split.
    - When `FEEDBACK` concerns a PR in a series, make the change on the branch whose code it's about, then rebase the later branches. Never fix it in the newest PR.
 
-5. **Verify locally** — only checks that don't touch a database run locally; backend and e2e tests run in CI, which isolates each run:
+5. **Verify locally.** Run the full suites, as CLAUDE.md asks. Backend tests use the worktree's own test database from step 2. e2e tests run in CI.
    ```bash
-   cd apps/web && yarn lint && yarn test --watchAll=false --testPathPattern=<relevant>
+   cd apps/web && yarn lint && yarn test --watchAll=false
+   cd ../backend && yarn test
    ```
+   To run one backend test file, load the DB setup first: `yarn test test/setup/index.js path/to/x.test.js`. If the backend suite can't run (no local Postgres, say), note that in the PR test plan and leave it to CI. Never fall back to the shared `hylotest` database.
    For any visual/UI change, take screenshots (`E2E_PATH=/some/path yarn screenshot`, or a small spec in `apps/web/e2e/` that clicks then captures — see `invite-copy.spec.js`), and upload them:
    ```bash
    gh release upload pr-screenshots <file>.png --repo Hylozoic/hylo --clobber
@@ -96,6 +111,7 @@ status: pr-open | blocked | already-fixed | failed
 pr: <url or none>
 branch: <name or none>
 worktree: <path or none>
+test-db: <TEST_DB name or none>
 ci: green | red | pending | none
 screenshots: <urls, or none>
 summary: <one or two sentences on what changed>
