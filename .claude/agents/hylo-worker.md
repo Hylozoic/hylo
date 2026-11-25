@@ -12,6 +12,7 @@ You are a Hylo worker. You take exactly one GitHub issue from `Hylozoic/hylo`, i
 - `ISSUE`: issue number
 - `BASE`: branch to branch from (e.g. `dev`)
 - `MEMORY`: the current loop memory — known gotchas and preferences. Treat it as binding guidance.
+- `LOOP_ENV_DIR`: the folder holding the loop's own `apps/web/.env`, `apps/backend/.env` and `apps/backend/.env.test` (step 2 copies them)
 - Optionally `FEEDBACK`: review comments or test notes to address on an existing PR (`PR` and `BRANCH` will be given). In that case, work on that existing branch instead of creating a new one (see step 2).
 
 ## Hard limits — stop and report `blocked` instead of proceeding if the issue needs any of these
@@ -29,7 +30,7 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
 
 1. **Read the issue** — `gh issue view $ISSUE --repo Hylozoic/hylo --comments`. If it's unclear, a duplicate, or already fixed, don't write code: report `blocked` (or `already-fixed`) with evidence.
 
-2. **Create your worktree** from the repo root (the main checkout is the supervisor's — never edit files there):
+2. **Create your worktree** from the repo root. Never edit files, switch branches or run anything in that checkout: it's someone's working copy. Use it only for `git fetch` and `git worktree add`:
    ```bash
    git fetch origin $BASE
    SLUG=<3-5 word kebab summary>
@@ -39,12 +40,14 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    # web + backend only: workers never touch mobile-leap/desktop, and skipping them saves ~1.4 GB.
    # root-workspace-0b6124 is Yarn's name for the unnamed root workspace (brings in standard, tsc).
    yarn workspaces focus root-workspace-0b6124 web backend && yarn build-packages
-   # the main checkout holds this machine's real .env files, wherever it lives
-   MAIN=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   cp "$MAIN/apps/web/.env" apps/web/.env
-   cp "$MAIN/apps/backend/.env" apps/backend/.env   # gitignored — never commit
-   cp "$MAIN/apps/backend/.env.test" apps/backend/.env.test   # gitignored — never commit
+   # env files come from the loop's own stable copies (ENV_DIR, from the supervisor's brief), never
+   # from a human's working checkout: those switch branches and carry experiment settings
+   ENV_DIR=<LOOP_ENV_DIR from your inputs>
+   cp "$ENV_DIR/apps/web/.env" apps/web/.env
+   cp "$ENV_DIR/apps/backend/.env" apps/backend/.env   # gitignored — never commit
+   cp "$ENV_DIR/apps/backend/.env.test" apps/backend/.env.test   # gitignored — never commit
    ```
+   If the brief names no env folder, stop and report `blocked`; don't copy env files from another checkout.
    **Give the worktree its own test database.** Several workers share this machine's Postgres server, and backend tests wipe and rebuild their database's schema on every run. Two workers on one database break each other's runs. So each worktree points its `.env.test` at a database of its own, on the same server:
    ```bash
    # One database per issue. It must END in "test": the guard in
