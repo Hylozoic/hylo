@@ -1302,13 +1302,21 @@ export default function makeModels (userId, isAdmin, apiClient) {
         stripeDashboardUrl: g => g.stripeDashboardUrl(),
         hasPro: g => g.hasPro(),
         proFeatures: g => g.proFeatures(),
+        proState: async g => {
+          const state = await g.proState()
+          // A failed payment is the group's billing business: only stewards with Administration see 'grace'
+          if (state !== HyloProSubscription.PRO_STATE_GRACE) return state
+          return userId && await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)
+            ? state
+            : HyloProSubscription.PRO_STATE_ACTIVE
+        },
         proBilling: async g => {
           // Hylo Pro is for groups; spaces have no billing of their own
           if (g.get('type') === 'space') return null
           if (!userId || !await GroupMembership.hasResponsibility(userId, g, Responsibility.constants.RESP_ADMINISTRATION)) {
             return null
           }
-          const { subscription, grant, hasPro, tier, features } = await HyloProSubscription.billingForGroup(g.id)
+          const { subscription, grant, hasPro, state, graceEndsAt, tier, features } = await HyloProSubscription.billingForGroup(g.id)
           const present = sub => sub && {
             id: sub.id,
             source: sub.get('source'),
@@ -1323,6 +1331,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const hasOpenSubscription = HyloProSubscription.isOpenStripeSubscription(subscription)
           return {
             hasPro,
+            state,
+            graceEndsAt,
             canUpgrade: !hasPro && !hasOpenSubscription,
             canManage: !!subscription && !!subscription.get('stripe_customer_id'),
             needsPaymentUpdate: hasOpenSubscription && HyloProSubscription.NEEDS_PAYMENT_STRIPE_STATUSES.includes(subscription.get('status')),

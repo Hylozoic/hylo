@@ -5,9 +5,11 @@
  * grant made by Hylo admins (source 'manual', optionally expiring at expires_at).
  * A group has Pro while any of its rows is active (see HyloProSubscription.isActive).
  *
- * hylo_pro_customers records the one platform Stripe customer each group pays with, created
- * before its first Checkout, so every Checkout and portal session for the group uses the same
- * customer and Stripe can be asked for that customer's existing subscriptions.
+ * groups.hylo_pro_stripe_customer_id records the one platform Stripe customer each group pays
+ * Hylo Pro with, created before its first Checkout, so every Checkout and portal session for the
+ * group uses the same customer and Stripe can be asked for that customer's existing subscriptions.
+ * It is not the group's Stripe Connect account (groups.stripe_account_id and the other stripe_*
+ * columns), which is for selling paid content to the group's members.
  */
 exports.up = async function (knex) {
   await knex.schema.createTable('hylo_pro_subscriptions', function (table) {
@@ -42,15 +44,15 @@ exports.up = async function (knex) {
     ADD CONSTRAINT hylo_pro_subscriptions_source_check CHECK (source IN ('stripe', 'manual'))
   `)
 
-  await knex.schema.createTable('hylo_pro_customers', function (table) {
-    table.bigIncrements('id').primary()
-    table.bigInteger('group_id').unsigned().notNullable().unique().references('id').inTable('groups').onDelete('CASCADE')
-    table.string('stripe_customer_id', 255).notNullable().unique().comment('Customer (cus_...) on the platform account')
-    table.timestamps(true, true)
+  await knex.schema.alterTable('groups', function (table) {
+    table.string('hylo_pro_stripe_customer_id', 255).nullable().unique()
+      .comment('Hylo Pro billing: the customer (cus_...) on the Hylo platform Stripe account this group pays Hylo Pro with. Not the Stripe Connect account (stripe_account_id) used for paid content.')
   })
 }
 
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('hylo_pro_customers')
+  await knex.schema.alterTable('groups', function (table) {
+    table.dropColumn('hylo_pro_stripe_customer_id')
+  })
   await knex.schema.dropTableIfExists('hylo_pro_subscriptions')
 }

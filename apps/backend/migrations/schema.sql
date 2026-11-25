@@ -1578,8 +1578,16 @@ CREATE TABLE public.groups (
     icon character varying(255),
     track_id bigint,
     funding_round_id bigint,
-    status character varying(255) DEFAULT 'published'::character varying NOT NULL
+    status character varying(255) DEFAULT 'published'::character varying NOT NULL,
+    hylo_pro_stripe_customer_id character varying(255)
 );
+
+
+--
+-- Name: COLUMN groups.hylo_pro_stripe_customer_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.groups.hylo_pro_stripe_customer_id IS 'Hylo Pro billing: the customer (cus_...) on the Hylo platform Stripe account this group pays Hylo Pro with. Not the Stripe Connect account (stripe_account_id) used for paid content.';
 
 
 --
@@ -1755,38 +1763,6 @@ CREATE SEQUENCE public.groups_suggested_skills_id_seq
 --
 
 ALTER SEQUENCE public.groups_suggested_skills_id_seq OWNED BY public.groups_suggested_skills.id;
-
-
---
--- Name: hylo_pro_customers; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.hylo_pro_customers (
-    id bigint NOT NULL,
-    group_id bigint NOT NULL,
-    stripe_customer_id character varying(255) NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-
---
--- Name: hylo_pro_customers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.hylo_pro_customers_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: hylo_pro_customers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.hylo_pro_customers_id_seq OWNED BY public.hylo_pro_customers.id;
 
 
 --
@@ -4918,6 +4894,14 @@ ALTER TABLE ONLY public.groups_agreements
 
 
 --
+-- Name: groups groups_hylo_pro_stripe_customer_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.groups
+    ADD CONSTRAINT groups_hylo_pro_stripe_customer_id_unique UNIQUE (hylo_pro_stripe_customer_id);
+
+
+--
 -- Name: groups groups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7866,45 +7850,6 @@ ALTER TABLE ONLY public.zapier_triggers_groups
 
 ALTER TABLE ONLY public.zapier_triggers
     ADD CONSTRAINT zapier_triggers_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) DEFERRABLE INITIALLY DEFERRED;
-
-
---
--- Name: hylo_pro_customers id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hylo_pro_customers ALTER COLUMN id SET DEFAULT nextval('public.hylo_pro_customers_id_seq'::regclass);
-
-
---
--- Name: hylo_pro_customers hylo_pro_customers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hylo_pro_customers
-    ADD CONSTRAINT hylo_pro_customers_pkey PRIMARY KEY (id);
-
-
---
--- Name: hylo_pro_customers hylo_pro_customers_group_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hylo_pro_customers
-    ADD CONSTRAINT hylo_pro_customers_group_id_unique UNIQUE (group_id);
-
-
---
--- Name: hylo_pro_customers hylo_pro_customers_stripe_customer_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hylo_pro_customers
-    ADD CONSTRAINT hylo_pro_customers_stripe_customer_id_unique UNIQUE (stripe_customer_id);
-
-
---
--- Name: hylo_pro_customers hylo_pro_customers_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.hylo_pro_customers
-    ADD CONSTRAINT hylo_pro_customers_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
 
 
 --

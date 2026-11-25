@@ -969,9 +969,13 @@ type Group {
   createdAt: Date
   # Group description text
   description: String
-  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any tier. Not enough to gate a feature: see proFeatures
+  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any tier: proState is 'active' or 'grace'.
+  # Not enough to gate a feature: see proFeatures
   hasPro: Boolean
-  # Which Hylo Pro features this group has now (all false without Pro)
+  # This group's Hylo Pro state: 'active' (paid up or granted), 'grace' (payment failed, Pro still on for a few days;
+  # only shown to stewards with Administration, others see 'active'), 'lapsed' (had Pro, no longer does) or 'none' (never had Pro)
+  proState: String
+  # Which Hylo Pro features this group has now (all false without Pro, so all false once Pro has lapsed)
   proFeatures: HyloProFeatures
   # gets the event calendar subscription URL
   eventCalendarUrl: String
@@ -4292,6 +4296,10 @@ type HyloProSubscription {
 type HyloProBilling {
   # Whether the group currently has Hylo Pro (a paid subscription or a manual grant)
   hasPro: Boolean
+  # The group's Hylo Pro state: 'active', 'grace', 'lapsed' or 'none' (see Group.proState)
+  state: String
+  # In the 'grace' state: when Pro stops unless the failed payment goes through
+  graceEndsAt: Date
   # Whether the group can start a new subscription: no Pro and no subscription that isn't over yet
   canUpgrade: Boolean
   # Whether there is a Stripe customer whose subscription can be managed in the Customer Portal

@@ -102,6 +102,56 @@ describe('HyloProSubscription', () => {
     })
   })
 
+  describe('proState', () => {
+    const proState = rows => HyloProSubscription.proState(rows, NOW)
+    const inGrace = () => stripeRow({ status: 'past_due', current_period_start: RECENT(), current_period_end: FUTURE })
+
+    it('has a grace period of 7 days', () => {
+      expect(HyloProSubscription.STRIPE_GRACE_DAYS).to.equal(7)
+    })
+
+    it('is none for a group that never had Pro', () => {
+      expect(proState([])).to.equal('none')
+      expect(proState(null)).to.equal('none')
+      // A first payment that never went through never gave Pro
+      expect(proState([stripeRow({ status: 'incomplete', current_period_end: FUTURE }), stripeRow({ status: 'incomplete_expired' })])).to.equal('none')
+    })
+
+    it('is active while paid up, in a trial or granted', () => {
+      expect(proState([stripeRow({ current_period_end: FUTURE })])).to.equal('active')
+      expect(proState([stripeRow({ status: 'trialing', current_period_end: FUTURE })])).to.equal('active')
+      expect(proState([manualRow({})])).to.equal('active')
+      // A missed renewal webhook: Stripe still says it is paid up, so it isn't a failed payment
+      expect(proState([stripeRow({ current_period_end: RECENT() })])).to.equal('active')
+    })
+
+    it('is grace while a failed renewal is within its grace period', () => {
+      expect(proState([inGrace()])).to.equal('grace')
+      expect(HyloProSubscription.isInGrace(inGrace(), NOW)).to.be.true
+      expect(HyloProSubscription.graceEndsAt(inGrace(), NOW).getTime()).to.equal(RECENT().getTime() + grace())
+    })
+
+    it('is active, not grace, when a grant or another subscription also gives Pro', () => {
+      expect(proState([inGrace(), manualRow({ expires_at: FUTURE })])).to.equal('active')
+      expect(proState([inGrace(), stripeRow({ current_period_end: FUTURE })])).to.equal('active')
+    })
+
+    it('is lapsed once Pro has ended', () => {
+      expect(proState([stripeRow({ status: 'past_due', current_period_start: GRACE_EDGE(), current_period_end: FUTURE })])).to.equal('lapsed')
+      expect(proState([stripeRow({ status: 'unpaid', current_period_start: RECENT(), current_period_end: FUTURE })])).to.equal('lapsed')
+      expect(proState([stripeRow({ status: 'canceled', ended_at: PAST })])).to.equal('lapsed')
+      expect(proState([manualRow({ expires_at: PAST })])).to.equal('lapsed')
+      expect(proState([manualRow({ status: 'canceled' })])).to.equal('lapsed')
+      expect(proState([stripeRow({ status: 'incomplete_expired' }), stripeRow({ status: 'canceled', ended_at: PAST })])).to.equal('lapsed')
+    })
+
+    it('says which states have Pro features and which refresh monthly limits', () => {
+      expect(HyloProSubscription.PRO_STATES).to.deep.equal(['active', 'grace', 'lapsed', 'none'])
+      expect(HyloProSubscription.PRO_STATES.filter(HyloProSubscription.stateHasPro)).to.deep.equal(['active', 'grace'])
+      expect(HyloProSubscription.PRO_STATES.filter(HyloProSubscription.stateRefreshesLimits)).to.deep.equal(['active'])
+    })
+  })
+
   describe('isOpenStripeSubscription', () => {
     const isOpen = row => HyloProSubscription.isOpenStripeSubscription(row, NOW)
 
@@ -138,7 +188,8 @@ describe('HyloProSubscription', () => {
 
     it('has no Pro without any rows', async () => {
       expect(await group.hasPro()).to.be.false
-      expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false, tier: null, features: noProFeatures() })
+      expect(await group.proState()).to.equal('none')
+      expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false, state: 'none', graceEndsAt: null, tier: null, features: noProFeatures() })
     })
 
     it('has Pro when any row is active, and shows the active Stripe subscription first', async () => {
@@ -151,6 +202,7 @@ describe('HyloProSubscription', () => {
       expect(billing.subscription.id).to.equal(paid.id)
       expect(billing.grant.id).to.equal(grant.id)
       expect(billing.hasPro).to.be.true
+      expect(billing.state).to.equal('active')
     })
 
     it('shows the latest lapsed row when nothing is active', async () => {
@@ -162,6 +214,26 @@ describe('HyloProSubscription', () => {
       expect(billing.subscription.id).to.equal(lapsed.id)
       expect(billing.grant).to.equal(null)
       expect(billing.hasPro).to.be.false
+      expect(billing.state).to.equal('lapsed')
+      expect(await group.proState()).to.equal('lapsed')
+    })
+
+    it('is in grace while a failed renewal is within its grace period, and says when it ends', async () => {
+      const periodStart = new Date(NOW.getTime() - 2 * DAY)
+      const pastDue = await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'past_due', stripe_subscription_id: 'sub_grace', stripe_customer_id: 'cus_1', current_period_start: periodStart, current_period_end: FUTURE }).save()
+
+      const billing = await HyloProSubscription.billingForGroup(group.id, NOW)
+      expect(billing).to.include({ hasPro: true, state: 'grace' })
+      expect(billing.subscription.id).to.equal(pastDue.id)
+      expect(billing.graceEndsAt.getTime()).to.equal(periodStart.getTime() + 7 * DAY)
+      expect(await HyloProSubscription.groupProState(group.id, NOW)).to.equal('grace')
+      expect(await HyloProSubscription.groupHasPro(group.id, NOW)).to.be.true
+
+      // A week after the failed payment it has lapsed
+      const later = new Date(periodStart.getTime() + 7 * DAY)
+      expect(await HyloProSubscription.groupProState(group.id, later)).to.equal('lapsed')
+      expect(await HyloProSubscription.groupHasPro(group.id, later)).to.be.false
+      expect((await HyloProSubscription.billingForGroup(group.id, later)).graceEndsAt).to.equal(null)
     })
 
     it('still shows a past_due subscription while a manual grant gives Pro, so it can be managed', async () => {
@@ -172,6 +244,8 @@ describe('HyloProSubscription', () => {
 
       const billing = await HyloProSubscription.billingForGroup(group.id, NOW)
       expect(billing.hasPro).to.be.true
+      // The grant pays for Pro, so the group isn't in grace
+      expect(billing.state).to.equal('active')
       expect(billing.grant.id).to.equal(grant.id)
       expect(billing.subscription.id).to.equal(pastDue.id)
     })
@@ -214,6 +288,9 @@ describe('HyloProSubscription', () => {
         const caseGroup = await factories.group().save()
         await HyloProSubscription.forge({ group_id: caseGroup.id, stripe_subscription_id: attrs.source === 'stripe' ? `sub_case_${i}` : null, ...attrs }).save()
         expect(await HyloProSubscription.groupHasPro(caseGroup.id, NOW), JSON.stringify(attrs))
+          .to.equal(HyloProSubscription.isActive(attrs, NOW))
+        // hasPro and the Pro state always agree
+        expect(HyloProSubscription.stateHasPro(await HyloProSubscription.groupProState(caseGroup.id, NOW)), JSON.stringify(attrs))
           .to.equal(HyloProSubscription.isActive(attrs, NOW))
       }
     })
