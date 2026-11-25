@@ -3531,6 +3531,7 @@
   "Files must be smaller than 50 MB": "Files must be smaller than 50 MB",
   "You can attach up to {{max}} files at a time": "You can attach up to {{max}} files at a time",
   "Upload failed. Please try again.": "Upload failed. Please try again.",
+  "We couldn't download that file. The site may not allow it. Try downloading it and uploading it directly.": "We couldn't download that file. The site may not allow it. Try downloading it and uploading it directly.",
   "Give this view a name of at least 2 characters": "Give this view a name of at least 2 characters",
   "Choose at least one post type": "Choose at least one post type"
 }

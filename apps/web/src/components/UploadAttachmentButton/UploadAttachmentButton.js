@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { toast } from 'sonner'
 import {
   attachmentFromUpload,
   uploadedFileToAttachment,
@@ -11,6 +12,7 @@ import { ID_FOR_NEW } from 'components/AttachmentManager/AttachmentManager.store
 import Icon from 'components/Icon'
 import uploadAttachment from 'store/actions/uploadAttachment'
 import { cn } from 'util/index'
+import { uploadErrorMessage } from 'util/uploadErrorMessage'
 
 import classes from './UploadAttachmentButton.module.scss'
 
@@ -33,11 +35,16 @@ export default function UploadAttachmentButton ({
   const { t } = useTranslation()
   const dispatch = useDispatch()
 
+  const uploadFailed = error => {
+    toast.error(uploadErrorMessage(error, t))
+    return onError(error)
+  }
+
   const uploadAttachmentComplete = (response, attachment) => {
     if (!response) {
-      return onError(new Error('No response returned from uploader'))
+      return uploadFailed(new Error('No response returned from uploader'))
     }
-    if (response.error) return onError(response.error)
+    if (response.error) return uploadFailed(response.payload)
     if (response.payload) return onSuccess(attachmentFromUpload(attachment, response.payload))
   }
 
@@ -49,7 +56,13 @@ export default function UploadAttachmentButton ({
       // If set then we won't upload the file to the server, we'll call this instead
       onInitialUpload(attachment)
     } else {
-      const uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment))
+      let uploadedAttachment
+      try {
+        uploadedAttachment = await dispatch(uploadAttachment(type, id, attachment))
+      } catch (error) {
+        // The upload action rejects when /noo/upload responds with an error
+        return uploadFailed(error)
+      }
       return uploadAttachmentComplete(uploadedAttachment, attachment)
     }
   }

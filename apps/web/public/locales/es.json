@@ -3542,6 +3542,7 @@
   "Files must be smaller than 50 MB": "Los archivos deben pesar menos de 50 MB",
   "You can attach up to {{max}} files at a time": "Puedes adjuntar hasta {{max}} archivos a la vez",
   "Upload failed. Please try again.": "Error al subir. Inténtalo de nuevo.",
+  "We couldn't download that file. The site may not allow it. Try downloading it and uploading it directly.": "No pudimos descargar ese archivo. Es posible que el sitio no lo permita. Descárgalo y súbelo directamente.",
   "Give this view a name of at least 2 characters": "Dale a esta vista un nombre de al menos 2 caracteres",
   "Choose at least one post type": "Elige al menos un tipo de publicación"
 }

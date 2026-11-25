@@ -98,6 +98,19 @@ describe('errorReporterMiddleware', () => {
     expect(next).toHaveBeenCalledWith(action)
   })
 
+  it('does not report an upload the remote site refused to let us download', () => {
+    const next = jest.fn(action => action)
+    const body = JSON.stringify({ error: 'Download failed (403)', code: 'REMOTE_DOWNLOAD_FAILED' })
+    const payload = new Error(body)
+    payload.response = { status: 422, body }
+    const action = { error: true, type: 'UPLOAD_ATTACHMENT', payload }
+
+    errorReporterMiddleware({})(next)(action)
+
+    expect(errorReporter.error).not.toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith(action)
+  })
+
   it('still reports fetch errors that include an HTTP response', () => {
     const next = jest.fn(action => action)
     const payload = new TypeError('Failed to fetch')

@@ -1,4 +1,5 @@
-import { upload, guessFileType, originalFilestackUrl, filestackPngUrl } from './index'
+import nock from 'nock'
+import { upload, guessFileType, originalFilestackUrl, filestackPngUrl, REMOTE_DOWNLOAD_FAILED } from './index'
 import { Readable } from 'stream'
 
 describe('Uploader', () => {
@@ -86,6 +87,24 @@ describe('Uploader', () => {
     .then(() => expect.fail('should reject'))
     .catch(err => {
       expect(err.message).to.equal('wow')
+    })
+  })
+
+  it('tags a download the remote site refuses as a remote download failure', () => {
+    const remote = nock('https://files.example').get('/report.pdf').reply(403, 'Forbidden')
+
+    return upload({
+      userId: '10',
+      type: 'post',
+      id: 'new',
+      url: 'https://files.example/report.pdf'
+    })
+    .then(() => expect.fail('should reject'))
+    .catch(err => {
+      expect(remote.isDone()).to.equal(true)
+      expect(err.message).to.equal('Download failed (403)')
+      expect(err.code).to.equal(REMOTE_DOWNLOAD_FAILED)
+      expect(err.remoteStatus).to.equal(403)
     })
   })
 

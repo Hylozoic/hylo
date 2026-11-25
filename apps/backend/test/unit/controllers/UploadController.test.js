@@ -55,6 +55,18 @@ describe('UploadController', () => {
         expect(res.body.error).to.equal('Validation error: Invalid type')
       })
     })
+
+    it('returns a 422 with a code, not a server error, when the remote site refuses the download', () => {
+      const remote = nock('https://files.example').get('/report.pdf').reply(403, 'Forbidden')
+      Object.assign(req.params, { type: 'post', id: 'new', url: 'https://files.example/report.pdf' })
+      return UploadController.create(req, res)
+      .then(() => {
+        expect(remote.isDone()).to.equal(true)
+        expect(res.serverError).not.to.have.been.called()
+        expect(res.statusCode).to.equal(422)
+        expect(res.body).to.deep.equal({ error: 'Download failed (403)', code: 'REMOTE_DOWNLOAD_FAILED' })
+      })
+    })
   })
 
   describe('uploading via file', () => {

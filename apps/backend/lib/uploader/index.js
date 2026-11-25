@@ -43,6 +43,17 @@ export function filestackPngUrl (url) {
   return `https://cdn.filestackcontent.com/output=format:png/${handle}`
 }
 
+// The remote site refused the download (hotlink or bot blocking, missing file, etc.).
+// This is the user's URL failing, not a bug, so it goes back to the client instead of to Sentry.
+export const REMOTE_DOWNLOAD_FAILED = 'REMOTE_DOWNLOAD_FAILED'
+
+function remoteDownloadError (status) {
+  const error = new Error(`Download failed (${status})`)
+  error.code = REMOTE_DOWNLOAD_FAILED
+  error.remoteStatus = status
+  return error
+}
+
 function isSvgFilename (filename) {
   return typeof filename === 'string' && /\.svg(\?|$)/i.test(filename)
 }
@@ -64,7 +75,7 @@ export function upload (args) {
     // Wikimedia and similar CDNs 403 the default User-Agent.
     .then(() => url
       ? safeFetch(encodeURI(url), { headers: REMOTE_FETCH_HEADERS }).then(response => {
-          if (!response.ok) throw new Error(`Download failed (${response.status})`)
+          if (!response.ok) throw remoteDownloadError(response.status)
           return response.body
         })
       : stream)

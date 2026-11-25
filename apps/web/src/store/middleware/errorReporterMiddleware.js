@@ -1,5 +1,6 @@
 import errorReporter, { addBreadcrumb, SENTRY_DEBUG } from 'client/errorReporter'
 import isBrowserNetworkError from 'client/isBrowserNetworkError'
+import { isRemoteDownloadFailure } from 'util/uploadErrorMessage'
 
 /*
   Reports redux action errors to Sentry. When VITE_SENTRY_DEBUG=true it also
@@ -12,7 +13,8 @@ export default function errorReporterMiddleware (store) {
     if (SENTRY_DEBUG) {
       addBreadcrumb({ category: 'redux', message: type, level: error ? 'error' : 'info' })
     }
-    if (error && !isBrowserNetworkError(payload)) {
+    // A remote site refusing an upload-by-URL is shown to the user, not a bug to report
+    if (error && !isBrowserNetworkError(payload) && !isRemoteDownloadFailure(payload)) {
       errorReporter.error(describeActionError(type, payload), {
         action: JSON.parse(safeStringify(action))
       })
