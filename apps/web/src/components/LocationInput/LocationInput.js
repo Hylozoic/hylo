@@ -6,6 +6,7 @@ import { LocationHelpers } from '@hylo/shared'
 import Geocoder from 'components/GeocoderAutocomplete'
 import { mapbox } from 'config/index'
 import { cn } from 'util/index'
+import { getBrowserPosition } from 'util/browserPosition'
 import { pollingFetchLocation as pollingFetchLocationThunk } from './LocationInput.store'
 
 import styles from './LocationInput.module.scss'
@@ -31,8 +32,7 @@ const LocationInput = forwardRef(function LocationInput (props, ref) {
 
   useEffect(() => {
     if (!locationObject || !locationObject.center) {
-      navigator.geolocation.getCurrentPosition((position) =>
-        setBrowserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }))
+      getBrowserPosition(setBrowserLocation)
     }
   }, [locationObject])
 

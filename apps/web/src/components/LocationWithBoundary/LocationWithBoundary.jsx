@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import ErrorBoundary from 'components/ErrorBoundary'
 import LocationInput from 'components/LocationInput/LocationInput'
 import { cn } from 'util/index'
+import { getBrowserPosition } from 'util/browserPosition'
 
 // The drawing map pulls in deck.gl + mapbox; only load it once someone opens it
 const EditableMap = lazy(() => import('components/Map/EditableMap/EditableMap'))
@@ -56,9 +57,8 @@ export default function LocationWithBoundary ({
 
   // With no location chosen yet, start the map near the person drawing instead of the map's generic fallback
   useEffect(() => {
-    if (!showMap || locationObject?.center || browserCenter || !navigator.geolocation) return
-    navigator.geolocation.getCurrentPosition(position =>
-      setBrowserCenter({ lat: position.coords.latitude, lng: position.coords.longitude }))
+    if (!showMap || locationObject?.center || browserCenter) return
+    getBrowserPosition(setBrowserCenter)
   }, [showMap, locationObject?.center, browserCenter])
 
   const mapLocation = locationObject?.center ? locationObject : (browserCenter ? { center: browserCenter } : null)

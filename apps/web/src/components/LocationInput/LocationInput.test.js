@@ -24,5 +24,14 @@ describe('LocationInput', () => {
     expect(screen.getByPlaceholderText('Enter your address')).toBeInTheDocument()
   })
 
-  // Add more tests as needed
+  it('renders when the browser has no geolocation', () => {
+    const originalGeolocation = navigator.geolocation
+    navigator.geolocation = undefined
+    try {
+      render(<LocationInput {...defaultProps} />)
+      expect(screen.getByPlaceholderText('Search for a location...')).toBeInTheDocument()
+    } finally {
+      navigator.geolocation = originalGeolocation
+    }
+  })
 })
