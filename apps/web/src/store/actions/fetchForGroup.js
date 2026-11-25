@@ -47,6 +47,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     }
     hasPro
     proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+    proState
     assistantEnabled
     assistantForMe
     slug
