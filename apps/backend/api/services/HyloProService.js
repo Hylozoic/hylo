@@ -7,7 +7,8 @@
  *
  * - ensureProPrices / ensurePortalConfiguration create the "Hylo Pro" product, its $10/month and
  *   $100/year prices, and a Customer Portal configuration on first use, then cache their ids.
- * - Each group pays with one platform customer (hylo_pro_customers), created before its first Checkout.
+ * - Each group pays with one platform customer (groups.hylo_pro_stripe_customer_id), created before
+ *   its first Checkout. That is not the group's Stripe Connect account (groups.stripe_account_id).
  * - createCheckoutSession / createPortalSession return Stripe-hosted URLs for sign-up and for
  *   cancelling, switching interval or updating the card. Checkout is refused while the group's
  *   customer has a subscription that isn't over yet (checked in Stripe, not just our table), and an
@@ -18,7 +19,7 @@
  *   returns from Checkout, call syncSubscriptionById: under a per-subscription lock it re-reads the
  *   subscription from Stripe and upserts its hylo_pro_subscriptions row, so concurrent, retried or
  *   out-of-order events always leave the latest state. Only subscriptions whose customer matches the
- *   group's hylo_pro_customers row are synced.
+ *   group's hylo_pro_stripe_customer_id are synced.
  * - resyncSubscriptions runs from the hourly cron job and re-syncs 1/24 of the groups each hour, so
  *   every Pro subscription is checked against Stripe once a day even if a webhook was missed.
  * - Refunds and disputes of Pro payments (charge.refunded, charge.dispute.*) are recorded in
@@ -303,8 +304,8 @@ module.exports = {
   // The platform customer this group pays with, or null if it never started a Checkout
   async stripeCustomerIdForGroup (groupId, { transacting } = {}) {
     const knex = transacting || bookshelf.knex
-    const row = await knex('hylo_pro_customers').where({ group_id: groupId }).first('stripe_customer_id')
-    return row ? row.stripe_customer_id : null
+    const row = await knex('groups').where({ id: groupId }).first('hylo_pro_stripe_customer_id')
+    return row ? row.hylo_pro_stripe_customer_id || null : null
   },
 
   /**
@@ -318,22 +319,18 @@ module.exports = {
 
   async ensureCustomerLocked (group, trx) {
     const existing = await this.stripeCustomerIdForGroup(group.id, { transacting: trx })
-    let customerId = existing
-    if (!customerId) {
-      // The caller holds the group's customer lock, so two customers can't be created for one group at once
-      const customer = await stripe.customers.create({
-        name: group.get('name'),
-        metadata: { [PRO_METADATA_KEY]: 'true', group_id: String(group.id) }
-      })
-      customerId = customer.id
-    }
-    const now = new Date()
-    await trx('hylo_pro_customers')
-      .insert({ group_id: group.id, stripe_customer_id: customerId, created_at: now, updated_at: now })
-      .onConflict('group_id')
-      .ignore()
-    const row = await trx('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
-    return row.stripe_customer_id
+    if (existing) return existing
+    // The caller holds the group's customer lock, so two customers can't be created for one group at once
+    const customer = await stripe.customers.create({
+      name: group.get('name'),
+      metadata: { [PRO_METADATA_KEY]: 'true', group_id: String(group.id) }
+    })
+    // Only fills an empty column, so a recorded customer is never replaced
+    await trx('groups')
+      .where({ id: group.id })
+      .whereNull('hylo_pro_stripe_customer_id')
+      .update({ hylo_pro_stripe_customer_id: customer.id })
+    return this.stripeCustomerIdForGroup(group.id, { transacting: trx })
   },
 
   /**
@@ -500,7 +497,7 @@ module.exports = {
   /**
    * Records a refund or dispute of a Hylo Pro payment (see isChargeEvent) in stripe_logs, so Hylo
    * staff can see it. A payment is a Pro payment when its customer is a group's Hylo Pro customer
-   * (hylo_pro_customers): that customer is only used for Pro. The charge or dispute is re-read from
+   * (groups.hylo_pro_stripe_customer_id): that customer is only used for Pro. The charge or dispute is re-read from
    * Stripe under a lock, so retried and out-of-order events leave the latest state, one row per
    * charge (refunds) or per dispute.
    *
@@ -533,8 +530,8 @@ module.exports = {
   async groupIdForCustomer (customerId, { transacting } = {}) {
     if (!customerId) return null
     const knex = transacting || bookshelf.knex
-    const row = await knex('hylo_pro_customers').where({ stripe_customer_id: customerId }).first('group_id')
-    return row ? row.group_id : null
+    const row = await knex('groups').where({ hylo_pro_stripe_customer_id: customerId }).first('id')
+    return row ? row.id : null
   },
 
   // Upserts the hylo_pro_refund row for a charge (one per charge; amount is the total refunded so far)
@@ -581,8 +578,8 @@ module.exports = {
   },
 
   /**
-   * The scheduled re-sync (hourly cron): re-syncs every group whose hylo_pro_customers id falls in
-   * `slot` (id % slots), so with the default 24 slots and slot = the UTC hour each group is checked
+   * The scheduled re-sync (hourly cron): re-syncs every group with a Hylo Pro customer
+   * (groups.hylo_pro_stripe_customer_id) whose group id falls in `slot` (id % slots), so with the default 24 slots and slot = the UTC hour each group is checked
    * once a day. For each group it asks Stripe for the customer's subscriptions, then syncs any that
    * are new to us or not over yet, and any row of ours that isn't over yet — which also catches a
    * subscription Stripe no longer has. A failure for one group is logged and the run goes on; on a
@@ -590,18 +587,19 @@ module.exports = {
    * made one at a time, a few per group, far below Stripe's rate limits. Safe to run again: each
    * sync just writes Stripe's current state.
    *
-   * @returns {Promise<{ customers: number, synced: number, failed: number, rateLimited: boolean }>}
+   * @returns {Promise<{ groups: number, synced: number, failed: number, rateLimited: boolean }>}
    */
   async resyncSubscriptions ({ slot, slots = RESYNC_SLOTS } = {}) {
     if (!Number.isInteger(slot) || slot < 0 || slot >= slots) {
       throw new Error(`Hylo Pro re-sync slot must be an integer from 0 to ${slots - 1}, got ${slot}`)
     }
-    const customers = await bookshelf.knex('hylo_pro_customers')
+    const customers = await bookshelf.knex('groups')
+      .whereNotNull('hylo_pro_stripe_customer_id')
       .whereRaw('id % ? = ?', [slots, slot])
       .orderBy('id')
-      .select('group_id', 'stripe_customer_id')
+      .select('id as group_id', 'hylo_pro_stripe_customer_id as stripe_customer_id')
 
-    const result = { customers: customers.length, synced: 0, failed: 0, rateLimited: false }
+    const result = { groups: customers.length, synced: 0, failed: 0, rateLimited: false }
     for (const customer of customers) {
       try {
         result.synced += await this.resyncCustomer(customer)
@@ -681,7 +679,8 @@ module.exports = {
    * Upserts the hylo_pro_subscriptions row for a Stripe subscription object. Use syncSubscriptionById
    * unless the caller holds that subscription's lock and has just read it from Stripe.
    *
-   * Only syncs a subscription whose customer is the one recorded for the group (hylo_pro_customers),
+   * Only syncs a subscription whose customer is the one recorded for the group
+   * (groups.hylo_pro_stripe_customer_id),
    * so a subscription made outside our Checkout can't attach itself to a group via its metadata.
    *
    * @returns {Promise<HyloProSubscription|null>} null if it isn't a Pro subscription for a known group
@@ -703,8 +702,8 @@ module.exports = {
 
     const knex = transacting || bookshelf.knex
     const customerId = idOf(subscription.customer)
-    const customer = await knex('hylo_pro_customers').where({ group_id: group.id }).first('stripe_customer_id')
-    if (!customer || customer.stripe_customer_id !== customerId) {
+    const groupCustomerId = await this.stripeCustomerIdForGroup(group.id, { transacting: knex })
+    if (!groupCustomerId || groupCustomerId !== customerId) {
       console.warn(`Hylo Pro subscription ${subscription.id} (customer ${customerId}) is not for group ${group.id}'s customer here, skipping`)
       return null
     }

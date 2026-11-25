@@ -81,7 +81,7 @@ describe('Hylo Pro mutations', () => {
     for (const name of STUBBED_NAMESPACES) stripeMock[name] = saved[name]
     HyloProService.clearCache()
     await HyloProSubscription.query().where({ group_id: group.id }).del()
-    await bookshelf.knex('hylo_pro_customers').where({ group_id: group.id }).del()
+    await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: null })
   })
 
   after(() => setup.clearDb())
@@ -118,7 +118,7 @@ describe('Hylo Pro mutations', () => {
 
     // The group's customer, a subscription in Stripe and our (synced) row for it
     async function subscribed (status, id) {
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_1' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_1' })
       stripeSubscriptions.push(stripeSubscription({ id, customer: 'cus_1', status, metadata: { hylo_pro: 'true', group_id: String(group.id) } }))
       await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status, stripe_subscription_id: id, stripe_customer_id: 'cus_1', current_period_end: new Date(PERIOD_END * 1000) }).save()
     }
@@ -141,7 +141,7 @@ describe('Hylo Pro mutations', () => {
     }
 
     it("rejects a new subscription when Stripe has one our table doesn't know about yet", async () => {
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_known' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_known' })
       stripeSubscriptions.push(stripeSubscription({ id: 'sub_webhook_pending', customer: 'cus_known', metadata: { hylo_pro: 'true', group_id: String(group.id) } }))
 
       const error = await createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' }).catch(e => e)
@@ -163,7 +163,7 @@ describe('Hylo Pro mutations', () => {
     })
 
     it('allows subscribing again after a subscription ended', async () => {
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_ended' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_ended' })
       await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_ended', stripe_customer_id: 'cus_ended', ended_at: new Date('2026-01-01') }).save()
       const result = await createHyloProCheckoutSession(admin.id, { groupId: group.id, interval: 'month' })
       expect(result.url).to.equal('https://checkout.stripe.com/c/pay/cs_1')
@@ -175,7 +175,7 @@ describe('Hylo Pro mutations', () => {
     it('activates Pro from the Checkout session the steward returned with', async () => {
       const metadata = { hylo_pro: 'true', group_id: String(group.id) }
       stripeMock.checkout = { sessions: { retrieve: async () => ({ id: 'cs_done', mode: 'subscription', subscription: 'sub_done', metadata }) } }
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_done' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_done' })
       stripeSubscriptions.push(stripeSubscription({ id: 'sub_done', customer: 'cus_done', metadata }))
 
       const result = await activateHyloProCheckoutSession(admin.id, { groupId: group.id, sessionId: 'cs_done' })
@@ -195,7 +195,7 @@ describe('Hylo Pro mutations', () => {
 
   describe('createHyloProPortalSession', () => {
     it('returns a portal URL for the customer the group paid with', async () => {
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_portal' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_portal' })
 
       const result = await createHyloProPortalSession(admin.id, { groupId: group.id })
 

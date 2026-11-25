@@ -62,7 +62,7 @@ describe('HyloProService', () => {
 
   // Records the customer this database created for the group; syncs only accept its subscriptions
   function recordCustomer (customerId = 'cus_pro_1', groupId = group.id) {
-    return bookshelf.knex('hylo_pro_customers').insert({ group_id: groupId, stripe_customer_id: customerId })
+    return bookshelf.knex('groups').where({ id: groupId }).update({ hylo_pro_stripe_customer_id: customerId })
   }
 
   function stubRetrieve (subscription) {
@@ -440,7 +440,7 @@ describe('HyloProService', () => {
 
     for (const status of ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']) {
       it(`refuses while Stripe has a ${status} subscription we haven't heard about, and syncs it`, async () => {
-        await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_g' })
+        await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_g' })
         stripeSubscriptions.push(subscriptionFixture({ id: 'sub_unsynced', customer: 'cus_g', status, metadata: proMetadata() }))
 
         await expect(HyloProService.createCheckoutSession({ group, interval: 'month', userId: 1 }))
@@ -482,7 +482,7 @@ describe('HyloProService', () => {
     })
 
     it('allows a new Checkout when every Stripe subscription is over', async () => {
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_g' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_g' })
       stripeSubscriptions.push(subscriptionFixture({ id: 'sub_a', customer: 'cus_g', status: 'canceled', metadata: proMetadata() }))
       stripeSubscriptions.push(subscriptionFixture({ id: 'sub_b', customer: 'cus_g', status: 'incomplete_expired', metadata: proMetadata() }))
 
@@ -714,7 +714,7 @@ describe('HyloProService', () => {
 
       const result = await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })
 
-      expect(result).to.deep.equal({ customers: 1, synced: 2, failed: 0, rateLimited: false })
+      expect(result).to.deep.equal({ groups: 1, synced: 2, failed: 0, rateLimited: false })
       expect(listCalls).to.deep.equal([{ customer: 'cus_pro_1', status: 'all', limit: 100 }])
       expect((await HyloProSubscription.where({ stripe_subscription_id: 'sub_missed' }).fetch()).get('status')).to.equal('active')
       expect((await HyloProSubscription.where({ stripe_subscription_id: 'sub_known' }).fetch()).get('status')).to.equal('past_due')
@@ -754,7 +754,7 @@ describe('HyloProService', () => {
       const other = await factories.group().save()
       await recordCustomer('cus_pro_1', group.id)
       await recordCustomer('cus_pro_2', other.id)
-      const rows = await bookshelf.knex('hylo_pro_customers').orderBy('id').select('id', 'stripe_customer_id')
+      const rows = await bookshelf.knex('groups').whereNotNull('hylo_pro_stripe_customer_id').orderBy('id').select('id', 'hylo_pro_stripe_customer_id as stripe_customer_id')
 
       for (const row of rows) {
         listCalls = []
@@ -778,7 +778,7 @@ describe('HyloProService', () => {
           throw new Error('stripe down')
         }
       }
-      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ customers: 2, synced: 0, failed: 2, rateLimited: false })
+      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ groups: 2, synced: 0, failed: 2, rateLimited: false })
       expect(listed).to.deep.equal(['cus_pro_1', 'cus_pro_2'])
 
       listed.length = 0
@@ -790,7 +790,7 @@ describe('HyloProService', () => {
           throw error
         }
       }
-      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ customers: 2, synced: 0, failed: 0, rateLimited: true })
+      expect(await HyloProService.resyncSubscriptions({ slot: 0, slots: 1 })).to.deep.equal({ groups: 2, synced: 0, failed: 0, rateLimited: true })
       expect(listed).to.deep.equal(['cus_pro_1'])
     })
 
