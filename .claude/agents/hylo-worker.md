@@ -47,15 +47,17 @@ Also never: push to `dev`/`main`, force-push, merge PRs, close issues, edit `.gi
    ```
    **Give the worktree its own test database.** Several workers share this machine's Postgres server, and backend tests wipe and rebuild their database's schema on every run. Two workers on one database break each other's runs. So each worktree points its `.env.test` at a database of its own, on the same server:
    ```bash
-   # one database per worktree, named after it. It must END in "test": the guard in
-   # apps/backend/test/setup/index.js rejects names that don't start or end with "test"
-   TEST_DB=hylo_$(basename "$WT" | tr -c 'a-zA-Z0-9\n' '_' | cut -c1-50)_test
+   # One database per issue. It must END in "test": the guard in
+   # apps/backend/test/setup/index.js rejects names that don't start or end with "test".
+   TEST_DB=hylo_${ISSUE}_test
    DB_URL=$(grep '^DATABASE_URL=' apps/backend/.env.test | cut -d= -f2-)
    psql "${DB_URL%/*}/postgres" -qc "create database $TEST_DB" 2>&1 | grep -v 'already exists' || true
    perl -pi -e "s#^(DATABASE_URL=.*/)[^/?\s]+#\${1}$TEST_DB#" apps/backend/.env.test
    grep '^DATABASE_URL=' apps/backend/.env.test   # check it ends in /$TEST_DB
    ```
-   The test setup builds the schema from `migrations/schema.sql` on every run, so the empty database needs nothing else. The pre-push hook runs from the worktree, so it uses this database too. Never point `.env.test` at the shared `hylotest` or at any database another worker named. Redis needs no isolation, because backend tests don't connect to it. Report `TEST_DB` in your result so the supervisor can drop it (`dropdb`) when it removes the worktree.
+   If the supervisor's brief gives `testdb.sh` commands, use those to create and drop the database instead of `psql`. They also work when Postgres runs in Docker with no client tools on the host. If you run isolated e2e, give it a database of its own too: `hylo_e2e_test_${ISSUE}`.
+
+   The test setup builds the schema from `migrations/schema.sql` on every run, so the empty database needs nothing else. The pre-push hook runs from the worktree, so it uses this database too. Never point `.env.test` at the shared `hylotest` or at any database another worker named. Redis needs no isolation, because backend tests don't connect to it. When you've finished (after the last push and CI), drop your databases, and report their names under `test-db` in your result. A later FEEDBACK round creates them again.
 
    Run every later command inside `$WT`. For new work, if a branch for this issue already exists, stop and report `blocked` — don't reuse or delete someone else's work.
 
@@ -111,7 +113,7 @@ status: pr-open | blocked | already-fixed | failed
 pr: <url or none>
 branch: <name or none>
 worktree: <path or none>
-test-db: <TEST_DB name or none>
+test-db: <databases you created, and whether you dropped them, or none>
 ci: green | red | pending | none
 screenshots: <urls, or none>
 summary: <one or two sentences on what changed>
