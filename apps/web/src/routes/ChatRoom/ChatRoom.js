@@ -36,6 +36,8 @@ import useGroupViews from 'hooks/useGroupViews'
 import fetchForGroup from 'store/actions/fetchForGroup'
 import fetchGroupViews from 'store/actions/fetchGroupViews'
 import fetchPosts from 'store/actions/fetchPosts'
+import ChatCatchUp from 'routes/GroupAssistant/ChatCatchUp'
+import { GROUP_ASSISTANT, hasFeature } from 'config/featureFlags'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
 import updateGroupViewUser from 'store/actions/updateGroupViewUser'
 import { FETCH_POSTS, RESP_MANAGE_CONTENT } from 'store/constants'
@@ -836,16 +838,19 @@ export default function ChatRoom (props) {
   }, [currentUser])
 
   const { setHeaderDetails } = useViewHeader()
+  // "Catch me up": only when the stewards let the Group Assistant summarise this chat
+  const canCatchUp = hasFeature(GROUP_ASSISTANT) && !!group?.assistantForMe?.summarize
+  const catchUpSinceId = chatView?.lastReadPostId
   useEffect(() => {
     setHeaderDetails({
       backButton: false,
       title: t('Chat'),
-      headerActions: null,
+      headerActions: canCatchUp ? <ChatCatchUp group={group} sincePostId={catchUpSinceId} /> : null,
       icon: <MessageSquareMore className='w-4 h-4' />,
       info: '',
       search: true
     })
-  }, [setHeaderDetails, t])
+  }, [setHeaderDetails, t, canCatchUp, group?.id, catchUpSinceId])
 
   // ── Resizable chat width ──────────────────────────────────────────────────
   const [chatStreamWidth, setChatStreamWidth] = useState(() => {

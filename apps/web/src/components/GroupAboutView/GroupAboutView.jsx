@@ -40,6 +40,8 @@ import {
 } from 'store/models/Group'
 import presentGroup from 'store/presenters/presentGroup'
 import SupporterBadge from 'components/SupporterBadge/SupporterBadge'
+import AskAxl from 'routes/GroupAssistant/AskAxl'
+import { AssistantConsentControl, isGroupAssistantAgreement, useAssistantAgreementText } from 'routes/GroupAssistant/AssistantAgreement'
 import { bgImageStyle, cn } from 'util/index'
 
 /**
@@ -83,6 +85,7 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
   const stewards = group.stewards && group.stewards.length > 0 ? group.stewards : null
   const profileGroupSlug = parentGroup?.slug || group.slug
   const agreements = group.agreements?.length ? group.agreements : null
+  const assistantAgreementText = useAssistantAgreementText()
   const websiteUrl = group.websiteUrl
 
   const copyWebsite = () => {
@@ -196,6 +199,7 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
               )}
         </div>
       </AboutCard>
+      {group.assistantForMe?.answerMembers && <AskAxl group={group} />}
       {agreements && (
         <AboutCard
           title={t('Agreements')}
@@ -205,10 +209,21 @@ function AboutPanel ({ group, parentGroup, isSpace, membership, onLeave, onOpenM
             {agreements.map((agreement, i) => (
               <div key={agreement.id || i} className='flex gap-3'>
                 <span className='shrink-0 w-6 h-6 rounded-full bg-selected/20 text-selected grid place-items-center text-xs font-bold'>{i + 1}</span>
-                <div>
-                  <div className='text-sm font-bold text-foreground'>{agreement.title}</div>
-                  {agreement.description && <div className='text-sm leading-relaxed text-foreground/70 mt-0.5'>{agreement.description}</div>}
-                </div>
+                {isGroupAssistantAgreement(agreement)
+                  ? (
+                    // The Group Assistant's data-sharing agreement: translated, with the member's own answer to change
+                    <div data-testid='assistant-agreement'>
+                      <div className='text-sm font-bold text-foreground'>{assistantAgreementText.title}</div>
+                      <div className='text-sm leading-relaxed text-foreground/70 mt-0.5'>{assistantAgreementText.description}</div>
+                      <AssistantConsentControl group={group} />
+                    </div>
+                    )
+                  : (
+                    <div>
+                      <div className='text-sm font-bold text-foreground'>{agreement.title}</div>
+                      {agreement.description && <div className='text-sm leading-relaxed text-foreground/70 mt-0.5'>{agreement.description}</div>}
+                    </div>
+                    )}
               </div>
             ))}
           </div>

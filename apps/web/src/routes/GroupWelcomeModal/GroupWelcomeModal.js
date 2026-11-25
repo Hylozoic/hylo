@@ -13,6 +13,8 @@ import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { DEFAULT_AVATAR, DEFAULT_BANNER } from 'store/models/Group'
 import { fetchGroupWelcomeData } from './GroupWelcomeModal.store'
 import { updateMembershipSettings } from 'routes/UserSettings/UserSettings.store'
+import { AssistantConsentChoice, isGroupAssistantAgreement, useAssistantAgreementText } from 'routes/GroupAssistant/AssistantAgreement'
+import { setGroupAssistantConsent } from 'store/actions/groupAssistant'
 import Button from 'components/ui/button'
 import ClickCatcher from 'components/ClickCatcher'
 import HyloHTML from 'components/HyloHTML'
@@ -40,8 +42,21 @@ export default function GroupWelcomeModal (props) {
   const numAgreements = group?.agreements?.length || 0
   const [currentAgreements, setCurrentAgreements] = useState(Array(numAgreements).fill(false))
 
-  const numCheckedAgreements = currentAgreements.reduce((count, agreement) => count + (agreement ? 1 : 0), 0)
-  const checkedAllAgreements = numCheckedAgreements === numAgreements
+  // The Group Assistant's data-sharing agreement is answered yes or no, and either answer lets the
+  // member in (Q-29/Q-31): it is not one of the agreements that must all be ticked
+  const assistantAgreementText = useAssistantAgreementText()
+  const assistantIndex = (group?.agreements || []).findIndex(isGroupAssistantAgreement)
+  const assistantConsent = currentGroup?.assistantForMe?.consent
+  const assistantPending = assistantConsent === 'pending'
+  const [assistantChoice, setAssistantChoice] = useState(null)
+  useEffect(() => {
+    setAssistantChoice(assistantConsent === 'accepted' ? true : assistantConsent === 'declined' ? false : null)
+  }, [assistantConsent])
+  const isOtherAgreement = index => index !== assistantIndex
+
+  const numOtherAgreements = numAgreements - (assistantIndex >= 0 ? 1 : 0)
+  const numCheckedAgreements = currentAgreements.reduce((count, agreement, index) => count + (agreement && isOtherAgreement(index) ? 1 : 0), 0)
+  const checkedAllAgreements = numCheckedAgreements === numOtherAgreements && (assistantIndex < 0 || assistantChoice !== null)
 
   const agreementsLastUpdatedAt = currentGroup?.settings?.agreementsLastUpdatedAt
   const agreementsChangedByTimestamp = Boolean(
@@ -50,11 +65,13 @@ export default function GroupWelcomeModal (props) {
     agreementsAcceptedAt < agreementsLastUpdatedAt
   )
   const allAgreementsAlreadyAccepted = numAgreements > 0 &&
-    (group?.agreements || []).every(ga => membershipAgreements?.find(ma => ma.id === ga.id)?.accepted)
-  // Re-show only when agreements actually changed, or they were never accepted
+    (group?.agreements || []).every((ga, index) => !isOtherAgreement(index) || membershipAgreements?.find(ma => ma.id === ga.id)?.accepted)
+  // Re-show only when agreements actually changed, or they were never accepted, or the member
+  // has not answered the Group Assistant's agreement yet
   const agreementsChanged = numAgreements > 0 && (
     agreementsChangedByTimestamp ||
-    (!agreementsAcceptedAt && !allAgreementsAlreadyAccepted)
+    (!agreementsAcceptedAt && !allAgreementsAlreadyAccepted) ||
+    (assistantIndex >= 0 && assistantPending)
   )
 
   const [questionAnswers, setQuestionAnswers] = useState(
@@ -89,7 +106,8 @@ export default function GroupWelcomeModal (props) {
   const answersComplete = !questionsStillRequired ||
     (questionAnswers || []).every(a => trim(a.answer).length > 0)
 
-  const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged
+  // assistantPending comes with the group itself, before the agreements are loaded
+  const showWelcomeModal = currentMembership?.settings?.showJoinForm || agreementsChanged || assistantPending
 
   useEffect(() => {
     if (showWelcomeModal && group?.id && currentMembership) dispatch(fetchGroupWelcomeData(group.id, currentUser.id))
@@ -128,7 +146,7 @@ export default function GroupWelcomeModal (props) {
   }
 
   const handleCheckAllAgreements = e => {
-    const accepted = !checkedAllAgreements
+    const accepted = !(numCheckedAgreements === numOtherAgreements)
     const newAgreements = Array(numAgreements).fill(accepted)
     setCurrentAgreements(newAgreements)
   }
@@ -141,6 +159,10 @@ export default function GroupWelcomeModal (props) {
 
     // Existing members also see this modal to re-accept changed agreements; that is not a welcome
     const isFirstWelcome = Boolean(currentMembership.settings?.showJoinForm)
+    // Their own answer about sharing with the Group Assistant (the server never takes it as accepted with the rest)
+    if (assistantIndex >= 0 && assistantChoice !== null) {
+      await dispatch(setGroupAssistantConsent(group.id, assistantChoice))
+    }
     await dispatch(updateMembershipSettings(
       group.id,
       { joinQuestionsAnsweredAt: new Date(), showJoinForm: false },
@@ -207,6 +229,17 @@ export default function GroupWelcomeModal (props) {
                     : null}
                   <ol className='p-0'>
                     {group.agreements.map((agreement, i) => {
+                      if (i === assistantIndex) {
+                        return (
+                          <li className={cn('border-b-2 border-b-dashed border-foreground/20 p-4', { 'border-b-2': group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i} data-testid='assistant-agreement'>
+                            <h3>{assistantAgreementText.title}</h3>
+                            <div className={classes.agreementDescription}>
+                              <p>{assistantAgreementText.description}</p>
+                            </div>
+                            <AssistantConsentChoice value={assistantChoice} onChange={setAssistantChoice} />
+                          </li>
+                        )
+                      }
                       return (
                         <li className={cn('border-b-2 border-b-dashed border-foreground/20 p-4', { 'border-b-2': group.agreements.length > 1 && i !== (group.agreements.length - 1) })} key={i}>
                           <h3>{agreement.title}</h3>
@@ -244,7 +277,7 @@ export default function GroupWelcomeModal (props) {
                         type='checkbox'
                         id='checkAllAgreements'
                         onChange={handleCheckAllAgreements}
-                        checked={checkedAllAgreements}
+                        checked={numCheckedAgreements === numOtherAgreements}
                       />
                       <label htmlFor='checkAllAgreements' className={cn({ [classes.accepted]: checkedAllAgreements })}>
                         {t('I agree to all of the above')}

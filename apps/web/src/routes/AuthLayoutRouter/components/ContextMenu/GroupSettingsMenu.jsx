@@ -1,3 +1,4 @@
+import { GROUP_ASSISTANT, hasFeature, isHyloProEnabled } from 'config/featureFlags'
 import { isPhoneDevice } from 'util/mobile'
 import { get } from 'lodash/fp'
 import { ChevronLeft } from 'lucide-react'
@@ -13,7 +14,6 @@ import { groupUrl } from '@hylo/navigation'
 import MenuLink from './MenuLink'
 import { setConfirmBeforeClose } from 'routes/FullPageModal/FullPageModal.store'
 import hasResponsibilityForGroup from 'store/selectors/hasResponsibilityForGroup'
-import { isHyloProEnabled } from 'config/featureFlags'
 import getMe from 'store/selectors/getMe'
 import { RESP_ADD_MEMBERS, RESP_ADMINISTRATION } from 'store/constants'
 import { GROUP_TYPES } from 'store/models/Group'
@@ -67,6 +67,7 @@ export default function GroupSettingsMenu ({ group, groupSlug, isOneColumn = fal
     canAdminister && { title: 'Export Data', url: 'settings/export' },
     canAdminister && { title: 'Appearance & Layout', url: 'settings/appearance' },
     canAdminister && { title: 'Paid Content', url: 'settings/paid-content' },
+    canAdminister && !isSpace && hasFeature(GROUP_ASSISTANT) && { title: 'Group Assistant', url: 'settings/assistant' },
     canAdminister && !isSpace && hyloProEnabled && { title: 'Billing', url: 'settings/billing' },
     canAdminister && { title: 'Delete', url: 'settings/delete' }
   ].filter(Boolean), [canAdminister, canAddMembers, isSpace, hyloProEnabled])

@@ -85,6 +85,7 @@ exports.pt = {
     ? `${actor.get('name')} pediu para entrar em ${groupName} em ${parentGroupName}`
     : `${actor.get('name')} pediu para entrar em ${groupName}`,
   textForMemberJoinedGroup: ({ group, actor }) => `Novo membro entrou em ${group.get('name')}: ${actor.get('name')}`,
+  textForGroupAssistantAgreement: ({ group }) => `${group.get('name')} atualizou os seus acordos: escolha se as suas publicações podem ser partilhadas com o assistente de IA do grupo`,
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

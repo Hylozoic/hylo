@@ -344,3 +344,58 @@ it('does not track Group Welcome Completed when an existing member re-accepts ch
   await new Promise(resolve => setTimeout(resolve, 100))
   expect(trackAnalyticsEvent).not.toHaveBeenCalledWith('Group Welcome Completed', expect.anything())
 })
+
+it('asks a member about sharing with the Group Assistant, and lets them say no and carry on', async () => {
+  const { GROUP_ASSISTANT_AGREEMENT } = jest.requireActual('@hylo/shared')
+  const testGroup = {
+    id: '7',
+    name: 'Assistant Group',
+    slug: 'assistant-group',
+    bannerUrl: 'anything',
+    settings: { agreementsLastUpdatedAt: '2020-01-01T00:00:00.000Z' },
+    assistantForMe: { consent: 'pending', summarize: false, answerMembers: false },
+    agreements: [
+      { id: '71', description: 'Do good stuff always', title: 'Be cool' },
+      { id: '72', ...GROUP_ASSISTANT_AGREEMENT }
+    ]
+  }
+  const testMembership = {
+    id: '7',
+    person: { id: '1' },
+    settings: { agreementsAcceptedAt: '2021-06-01T00:00:00.000Z', joinQuestionsAnsweredAt: '2021-06-01T00:00:00.000Z' },
+    agreements: [{ id: '71', accepted: true }],
+    group: testGroup
+  }
+
+  function testProviders () {
+    const ormSession = orm.mutableSession(orm.getEmptyState())
+    const reduxState = { orm: ormSession.state }
+    extractModelsForTest({ me: { id: '1', memberships: { items: [testMembership] } } }, 'Me', ormSession)
+    extractModelsForTest({ groups: [testGroup] }, 'Group', ormSession)
+    return AllTheProviders(reduxState)
+  }
+
+  let consentVariables = null
+  mockGraphqlServer.use(
+    graphql.query('GroupWelcomeQuery', () => HttpResponse.json({ data: { group: { id: testGroup.id } } })),
+    graphql.mutation('UpdateMembershipSettings', () => HttpResponse.json({ data: { updateMembership: { id: testMembership.id } } })),
+    graphql.mutation('SetGroupAssistantConsent', ({ variables }) => {
+      consentVariables = variables
+      return HttpResponse.json({ data: { setGroupAssistantConsent: { consent: 'declined' } } })
+    })
+  )
+  jest.spyOn(reactRouterDom, 'useParams').mockReturnValue({ groupSlug: testGroup.slug })
+
+  render(<GroupWelcomeModal />, { wrapper: testProviders() })
+
+  // Shown because the member has not answered, though the other agreements were accepted since they last changed
+  expect(await screen.findByTestId('assistant-agreement')).toBeInTheDocument()
+  expect(screen.getByText('Sharing member content with a third-party AI')).toBeInTheDocument()
+  const jumpIn = screen.getByTestId('jump-in')
+  await waitFor(() => expect(jumpIn).toBeDisabled())
+
+  await userEvent.click(screen.getByTestId('assistant-consent-decline'))
+  await waitFor(() => expect(jumpIn).not.toBeDisabled())
+  await userEvent.click(jumpIn)
+  await waitFor(() => expect(consentVariables).toEqual({ groupId: '7', accepted: false }))
+})

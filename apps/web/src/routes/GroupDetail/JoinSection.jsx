@@ -1,5 +1,6 @@
 import { trim } from 'lodash'
 import React, { useEffect, useState, useCallback } from 'react'
+import { isGroupAssistantAgreement } from '@hylo/shared'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import Button from 'components/ui/button'
@@ -91,7 +92,9 @@ export function JoinBarriers ({ group, onBarriersStateChange, joinIntroCopy = fa
     setAllQuestionsAnswered(!group.settings?.askJoinQuestions || questions.length === 0)
   }, [group.joinQuestions?.length, group.settings?.askJoinQuestions])
 
-  const agreements = group.agreements || []
+  // The Group Assistant's data-sharing agreement is not a condition of joining: members answer it,
+  // yes or no, in the welcome modal once they are in
+  const agreements = (group.agreements || []).filter(agreement => !isGroupAssistantAgreement(agreement))
   const [acceptedAgreements, setAcceptedAgreements] = useState(agreements.map(() => false))
   const allAgreementsAccepted = agreements.length === 0 || acceptedAgreements.every(a => a)
 
@@ -319,7 +322,9 @@ export default function JoinSection ({ accessCode, currentUser, fullPage, group,
 }
 
 function JoinQuestionsAndButtons ({ currentUser, group, joinGroup, joinText, t }) {
-  const agreements = group.agreements || []
+  // The Group Assistant's data-sharing agreement is not a condition of joining: members answer it,
+  // yes or no, in the welcome modal once they are in
+  const agreements = (group.agreements || []).filter(agreement => !isGroupAssistantAgreement(agreement))
   const hasAgreements = agreements.length > 0
   const hasRequiredQuestions = group.settings?.askJoinQuestions && group.joinQuestions?.length > 0
   const hasSuggestedSkills = group.suggestedSkills?.length > 0

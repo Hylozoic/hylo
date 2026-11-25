@@ -186,6 +186,10 @@ module.exports = bookshelf.Model.extend({
     return getLocaleStrings(locale).textForDonationFrom({ actor, postName, amount })
   },
 
+  textForGroupAssistantAgreement: function (group, locale) {
+    return getLocaleStrings(locale).textForGroupAssistantAgreement({ group })
+  },
+
   textForMemberJoinedGroup: function (group, actor, locale) {
     return getLocaleStrings(locale).textForMemberJoinedGroup({ group, actor })
   },

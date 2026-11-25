@@ -1,5 +1,6 @@
 import { keyBy } from 'lodash'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AssistantConsentControl, isGroupAssistantAgreement, useAssistantAgreementText } from 'routes/GroupAssistant/AssistantAgreement'
 import { Helmet } from 'react-helmet'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -119,6 +120,7 @@ function GroupDetail ({ forCurrentGroup = false }) {
   const location = useLocation()
   const routeParams = useRouteParams()
   const { t } = useTranslation()
+  const assistantAgreementText = useAssistantAgreementText()
   const effectiveGroupSlug = useEffectiveGroupSlug()
 
   const currentUser = useSelector(getMe)
@@ -462,6 +464,16 @@ function GroupDetail ({ forCurrentGroup = false }) {
                 </button>
               </div>
               {group.agreements.map((agreement, i) => {
+                // The Group Assistant's data-sharing agreement: translated, with the member's own answer
+                if (isGroupAssistantAgreement(agreement)) {
+                  return (
+                    <div key={i} data-testid='assistant-agreement'>
+                      <strong>{parseInt(i) + 1}) {assistantAgreementText.title}</strong>
+                      <p className='m-0'>{assistantAgreementText.description}</p>
+                      <AssistantConsentControl group={group} />
+                    </div>
+                  )
+                }
                 return (
                   <div key={i}>
                     <strong>{parseInt(i) + 1}) {agreement.title}</strong>

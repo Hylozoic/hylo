@@ -100,6 +100,7 @@ import {
 import {
   CREATE_GROUP
 } from 'routes/CreateGroup/CreateGroup.store'
+import { SET_GROUP_ASSISTANT_CONSENT } from 'store/actions/groupAssistant'
 import { JOIN_SPACE } from 'store/actions/joinSpace'
 import { FETCH_GROUP_WELCOME_DATA } from 'routes/GroupWelcomeModal/GroupWelcomeModal.store'
 
@@ -1336,6 +1337,15 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       membership.update({
         settings: newSettings
       })
+      break
+    }
+
+    case SET_GROUP_ASSISTANT_CONSENT: {
+      // The member's answer to the Group Assistant's data-sharing agreement
+      const consent = payload?.data?.setGroupAssistantConsent?.consent
+      if (!consent || !Group.idExists(meta.groupId)) break
+      const assistantGroup = Group.withId(meta.groupId)
+      assistantGroup.update({ assistantForMe: { ...(assistantGroup.assistantForMe || {}), consent } })
       break
     }
 

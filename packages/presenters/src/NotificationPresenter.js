@@ -59,6 +59,7 @@ export const ACTION_GROUP_PEER_GROUP_INVITE = 'groupPeerGroupInvite'
 export const ACTION_GROUP_PEER_GROUP_INVITE_ACCEPTED = 'groupPeerGroupInviteAccepted'
 export const ACTION_JOIN_REQUEST = 'joinRequest'
 export const ACTION_MEMBER_JOINED_GROUP = 'memberJoinedGroup'
+export const ACTION_GROUP_ASSISTANT_AGREEMENT = 'groupAssistantAgreement'
 export const ACTION_MENTION = 'mention'
 export const ACTION_NEW_COMMENT = 'newComment'
 export const ACTION_NEW_POST = 'newPost'
@@ -136,6 +137,8 @@ export function titleForNotification (notification, t) {
       return t('Peer Groups Connected')
     case ACTION_MEMBER_JOINED_GROUP:
       return t('New Member joined <strong>{{groupName}}</strong>', { groupName: group.name })
+    case ACTION_GROUP_ASSISTANT_AGREEMENT:
+      return t('<strong>{{groupName}}</strong> updated its agreements', { groupName: group.name })
     case ACTION_TRACK_COMPLETED:
       return t('Track <strong>{{trackName}}</strong> Completed', { trackName: track?.space?.name })
     case ACTION_TRACK_ENROLLMENT:
@@ -215,6 +218,8 @@ export function bodyForNotification (notification, t) {
       return t('<strong>{{groupName}}</strong> has connected with <strong>{{otherGroupName}}</strong> as peer groups', { groupName: group.name, otherGroupName: otherGroup.name })
     case ACTION_MEMBER_JOINED_GROUP:
       return t('<strong>{{name}}</strong> joined your group. Time to welcome them in!', { name })
+    case ACTION_GROUP_ASSISTANT_AGREEMENT:
+      return t('Please choose whether your posts can be shared with the group’s AI assistant')
     case ACTION_TRACK_COMPLETED:
       return t('<strong>{{name}}</strong> completed the track', { name })
     case ACTION_TRACK_ENROLLMENT:
@@ -325,6 +330,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     }
     case ACTION_MEMBER_JOINED_GROUP:
       return personUrl(actor.id, groupSlug)
+    case ACTION_GROUP_ASSISTANT_AGREEMENT:
+      // Opening the group shows the agreements prompt; the About page keeps the answer to change later
+      return groupUrl(groupSlug, 'about')
     case ACTION_TAG: {
       return primaryPostUrl(post, postOpts)
     }
@@ -349,6 +357,7 @@ export function imageForNotification (notification) {
   const { activity: { action, actor, group } } = notification
   switch (action) {
     case ACTION_MEMBER_JOINED_GROUP:
+    case ACTION_GROUP_ASSISTANT_AGREEMENT:
     case ACTION_FUNDING_ROUND_NEW_SUBMISSION:
     case ACTION_FUNDING_ROUND_PHASE_TRANSITION:
     case ACTION_FUNDING_ROUND_REMINDER:

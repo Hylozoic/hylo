@@ -221,6 +221,10 @@ describe('homeRouteHostsPostOverlay', () => {
     expect(homeRouteHostsPostOverlay('/members/42')).toBe(true)
   })
 
+  it('hosts a post on the Group Assistant thread', () => {
+    expect(homeRouteHostsPostOverlay('/assistant')).toBe(true)
+  })
+
   it('does not host a post on page, welcome, or the members list', () => {
     expect(homeRouteHostsPostOverlay('/page/69228')).toBe(false)
     expect(homeRouteHostsPostOverlay('/welcome')).toBe(false)

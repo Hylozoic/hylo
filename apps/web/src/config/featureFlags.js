@@ -5,6 +5,9 @@
   ON_OUTSIDE_PRODUCTION is on in development, test and staging builds, and every other flag is off.
 */
 
+// Group assistant (Axl): the assistant chat, its settings tab and chat catch-up summaries
+export const GROUP_ASSISTANT = 'GROUP_ASSISTANT'
+
 // Hylo Pro billing: the group Billing settings tab
 export const HYLO_PRO = 'HYLO_PRO'
 

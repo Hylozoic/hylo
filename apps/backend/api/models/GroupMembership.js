@@ -1,6 +1,7 @@
 import HasSettings from './mixins/HasSettings'
 import { isEmpty } from 'lodash'
 import { TYPED_BADGE_VIEW_TYPES } from '@hylo/shared'
+import { assistantAgreementRowId } from '../../lib/groupAssistantConsent'
 import {
   whereId
 } from './group/queryUtils'
@@ -71,11 +72,17 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const groupId = this.get('group_id')
     // Spaces inherit parent agreements, so record acceptance against the parent
     const agreementGroupId = await Group.roleScopeId(groupId)
-    const groupAgreements = await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting })
+    // The Group Assistant's data-sharing agreement is never accepted along with the others: a member
+    // answers it on its own (lib/groupAssistantConsent.js), and may say no and stay in the group
+    const assistantAgreementId = await assistantAgreementRowId({ transacting, create: false })
+    const allAgreements = await GroupAgreement.where({ group_id: agreementGroupId }).fetchAll({ transacting })
+    const groupAgreements = allAgreements.filter(ga => String(ga.get('agreement_id')) !== String(assistantAgreementId))
 
     // Only set agreementsAcceptedAt if the group actually has agreements
-    // This prevents falsely recording acceptance when there's nothing to accept
-    if (groupAgreements.length === 0) {
+    // This prevents falsely recording acceptance when there's nothing to accept.
+    // A group whose only agreement is the assistant's still records it, or the
+    // "agreements have changed" prompt would keep coming back after the member answered
+    if (allAgreements.length === 0) {
       return
     }
 

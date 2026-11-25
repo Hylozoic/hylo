@@ -185,6 +185,8 @@ module.exports = bookshelf.Model.extend({
         return this.sendGroupInvitationPush()
       case 'memberJoinedGroup':
         return this.sendMemberJoinedGroupPush()
+      case 'groupAssistantAgreement':
+        return this.sendGroupAssistantAgreementPush()
       case 'mention':
         return this.sendPostPush('mention')
       case 'newComment':
@@ -501,6 +503,12 @@ module.exports = bookshelf.Model.extend({
       },
       locale
     })
+  },
+
+  sendGroupAssistantAgreementPush: async function () {
+    const group = await this.relations.activity.group().fetch()
+    const path = routeToPath(Frontend.Route.group(group))
+    return this.reader().sendPushNotification(PushNotification.textForGroupAssistantAgreement(group, this.locale()), path)
   },
 
   sendMemberJoinedGroupPush: async function () {
