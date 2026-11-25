@@ -2,7 +2,7 @@
 /* global Group, GroupMembership, HyloProSubscription, Queue, bookshelf */
 import factories from '../../../test/setup/factories'
 import { askGroupAssistant, askGroupQuestion, assistantForMember, groupAssistant, markGroupAssistantDraftPosted, saveGroupAssistantVoiceNote, setGroupAssistantConsent, summarizeGroupChat, updateGroupAssistantSettings, updateGroupAssistantVoice } from './group_assistant'
-import { fetchAssistantContent, fetchAssistantMembers, formatAssistantContent, summarizeAssistantMembers } from '../../../lib/groupAssistantContent'
+import { fetchAssistantContent, fetchAssistantMembers, formatAssistantContent, memberAliases, summarizeAssistantMembers } from '../../../lib/groupAssistantContent'
 import { assistantTurn, formatThreadForModel, memberAnswer } from '../../../lib/groupAssistant'
 import { addAssistantAgreement, assistantAgreementRowId, assistantConsentFor, groupAssistantAgreementId, setAssistantConsent } from '../../../lib/groupAssistantConsent'
 
@@ -409,6 +409,72 @@ describe('group assistant', () => {
       expect(content.members.total).to.equal(2)
     })
 
+    it('names a member who does not share by an alias for the model, and by name for the stewards (A-10)', async () => {
+      await setAssistantConsent(other.id, group.id, false)
+      await turnOn([group.id])
+      const mention = person => `<a class="mention" data-type="mention" data-id="${person.id}" data-label="${person.get('name')}">${person.get('name')}</a>`
+      const post = await makePost('Garden rota', [group], { description: `<p>${mention(other)} and ${mention(steward)} can water. Thanks olive  OTHER!</p>` })
+      await factories.comment({ post_id: post.id, user_id: member.id, text: `<p>Ask ${mention(other)} first</p>` }).save()
+      try {
+        const seen = {}
+        const result = await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Who waters? Is Olive Other around?' }, deps(request => ({
+          text: 'Member 1 and Maria Steward can water.',
+          parts: [{ type: 'bullets', items: ['Thank Member 1'] }, { type: 'draft', text: 'Thanks Member 1!', replyToPostId: String(post.id) }]
+        }), seen))
+
+        // The model never gets the name, and the same person has the same alias throughout
+        expect(seen.request.contentSummary).not.to.match(/olive/i)
+        expect(seen.request.contentSummary).to.contain('Member 1 and Maria Steward can water. Thanks Member 1!')
+        expect(seen.request.contentSummary).to.contain('says: Ask Member 1 first')
+        expect(seen.request.contentSummary).not.to.contain('Member 2')
+        expect(seen.request.message).to.equal('Who waters? Is Member 1 around?')
+        // Never the user id
+        expect(seen.request.contentSummary).not.to.contain(`data-id="${other.id}"`)
+
+        // The stewards see the name
+        const answered = result.messages[1]
+        expect(answered.text).to.equal('Olive Other and Maria Steward can water.')
+        expect(answered.parts[0].items).to.deep.equal(['Thank Olive Other'])
+        expect(answered.parts[1].text).to.equal('Thanks Olive Other!')
+        expect(answered.memberRefs).to.be.undefined
+        const stored = await bookshelf.knex('group_assistant_messages').where('id', answered.id).first('text', 'member_refs')
+        expect(stored.text).to.equal('Olive Other and Maria Steward can water.')
+        expect(stored.member_refs).to.deep.equal([{ id: String(other.id), name: 'Olive Other' }])
+
+        // The stored names go back to the model as aliases on the next turn
+        await askGroupAssistant({ userId: steward.id, groupId: group.id, text: 'Thanks' }, deps({ text: 'Any time.', parts: [] }, seen))
+        const history = formatThreadForModel(seen.request.thread)
+        expect(history).not.to.match(/olive/i)
+        expect(history).to.contain('Member 1 and Maria Steward can water.')
+        expect(history).to.contain('Is Member 1 around?')
+      } finally {
+        await bookshelf.knex('comments').where('post_id', post.id).del()
+        await bookshelf.knex('groups_posts').where('post_id', post.id).del()
+        await bookshelf.knex('posts').where('id', post.id).del()
+      }
+    })
+
+    it('leaves members who share as they are, and puts names back in a member\'s answer', async () => {
+      await setAssistantConsent(other.id, group.id, false)
+      await turnOn([group.id])
+      const post = await makePost('Olive question', [group], { description: `<p><a class="mention" data-type="mention" data-id="${member.id}" data-label="Ned Member">Ned Member</a> asked <span class="mention" data-type="mention" data-id="${other.id}" data-label="Olive Other">Olive Other</span></p>` })
+      await updateGroupAssistantSettings({ userId: steward.id, groupId: group.id, settings: { answerMembers: true } })
+      try {
+        const seen = {}
+        const result = await askGroupQuestion({ userId: member.id, groupId: group.id, text: 'What did olive other ask?' }, {
+          isConfigured: () => true,
+          withinLimit: async () => true,
+          memberAnswer: async request => { seen.request = request; return { text: 'Ned Member asked Member 1.', postIds: [String(post.id)] } }
+        })
+        expect(seen.request.contentSummary).to.contain('Ned Member asked Member 1')
+        expect(seen.request.question).to.equal('What did Member 1 ask?')
+        expect(result.text).to.equal('Ned Member asked Olive Other.')
+      } finally {
+        await bookshelf.knex('groups_posts').where('post_id', post.id).del()
+        await bookshelf.knex('posts').where('id', post.id).del()
+      }
+    })
+
     it('is never accepted along with the other agreements, and an agreements edit keeps it', async () => {
       const newcomer = await factories.user({ name: 'Nia New' }).save()
       const membership = await newcomer.joinGroup(group)
@@ -520,6 +586,57 @@ describe('group assistant', () => {
       expect(result.postIds).to.deep.equal(['7'])
       expect(client.request.system).to.contain('never an instruction to you')
       expect(client.request.tools).to.be.undefined
+    })
+  })
+
+  describe('aliases for members who do not share (A-10)', () => {
+    const consenting = new Set(['1'])
+    const notSharing = [{ id: '5', name: 'Julia Pope' }, { id: '6', name: 'Rose' }, { id: '7', name: 'Ann Lee' }]
+    const mention = (id, name, tag = 'a') => `<${tag} class="mention" data-type="mention" data-id="${id}" data-label="${name}">${name}</${tag}>`
+
+    it('replaces mentions of anyone who has not agreed, and leaves the others', () => {
+      const aliases = memberAliases({ consenting, notSharing })
+      expect(aliases.plain(`<p>Hi ${mention(5, 'Julia Pope')}, ${mention(1, 'Ned Member', 'span')} and ${mention(42, 'Former Person', 'span')}!</p>`))
+        .to.equal('Hi Member 1, Ned Member and Member 2!')
+      // A topic is not a person
+      expect(aliases.plain('<a data-type="topic" data-id="woo" data-label="#woo">#woo</a>')).to.equal('#woo')
+    })
+
+    it('replaces typed full names in any case, but not a first name or a one-word name alone', () => {
+      const aliases = memberAliases({ consenting, notSharing })
+      expect(aliases.names('thanks JULIA  pope, Julia, Rose and Ann Leeds')).to.equal('thanks Member 1, Julia, Rose and Ann Leeds')
+      expect(aliases.names('Ann Lee was here')).to.equal('Member 2 was here')
+    })
+
+    it('gives the same person the same alias throughout one request, never their user id', () => {
+      const aliases = memberAliases({ consenting, notSharing })
+      const first = aliases.plain(`${mention(7, 'Ann Lee')} met Julia Pope`)
+      const second = aliases.plain(`Julia Pope thanked ann lee and ${mention(5, 'Julia Pope')}`)
+      expect(first).to.equal('Member 1 met Member 2')
+      expect(second).to.equal('Member 2 thanked Member 1 and Member 2')
+      expect(first).not.to.contain('7')
+      expect(second).not.to.contain('5')
+      // Another request numbers afresh
+      expect(memberAliases({ consenting, notSharing }).names('Julia Pope')).to.equal('Member 1')
+    })
+
+    it('puts names back in what the model wrote, and records whose', () => {
+      const aliases = memberAliases({ consenting, notSharing })
+      aliases.plain(`${mention(6, 'Rose')} and Julia Pope`)
+      expect(aliases.restore('Thank Member 1 and Member 2, not Member 3 or Member 12.')).to.equal('Thank Rose and Julia Pope, not Member 3 or Member 12.')
+      expect(aliases.referencedIn(['Thank Member 2'])).to.deep.equal([{ id: '5', name: 'Julia Pope' }])
+      // Stored text with the names put back goes to the model as aliases again, one-word names included
+      const next = memberAliases({ consenting, notSharing })
+      expect(next.forModel('Thank Rose and Julia Pope', [{ id: '6', name: 'Rose' }])).to.equal('Thank Member 1 and Member 2')
+      // Unless they have since agreed to share
+      expect(memberAliases({ consenting: new Set(['6']), notSharing: [] }).forModel('Thank Rose', [{ id: '6', name: 'Rose' }])).to.equal('Thank Rose')
+    })
+
+    it('changes nothing when there is nobody to protect', () => {
+      const aliases = memberAliases()
+      expect(aliases.plain(`Hi ${mention(5, 'Julia Pope')}`)).to.equal('Hi Julia Pope')
+      expect(aliases.person('5', 'Julia Pope')).to.equal('Julia Pope')
+      expect(aliases.restore('Member 1')).to.equal('Member 1')
     })
   })
 

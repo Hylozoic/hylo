@@ -8306,7 +8306,8 @@ CREATE TABLE public.group_assistant_messages (
     text text DEFAULT ''::text NOT NULL,
     parts jsonb DEFAULT '[]'::jsonb NOT NULL,
     posts_read integer DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    member_refs jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 CREATE SEQUENCE public.group_assistant_messages_id_seq

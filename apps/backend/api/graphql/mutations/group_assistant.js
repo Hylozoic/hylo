@@ -9,7 +9,7 @@ import {
   validateGroupAssistantSettings
 } from '@hylo/shared'
 import { assistantTurnInChildProcess, isGroupAssistantConfigured, memberAnswerInChildProcess } from '../../../lib/groupAssistant'
-import { assistantSpaceChoices, fetchAssistantContent, fetchChatForSummary, formatAssistantContent, formatChatForSummary, linkablePostIds } from '../../../lib/groupAssistantContent'
+import { assistantSpaceChoices, fetchAssistantContent, fetchChatForSummary, formatAssistantContent, formatChatForSummary, linkablePostIds, memberAliases } from '../../../lib/groupAssistantContent'
 import { addAssistantAgreement, assistantConsentFor, consentingMemberIds, removeAssistantAgreement, setAssistantConsent } from '../../../lib/groupAssistantConsent'
 import HyloProService from '../../services/HyloProService'
 import RedisClient from '../../services/RedisClient'
@@ -194,6 +194,45 @@ async function fetchThread (groupId, limit = THREAD_PAGE) {
   return rows.reverse().map(presentMessage)
 }
 
+/**
+ * The newest messages of the thread (rows from fetchThreadRows) as the model is given them, oldest first. Axl's messages are
+ * stored with the names of members who do not share put back in (member_refs lists them), so
+ * those names, and any full name of such a member a steward typed, become aliases again here.
+ */
+const fetchThreadRows = async groupId => (await threadQuery(groupId).orderBy('group_assistant_messages.id', 'desc').limit(HISTORY_FOR_MODEL)).reverse()
+
+function threadForModel (rows, aliases) {
+  return rows.map(row => {
+    const refs = Array.isArray(row.member_refs) ? row.member_refs : []
+    return {
+      authorType: row.author_type,
+      author: aliases.person(row.user_id, row.author_name || ''),
+      text: aliases.forModel(row.text, refs),
+      parts: mapPartTexts(Array.isArray(row.parts) ? row.parts : [], text => aliases.forModel(text, refs))
+    }
+  })
+}
+
+/** Every piece of text in a message's parts passed through fn, in place of the original. */
+function mapPartTexts (parts, fn) {
+  const textKeys = ['text', 'title', 'forName', 'replyToTitle', 'author']
+  return (parts || []).map(part => {
+    const out = { ...part }
+    for (const key of textKeys) if (typeof out[key] === 'string') out[key] = fn(out[key])
+    if (Array.isArray(out.items)) out.items = out.items.map(item => typeof item === 'string' ? fn(item) : item)
+    if (Array.isArray(out.steps)) out.steps = out.steps.map(step => ({ ...step, title: fn(step.title || ''), line: fn(step.line || '') }))
+    if (out.posted && typeof out.posted.byName === 'string') out.posted = { ...out.posted, byName: fn(out.posted.byName) }
+    return out
+  })
+}
+
+/** The texts of a message's parts, for finding aliases in them. */
+const partTexts = parts => {
+  const texts = []
+  mapPartTexts(parts, text => { texts.push(text); return text })
+  return texts
+}
+
 async function fetchMessage (id) {
   if (!/^[1-9][0-9]{0,18}$/.test(String(id))) return null
   return (await messagesQuery().where('group_assistant_messages.id', id).first()) || null
@@ -363,7 +402,7 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
   }
 
   const knex = bookshelf.knex
-  const earlier = await fetchThread(group.id, HISTORY_FOR_MODEL)
+  const earlierRows = await fetchThreadRows(group.id)
   const [stewardRow] = await knex('group_assistant_messages')
     .insert({ group_id: group.id, author_type: 'steward', user_id: userId, text: message })
     .returning('id')
@@ -372,6 +411,10 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
   // The only content the model sees: what the stewards chose, selected in the database
   const abilities = { followUps: settings.followUps, shareLoad: settings.shareLoad }
   const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: settings.readMembers, abilities })
+  // Members who do not share are named by an alias in everything the model is given (A-10)
+  const aliases = content.aliases || memberAliases()
+  const earlier = threadForModel(earlierRows, aliases)
+
   const allowedPostIds = content.posts.map(post => post.id)
   const allowedGroupIds = content.spaces.map(space => space.id)
   const asker = await knex('users').where('id', userId).first('name')
@@ -382,10 +425,10 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
       contentSummary: formatAssistantContent(content),
       allowedPostIds,
       allowedGroupIds,
-      thread: earlier.map(item => ({ authorType: item.authorType, author: item.author?.name || '', text: item.text, parts: item.parts })),
-      steward: asker?.name || '',
-      voice: await stewardVoice(userId, group.id),
-      message,
+      thread: earlier,
+      steward: aliases.person(userId, asker?.name || ''),
+      voice: aliases.names(await stewardVoice(userId, group.id)),
+      message: aliases.names(message),
       abilities
     })
   } catch (err) {
@@ -395,12 +438,17 @@ export async function askGroupAssistant ({ userId, groupId, text }, deps = {}) {
 
   // Checked again here, in the API process, whatever produced the answer
   const { parts } = sanitizeAssistantParts(answer.parts, { postIds: allowedPostIds, groupIds: allowedGroupIds })
+  // The stewards see members' real names: each alias is swapped back before the answer is stored.
+  // member_refs records whose names were put back, so the next turn can alias them again.
+  const described = describeParts(parts, content, { id: userId, name: asker?.name })
+  const memberRefs = aliases.referencedIn([answer.text, ...partTexts(described)])
   const [axlRow] = await knex('group_assistant_messages')
     .insert({
       group_id: group.id,
       author_type: 'axl',
-      text: String(answer.text || '').slice(0, MAX_ASSISTANT_MESSAGE_LENGTH),
-      parts: JSON.stringify(describeParts(parts, content, { id: userId, name: asker?.name })),
+      text: String(aliases.restore(String(answer.text || ''))).slice(0, MAX_ASSISTANT_MESSAGE_LENGTH),
+      parts: JSON.stringify(mapPartTexts(described, text => aliases.restore(text))),
+      member_refs: JSON.stringify(memberRefs),
       posts_read: content.postsRead
     })
     .returning('id')
@@ -530,7 +578,8 @@ export async function summarizeGroupChat ({ userId, groupId, sincePostId }, deps
       contentSummary: formatChatForSummary({ spaceName: place.get('name') || '', ...chat }),
       allowedPostIds: chat.messages.map(message => message.id)
     })
-    return { text: answer.text, messagesRead: chat.messages.length, notShared: chat.notShared }
+    // The member can read this chat themselves, so the names behind the aliases are no news to them
+    return { text: chat.aliases ? chat.aliases.restore(answer.text) : answer.text, messagesRead: chat.messages.length, notShared: chat.notShared }
   } catch (err) {
     sails.log.error(`summarizeGroupChat failed for group ${place.id}: ${err.message}`)
     throw new GraphQLError(`Axl could not answer: ${err.message}`)
@@ -549,18 +598,20 @@ export async function askGroupQuestion ({ userId, groupId, text }, deps = {}) {
   if (question.length > MAX_ASSISTANT_MESSAGE_LENGTH) throw new GraphQLError(`A question can be up to ${MAX_ASSISTANT_MESSAGE_LENGTH} characters`)
   const { group, settings } = await requireMemberAbility(userId, groupId, 'answerMembers', deps)
   const content = await (deps.fetchContent || fetchAssistantContent)({ group, readableGroupIds: settings.readableGroupIds, includeMembers: false })
+  const aliases = content.aliases || memberAliases()
   try {
     const answer = await (deps.memberAnswer || memberAnswerInChildProcess)({
       kind: 'answer',
       contentSummary: formatAssistantContent(content),
-      question,
+      question: aliases.names(question),
       allowedPostIds: content.posts.map(post => post.id)
     })
+    // The member can read these posts themselves, so the names behind the aliases are no news to them
     const posts = answer.postIds
       .map(id => content.posts.find(post => post.id === id))
       .filter(Boolean)
-      .map(post => ({ id: post.id, title: post.title || post.text.slice(0, 80) }))
-    return { text: answer.text, posts }
+      .map(post => ({ id: post.id, title: aliases.restore(post.title || post.text.slice(0, 80)) }))
+    return { text: aliases.restore(answer.text), posts }
   } catch (err) {
     sails.log.error(`askGroupQuestion failed for group ${group.id}: ${err.message}`)
     throw new GraphQLError(`Axl could not answer: ${err.message}`)

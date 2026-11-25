@@ -26,6 +26,13 @@ import { consentingMemberIds } from './groupAssistantConsent'
  * members who accepted the group's assistant agreement are selected. Everyone else (said no, or
  * has not answered yet) is left out in the queries, as if they had not posted, and is not in the
  * member summary. The model is told how many members are left out, never who.
+ *
+ * What consenting members wrote can still name someone who has not agreed (decision A-10). Those
+ * references are replaced with an alias before anything reaches the model (see memberAliases):
+ * - mentions (<a|span data-type="mention" data-id="...">) of anyone who has not agreed
+ * - the full names of members who have not agreed, typed as plain text
+ * Text quoted from someone who has not agreed is not detected: it goes as the consenting member
+ * wrote it. The data is pseudonymised, not anonymous.
  */
 
 const RECENT_DAYS = 30
@@ -46,6 +53,143 @@ function plainText (html, max) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, max)
+}
+
+const ALIAS = /\bMember ([1-9][0-9]{0,5})\b/g
+const NOT_WORD_BEFORE = '(?<![\\p{L}\\p{N}_])'
+const NOT_WORD_AFTER = '(?![\\p{L}\\p{N}_])'
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+// A name as a pattern: whole words, any case, any run of spaces between its words
+const namePattern = name => name.trim().split(/\s+/).map(escapeRegExp).join('\\s+')
+const normalName = name => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase()
+const decodeEntities = text => String(text || '')
+  .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+
+/**
+ * Aliases for people who have not agreed to share with the assistant, for one request.
+ *
+ * consenting: Set of the user ids (strings) who agreed; null means everyone counts as
+ *   consenting and nothing is replaced (used when there is nothing to protect).
+ * notSharing: [{ id, name }] the group's active members who have not agreed.
+ *
+ * Each such person gets "Member N", numbered in the order they first appear in this request, so
+ * the same person has the same alias throughout one request. The alias is never their user id,
+ * which is public in profile URLs. The alias -> person map stays in this object, on the server:
+ * only text with the aliases in it goes to the model, and restore() swaps them back in what the
+ * model wrote before anyone sees it.
+ *
+ * Typed names are matched only as full names of two or more words, whole words and in any case.
+ * A first name alone, or a name of one word, is not matched: too many ordinary words would be
+ * replaced ("Will", "Rose"). Nicknames and misspellings are missed. Mentions are always caught.
+ */
+export function memberAliases ({ consenting = null, notSharing = [] } = {}) {
+  const byId = new Map() // user id -> { alias, id, name }
+  const byAlias = new Map() // alias -> { alias, id, name }
+  const namesById = new Map((notSharing || []).map(member => [String(member.id), member.name || '']))
+  const isSharing = id => !consenting || consenting.has(String(id))
+
+  // The full names that are matched in plain text, longest first so "Ann Lee Smith" wins over "Ann Lee"
+  const typedIds = new Map()
+  for (const member of notSharing || []) {
+    const key = normalName(member.name)
+    if (key.split(' ').length >= 2 && !typedIds.has(key)) typedIds.set(key, String(member.id))
+  }
+  const typedNames = [...typedIds.keys()].sort((a, b) => b.length - a.length)
+  const typedRegex = typedNames.length > 0
+    ? new RegExp(`${NOT_WORD_BEFORE}(?:${typedNames.map(namePattern).join('|')})${NOT_WORD_AFTER}`, 'giu')
+    : null
+
+  const aliasFor = (id, name) => {
+    const key = String(id)
+    let entry = byId.get(key)
+    if (!entry) {
+      entry = { alias: `Member ${byId.size + 1}`, id: key, name: namesById.get(key) || String(name || '').trim() }
+      byId.set(key, entry)
+      byAlias.set(entry.alias, entry)
+    }
+    return entry.alias
+  }
+
+  const aliases = {
+    /** The name to give the model for one person: their own if they agreed, otherwise their alias. */
+    person (id, name) {
+      return !id || isSharing(id) ? (name || '') : aliasFor(id, name)
+    },
+
+    /** Replaces mentions of anyone who has not agreed with their alias, in HTML. */
+    mentions (html) {
+      if (!consenting) return String(html || '')
+      return String(html || '').replace(/<(a|span)\b([^>]*)>([\s\S]*?)<\/\1\s*>/gi, (whole, tag, attrs, inner) => {
+        if (!/\bdata-type\s*=\s*["']?mention\b/i.test(attrs)) return whole
+        const id = (attrs.match(/\bdata-id\s*=\s*["']?([^"'\s>]+)/i) || [])[1]
+        if (!id || isSharing(id)) return whole
+        const label = (attrs.match(/\bdata-label\s*=\s*"([^"]*)"/i) || attrs.match(/\bdata-label\s*=\s*'([^']*)'/i) || [])[1]
+        return aliasFor(id, decodeEntities(label || inner.replace(/<[^>]*>/g, '')).replace(/^@/, ''))
+      })
+    },
+
+    /** Replaces the full names of members who have not agreed, typed as plain text, with their alias. */
+    names (text) {
+      if (!typedRegex) return String(text || '')
+      return String(text || '').replace(typedRegex, match => aliasFor(typedIds.get(normalName(match))))
+    },
+
+    /** Member-written HTML as plain text for the model, with both kinds of reference replaced. */
+    plain (html, max) {
+      return aliases.names(plainText(aliases.mentions(html))).slice(0, max)
+    },
+
+    /**
+     * Text stored earlier (the thread) for the model: the names in refs ([{ id, name }], the
+     * people whose names were put back into that message) and typed full names become aliases
+     * again, so a stored message never sends a name the first request kept out.
+     */
+    forModel (text, refs = []) {
+      let out = String(text || '')
+      for (const ref of refs || []) {
+        if (!ref?.id || !ref.name || isSharing(ref.id)) continue
+        out = out.replace(new RegExp(`${NOT_WORD_BEFORE}${namePattern(ref.name)}${NOT_WORD_AFTER}`, 'giu'), () => aliasFor(ref.id, ref.name))
+      }
+      return aliases.names(out)
+    },
+
+    /** What the model wrote, with each alias of this request swapped back for the person's name. */
+    restore (text) {
+      if (byAlias.size === 0) return text
+      return String(text || '').replace(ALIAS, match => byAlias.get(match)?.name || match)
+    },
+
+    /** The people ([{ id, name }]) whose alias appears in any of these texts. */
+    referencedIn (texts) {
+      const found = new Map()
+      for (const text of texts || []) {
+        for (const match of String(text || '').matchAll(ALIAS)) {
+          const entry = byAlias.get(match[0])
+          if (entry && entry.name) found.set(entry.id, { id: entry.id, name: entry.name })
+        }
+      }
+      return [...found.values()]
+    },
+
+    get size () { return byId.size }
+  }
+  return aliases
+}
+
+/** The group's active members who have not agreed to share: [{ id, name }]. */
+export async function membersNotSharing (groupId, consenting) {
+  const rows = await bookshelf.knex('group_memberships')
+    .join('users', 'users.id', 'group_memberships.user_id')
+    .where({ 'group_memberships.group_id': groupId, 'group_memberships.active': true, 'users.active': true })
+    .whereNotIn('group_memberships.user_id', [...consenting])
+    .select('users.id', 'users.name')
+  return rows.map(row => ({ id: String(row.id), name: row.name || '' }))
+}
+
+/** memberAliases for one group as it is now. */
+export async function groupMemberAliases (groupId, consenting) {
+  const allowed = consenting || await consentingMemberIds(groupId)
+  return memberAliases({ consenting: allowed, notSharing: await membersNotSharing(groupId, allowed) })
 }
 
 const daysBetween = (from, to) => Math.max(0, Math.round((to.getTime() - from.getTime()) / 86400000))
@@ -173,16 +317,20 @@ export async function fetchAssistantMembers ({ group, consenting, now = new Date
  * comments in the readable spaces, plus the group's agreements and About text,
  * and a summary of its members when the stewards allow that.
  *
- * Returns { spaces, about, agreements, posts, postsRead, members } where
+ * Returns { spaces, about, agreements, posts, postsRead, members, notSharing, aliases } where
  * postsRead is the number of posts and comments included (the weekly receipt
- * counts these) and members is null unless includeMembers is set.
+ * counts these), members is null unless includeMembers is set, and aliases
+ * (memberAliases) maps the "Member N" aliases in the text back to people.
  */
 export async function fetchAssistantContent ({ group, readableGroupIds, includeMembers = false, abilities = null, now = new Date() }) {
   const consenting = await consentingMemberIds(group.id)
-  const content = await fetchAssistantPosts({ group, readableGroupIds, consenting, now })
-  const notSharing = await countMembersNotSharing(group.id, consenting)
+  const notSharingMembers = await membersNotSharing(group.id, consenting)
+  const aliases = memberAliases({ consenting, notSharing: notSharingMembers })
+  const content = await fetchAssistantPosts({ group, readableGroupIds, consenting, aliases, now })
   const members = includeMembers ? await fetchAssistantMembers({ group, consenting, now }) : null
-  return { ...content, notSharing, members, ...assistantSignals({ posts: content.posts, members }, abilities) }
+  // aliases is for the server only (it maps each alias back to a person): format the content
+  // with formatAssistantContent, never send this object as it is
+  return { ...content, notSharing: notSharingMembers.length, members, aliases, ...assistantSignals({ posts: content.posts, members }, abilities) }
 }
 
 const NEWCOMER_DAYS = 14
@@ -223,18 +371,7 @@ export function assistantSignals ({ posts = [], members = null }, abilities) {
   return { followUps, load }
 }
 
-/** How many active members have not accepted the assistant agreement (said no or not answered). */
-async function countMembersNotSharing (groupId, consenting) {
-  const row = await bookshelf.knex('group_memberships')
-    .join('users', 'users.id', 'group_memberships.user_id')
-    .where({ 'group_memberships.group_id': groupId, 'group_memberships.active': true, 'users.active': true })
-    .whereNotIn('group_memberships.user_id', [...consenting])
-    .count('* as count')
-    .first()
-  return Number(row?.count) || 0
-}
-
-async function fetchAssistantPosts ({ group, readableGroupIds, consenting, now }) {
+async function fetchAssistantPosts ({ group, readableGroupIds, consenting, aliases, now }) {
   const knex = bookshelf.knex
   const allowed = [...consenting]
   const spaces = await readableSpaces(group.id, readableGroupIds)
@@ -242,8 +379,8 @@ async function fetchAssistantPosts ({ group, readableGroupIds, consenting, now }
 
   const about = {
     name: group.get('name') || '',
-    purpose: plainText(group.get('purpose'), MAX_ABOUT_TEXT),
-    description: plainText(group.get('description'), MAX_ABOUT_TEXT)
+    purpose: aliases.plain(group.get('purpose'), MAX_ABOUT_TEXT),
+    description: aliases.plain(group.get('description'), MAX_ABOUT_TEXT)
   }
   const agreementRows = await knex('groups_agreements')
     .join('agreements', 'agreements.id', 'groups_agreements.agreement_id')
@@ -251,7 +388,7 @@ async function fetchAssistantPosts ({ group, readableGroupIds, consenting, now }
     .where('groups_agreements.active', true)
     .orderBy('groups_agreements.order', 'asc')
     .select('agreements.title', 'agreements.description')
-  const agreements = agreementRows.map(row => ({ title: plainText(row.title, 160), description: plainText(row.description, 400) }))
+  const agreements = agreementRows.map(row => ({ title: aliases.plain(row.title, 160), description: aliases.plain(row.description, 400) }))
 
   if (spaceIds.length === 0) return { spaces, about, agreements, posts: [], postsRead: 0 }
 
@@ -292,8 +429,8 @@ async function fetchAssistantPosts ({ group, readableGroupIds, consenting, now }
   const posts = uniqueRows.map(row => ({
     id: String(row.id),
     type: row.type,
-    title: plainText(row.name, 160),
-    text: plainText(row.description, MAX_POST_TEXT),
+    title: aliases.plain(row.name, 160),
+    text: aliases.plain(row.description, MAX_POST_TEXT),
     author: row.author || '',
     spaceId: String(row.space_id),
     space: spaceName(row.space_id),
@@ -305,7 +442,7 @@ async function fetchAssistantPosts ({ group, readableGroupIds, consenting, now }
       .reverse()
       .map(comment => ({
         author: comment.author || '',
-        text: plainText(comment.text, MAX_COMMENT_TEXT),
+        text: aliases.plain(comment.text, MAX_COMMENT_TEXT),
         daysAgo: daysBetween(new Date(comment.created_at), now)
       }))
   }))
@@ -420,12 +557,15 @@ const MAX_CHAT_TEXT = 400
 /**
  * A chat room's messages for a member's "catch me up" summary: chat posts in one group or space,
  * newer than sincePostId (or from the last day when there is none), from members who agreed to
- * share only. Returns { messages: [{ id, author, text, minutesAgo }], notShared } where notShared
- * counts the messages left out.
+ * share only. Returns { messages: [{ id, author, text, minutesAgo }], notShared, aliases } where
+ * notShared counts the messages left out and aliases (memberAliases, server only) maps the
+ * "Member N" aliases in the text back to people.
  */
 export async function fetchChatForSummary ({ assistantGroupId, chatGroupId, sincePostId = null, now = new Date() }) {
   const knex = bookshelf.knex
-  const consenting = [...await consentingMemberIds(assistantGroupId)]
+  const consentingSet = await consentingMemberIds(assistantGroupId)
+  const consenting = [...consentingSet]
+  const aliases = await groupMemberAliases(assistantGroupId, consentingSet)
   const base = () => {
     const query = knex('posts')
       .join('groups_posts', 'groups_posts.post_id', 'posts.id')
@@ -446,10 +586,10 @@ export async function fetchChatForSummary ({ assistantGroupId, chatGroupId, sinc
   const messages = rows.reverse().map(row => ({
     id: String(row.id),
     author: row.author || '',
-    text: plainText(row.description, MAX_CHAT_TEXT),
+    text: aliases.plain(row.description, MAX_CHAT_TEXT),
     minutesAgo: Math.max(0, Math.round((now.getTime() - new Date(row.created_at).getTime()) / 60000))
   })).filter(message => message.text)
-  return { messages, notShared: Math.max(0, (Number(all?.count) || 0) - rows.length) }
+  return { messages, notShared: Math.max(0, (Number(all?.count) || 0) - rows.length), aliases }
 }
 
 /** The chat for a summary as plain text for the prompt; message text is quoted member text. */
