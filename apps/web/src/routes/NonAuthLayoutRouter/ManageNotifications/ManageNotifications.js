@@ -1,7 +1,7 @@
 import { cn } from 'util/index'
-import { isEmpty } from 'lodash'
 import React, { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
+import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet'
 import { useTranslation } from 'react-i18next'
 import useRouteParams from 'hooks/useRouteParams'
@@ -21,6 +21,14 @@ import updateNotificationSettings from 'store/actions/updateNotificationSettings
 
 import styles from './ManageNotifications.module.scss'
 
+// After login, the user lands on the in-app notification settings
+const LOGIN_TO_NOTIFICATIONS_PATH = '/login?returnToUrl=' + encodeURIComponent('/my/notifications')
+
+// The backend answers 403 when the emailed token is invalid or has expired
+function errorStatus (error) {
+  return error?.response?.status === 403 ? 'expired' : 'failed'
+}
+
 export default function ManageNotifications (props) {
   const { t } = useTranslation()
   const dispatch = useDispatch()
@@ -31,21 +39,47 @@ export default function ManageNotifications (props) {
   const [settings, setSettings] = useState({ allGroupNotifications: 'keep' })
   const [changedSettings, setChangedSettings] = useState({})
   const [unsubscribeAll, setUnsubscribeAll] = useState(false)
+  // 'loading' | 'loaded' | 'expired' | 'failed'
+  const [loadStatus, setLoadStatus] = useState('loading')
+  // null | 'saving' | 'saved' | 'expired' | 'failed'
+  const [saveStatus, setSaveStatus] = useState(null)
 
   const { commentNotifications, dmNotifications, digestFrequency, postNotifications, allGroupNotifications } = settings
 
   useEffect(() => {
-    dispatch(fetchNotificationSettings(token)).then((data) => setSettings({ ...data.payload, allGroupNotifications: 'keep' }))
+    dispatch(fetchNotificationSettings(token))
+      .then(action => {
+        if (action.error) throw action.payload
+        setSettings({ ...action.payload, allGroupNotifications: 'keep' })
+        setLoadStatus('loaded')
+      })
+      .catch(error => setLoadStatus(errorStatus(error)))
   }, [])
 
   const updateSetting = setting => value => {
     setSettings({ ...settings, [setting]: value })
     setChangedSettings({ ...changedSettings, [setting]: value })
+    setSaveStatus(null)
   }
 
   const submit = () => {
+    setSaveStatus('saving')
     dispatch(updateNotificationSettings(token, { unsubscribeAll, ...changedSettings }))
+      .then(action => {
+        if (action.error) throw action.payload
+        setSaveStatus('saved')
+      })
+      .catch(error => setSaveStatus(errorStatus(error)))
   }
+
+  const expiredMessage = (
+    <div role='alert' data-testid='manage-notifications-expired' className='text-destructive text-sm my-4'>
+      <p className='mb-2'>{t('This link has expired or is no longer valid.')}</p>
+      <Link to={LOGIN_TO_NOTIFICATIONS_PATH} className='underline text-destructive'>
+        {t('Log in to change your notification settings')}
+      </Link>
+    </div>
+  )
 
   const notificationOptions = [
     { id: 'none', label: t('None') },
@@ -53,6 +87,16 @@ export default function ManageNotifications (props) {
     { id: 'push', label: t('Mobile App') },
     { id: 'both', label: t('Email & Mobile App') }
   ]
+
+  const loadStatusMessage = {
+    loading: t('Loading...'),
+    expired: expiredMessage,
+    failed: (
+      <p role='alert' data-testid='manage-notifications-load-failed' className='text-destructive text-sm my-4'>
+        {t('Your notification settings could not be loaded. Please try again later.')}
+      </p>
+    )
+  }[loadStatus]
 
   const groupNotificationOptions = [{ id: 'keep', label: t('Existing per Group Settings') }, ...notificationOptions]
 
@@ -64,8 +108,8 @@ export default function ManageNotifications (props) {
       <div className={cn(props.className, styles.wrapper)}>
         <h1>{t('Hi {{userName}}', { userName })}</h1>
         <p>{t('You can change your Hylo notification settings here')}</p>
-        {isEmpty(settings)
-          ? t('Loading...')
+        {loadStatus !== 'loaded'
+          ? loadStatusMessage
           : (
             <div className={styles.formWrapper}>
               <div className={styles.settingWrapper}>
@@ -162,7 +206,7 @@ export default function ManageNotifications (props) {
                 <Checkbox
                   id='unsubscribe-all'
                   checked={unsubscribeAll}
-                  onCheckedChange={value => setUnsubscribeAll(!!value)}
+                  onCheckedChange={value => { setUnsubscribeAll(!!value); setSaveStatus(null) }}
                 />
                 <Label htmlFor='unsubscribe-all' className={cn('cursor-pointer font-normal', styles.unsubscribeAllLabel)}>
                   {t('Unsubscribe from all')}
@@ -174,7 +218,19 @@ export default function ManageNotifications (props) {
                 label={t('Save Settings')}
                 color='green'
                 onClick={submit}
+                disabled={saveStatus === 'saving'}
               />
+              {saveStatus === 'saved' && (
+                <p role='status' data-testid='manage-notifications-saved' className='text-sm mt-4'>
+                  {t('Your notification settings have been saved.')}
+                </p>
+              )}
+              {saveStatus === 'expired' && expiredMessage}
+              {saveStatus === 'failed' && (
+                <p role='alert' data-testid='manage-notifications-save-failed' className='text-destructive text-sm mt-4'>
+                  {t('Your notification settings could not be saved. Please try again.')}
+                </p>
+              )}
             </div>)}
       </div>
     </>

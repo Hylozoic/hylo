@@ -3535,5 +3535,10 @@
   "You can attach up to {{max}} files at a time": "आप एक बार में अधिकतम {{max}} फ़ाइलें संलग्न कर सकते हैं",
   "Upload failed. Please try again.": "अपलोड विफल रहा। कृपया पुनः प्रयास करें।",
   "Give this view a name of at least 2 characters": "इस व्यू को कम से कम 2 अक्षरों का नाम दें",
-  "Choose at least one post type": "कम से कम एक पोस्ट प्रकार चुनें"
+  "Choose at least one post type": "कम से कम एक पोस्ट प्रकार चुनें",
+  "This link has expired or is no longer valid.": "यह लिंक समाप्त हो गया है या अब मान्य नहीं है।",
+  "Log in to change your notification settings": "अपनी सूचना सेटिंग्स बदलने के लिए लॉग इन करें",
+  "Your notification settings could not be loaded. Please try again later.": "आपकी सूचना सेटिंग्स लोड नहीं हो सकीं। कृपया बाद में फिर से प्रयास करें।",
+  "Your notification settings have been saved.": "आपकी सूचना सेटिंग्स सहेज ली गई हैं।",
+  "Your notification settings could not be saved. Please try again.": "आपकी सूचना सेटिंग्स सहेजी नहीं जा सकीं। कृपया फिर से प्रयास करें।"
 }

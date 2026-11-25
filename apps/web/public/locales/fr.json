@@ -3536,5 +3536,10 @@
   "You can attach up to {{max}} files at a time": "Vous pouvez joindre jusqu'à {{max}} fichiers à la fois",
   "Upload failed. Please try again.": "Échec du téléversement. Veuillez réessayer.",
   "Give this view a name of at least 2 characters": "Donnez à cette vue un nom d'au moins 2 caractères",
-  "Choose at least one post type": "Choisissez au moins un type de publication"
+  "Choose at least one post type": "Choisissez au moins un type de publication",
+  "This link has expired or is no longer valid.": "Ce lien a expiré ou n’est plus valide.",
+  "Log in to change your notification settings": "Connectez-vous pour modifier vos paramètres de notification",
+  "Your notification settings could not be loaded. Please try again later.": "Vos paramètres de notification n’ont pas pu être chargés. Veuillez réessayer plus tard.",
+  "Your notification settings have been saved.": "Vos paramètres de notification ont été enregistrés.",
+  "Your notification settings could not be saved. Please try again.": "Vos paramètres de notification n’ont pas pu être enregistrés. Veuillez réessayer."
 }

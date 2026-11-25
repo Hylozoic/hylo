@@ -3535,5 +3535,10 @@
   "You can attach up to {{max}} files at a time": "Du kannst bis zu {{max}} Dateien auf einmal anhängen",
   "Upload failed. Please try again.": "Hochladen fehlgeschlagen. Bitte versuche es erneut.",
   "Give this view a name of at least 2 characters": "Gib dieser Ansicht einen Namen mit mindestens 2 Zeichen",
-  "Choose at least one post type": "Wähle mindestens einen Beitragstyp aus"
+  "Choose at least one post type": "Wähle mindestens einen Beitragstyp aus",
+  "This link has expired or is no longer valid.": "Dieser Link ist abgelaufen oder nicht mehr gültig.",
+  "Log in to change your notification settings": "Melde dich an, um deine Benachrichtigungseinstellungen zu ändern",
+  "Your notification settings could not be loaded. Please try again later.": "Deine Benachrichtigungseinstellungen konnten nicht geladen werden. Bitte versuche es später erneut.",
+  "Your notification settings have been saved.": "Deine Benachrichtigungseinstellungen wurden gespeichert.",
+  "Your notification settings could not be saved. Please try again.": "Deine Benachrichtigungseinstellungen konnten nicht gespeichert werden. Bitte versuche es erneut."
 }

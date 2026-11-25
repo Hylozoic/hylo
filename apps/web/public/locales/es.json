@@ -3543,5 +3543,10 @@
   "You can attach up to {{max}} files at a time": "Puedes adjuntar hasta {{max}} archivos a la vez",
   "Upload failed. Please try again.": "Error al subir. Inténtalo de nuevo.",
   "Give this view a name of at least 2 characters": "Dale a esta vista un nombre de al menos 2 caracteres",
-  "Choose at least one post type": "Elige al menos un tipo de publicación"
+  "Choose at least one post type": "Elige al menos un tipo de publicación",
+  "This link has expired or is no longer valid.": "Este enlace ha caducado o ya no es válido.",
+  "Log in to change your notification settings": "Inicia sesión para cambiar tus ajustes de notificaciones",
+  "Your notification settings could not be loaded. Please try again later.": "No se pudieron cargar tus ajustes de notificaciones. Inténtalo de nuevo más tarde.",
+  "Your notification settings have been saved.": "Tus ajustes de notificaciones se han guardado.",
+  "Your notification settings could not be saved. Please try again.": "No se pudieron guardar tus ajustes de notificaciones. Inténtalo de nuevo."
 }
