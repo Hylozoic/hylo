@@ -168,8 +168,10 @@ describe('graphql request handler', () => {
     const query = id => `{ group(id: "${id}") {
       hasPro
       proState
+      proFeatures { designedViews recording }
       proBilling {
-        hasPro state graceEndsAt canUpgrade canManage needsPaymentUpdate
+        hasPro state graceEndsAt canUpgrade canManage needsPaymentUpdate tier
+        features { designedViews recording }
         subscription { source status active interval cancelAtPeriodEnd endsAt }
         grant { id }
         plans { interval unitAmount currency }
@@ -181,10 +183,12 @@ describe('graphql request handler', () => {
       req.user = steward
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      const { hasPro, proState, proBilling } = executionResult.data.group
+      const { hasPro, proState, proFeatures, proBilling } = executionResult.data.group
       expect(hasPro).to.equal(true)
       expect(proState).to.equal('active')
-      expect(proBilling).to.deep.include({ hasPro: true, state: 'active', graceEndsAt: null, canUpgrade: false, canManage: true, needsPaymentUpdate: false, grant: null })
+      expect(proFeatures).to.deep.equal({ designedViews: true, recording: false })
+      expect(proBilling).to.deep.include({ hasPro: true, state: 'active', graceEndsAt: null, canUpgrade: false, canManage: true, needsPaymentUpdate: false, grant: null, tier: 'pro' })
+      expect(proBilling.features).to.deep.equal({ designedViews: true, recording: false })
       expect(proBilling.subscription).to.deep.include({
         source: 'stripe',
         status: 'active',
@@ -194,8 +198,8 @@ describe('graphql request handler', () => {
       })
       expect(new Date(proBilling.subscription.endsAt).toISOString()).to.equal('2099-01-01T00:00:00.000Z')
       expect(proBilling.plans).to.deep.equal([
-        { interval: 'month', unitAmount: 1000, currency: 'usd' },
-        { interval: 'year', unitAmount: 10000, currency: 'usd' }
+        { interval: 'month', unitAmount: 6000, currency: 'usd' },
+        { interval: 'year', unitAmount: 60000, currency: 'usd' }
       ])
     })
 
@@ -204,7 +208,7 @@ describe('graphql request handler', () => {
       req.user = member
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proBilling: null })
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proFeatures: { designedViews: true, recording: false }, proBilling: null })
     })
 
     it("shows the grace state only to stewards; other members see 'active'", async () => {
@@ -227,7 +231,8 @@ describe('graphql request handler', () => {
       req.user = steward
       let { executionResult } = await handler.inject({ document: query(graceGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.include({ hasPro: true, proState: 'grace' })
+      // Features keep working in grace
+      expect(executionResult.data.group).to.deep.include({ hasPro: true, proState: 'grace', proFeatures: { designedViews: true, recording: false } })
       expect(executionResult.data.group.proBilling).to.deep.include({ hasPro: true, state: 'grace', needsPaymentUpdate: true })
       expect(new Date(executionResult.data.group.proBilling.graceEndsAt).getTime())
         .to.equal(periodStart.getTime() + HyloProSubscription.STRIPE_GRACE_DAYS * 24 * 60 * 60 * 1000)
@@ -236,7 +241,7 @@ describe('graphql request handler', () => {
       req.user = member
       ;({ executionResult } = await handler.inject({ document: query(graceGroup.id), serverContext: { req, res } }))
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proBilling: null })
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proFeatures: { designedViews: true, recording: false }, proBilling: null })
     })
 
     it('has no billing for spaces, even for their stewards', async () => {
@@ -247,6 +252,76 @@ describe('graphql request handler', () => {
       const { executionResult } = await handler.inject({ document: query(space.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
       expect(executionResult.data.group.proBilling).to.equal(null)
+    })
+  })
+
+  describe('Hylo Pro management', () => {
+    let staff, steward, proGroup, oldAdmins
+
+    before(async () => {
+      staff = await factories.user().save()
+      steward = await factories.user().save()
+      proGroup = await factories.group().save()
+      await steward.joinGroup(proGroup, { assignAdministrator: true })
+      oldAdmins = process.env.HYLO_ADMINS
+      process.env.HYLO_ADMINS = String(staff.id)
+    })
+
+    after(async () => {
+      process.env.HYLO_ADMINS = oldAdmins
+      await HyloProSubscription.query().where({ group_id: proGroup.id }).del()
+    })
+
+    const as = person => {
+      req.session.userId = person.id
+      req.user = person
+    }
+
+    it("refuses a group's own stewards", async () => {
+      as(steward)
+      const { executionResult } = await handler.inject({ document: '{ hyloProMetrics { activeGroups } }', serverContext: { req, res } })
+      expect(executionResult.errors[0].message).to.match(/Admin access required/)
+      expect(executionResult.data.hyloProMetrics).to.equal(null)
+
+      const mutation = `mutation { grantHyloPro(groupId: "${proGroup.id}") { id } }`
+      const result = await handler.inject({ document: mutation, serverContext: { req, res } })
+      expect(result.executionResult.errors[0].message).to.match(/Admin access required/)
+      expect(await proGroup.hasPro()).to.be.false
+    })
+
+    it('lets Hylo staff grant Pro and see it in the list and metrics', async () => {
+      as(staff)
+      // The grant form first resolves what staff typed, then grants by id
+      const lookup = await handler.inject({
+        document: `{ hyloProGroups(slugOrId: "${proGroup.get('slug')}") { id name slug } }`,
+        serverContext: { req, res }
+      })
+      expect(lookup.executionResult.errors, JSON.stringify(lookup.executionResult.errors)).to.be.undefined
+      expect(lookup.executionResult.data.hyloProGroups).to.deep.equal([{ id: String(proGroup.id), name: proGroup.get('name'), slug: proGroup.get('slug') }])
+
+      const grant = await handler.inject({
+        document: `mutation { grantHyloPro(groupId: "${lookup.executionResult.data.hyloProGroups[0].id}", tier: "pro_plus", features: [{ key: "singleSignOn", enabled: true }], expiresAt: "2099-01-01T00:00:00Z", note: "pilot") {
+          source status active note expiresAt tier features { key enabled } group { id } grantedBy { id }
+        } }`,
+        serverContext: { req, res }
+      })
+      expect(grant.executionResult.errors).to.be.undefined
+      expect(grant.executionResult.data.grantHyloPro).to.deep.include({ source: 'manual', status: 'active', active: true, note: 'pilot', tier: 'pro_plus' })
+      expect(grant.executionResult.data.grantHyloPro.features).to.deep.equal([{ key: 'singleSignOn', enabled: true }])
+      expect(grant.executionResult.data.grantHyloPro.group.id).to.equal(String(proGroup.id))
+      expect(grant.executionResult.data.grantHyloPro.grantedBy.id).to.equal(String(staff.id))
+
+      const { executionResult } = await handler.inject({
+        document: `{
+          hyloProMetrics { activeGroups manualGroups months { month grants } }
+          hyloProSubscriptions(filter: "manual", search: "${proGroup.get('slug')}") { total items { note group { slug } } }
+        }`,
+        serverContext: { req, res }
+      })
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.hyloProMetrics.activeGroups).to.be.at.least(1)
+      expect(executionResult.data.hyloProMetrics.months).to.have.length(6)
+      expect(executionResult.data.hyloProSubscriptions).to.deep.equal({ total: 1, items: [{ note: 'pilot', group: { slug: proGroup.get('slug') } }] })
     })
   })
 

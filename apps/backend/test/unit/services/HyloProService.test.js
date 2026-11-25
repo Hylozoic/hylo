@@ -117,11 +117,21 @@ describe('HyloProService', () => {
       expect(row.get('source')).to.equal('stripe')
       expect(row.get('status')).to.equal('active')
       expect(row.get('interval')).to.equal('month')
+      expect(row.get('tier')).to.equal('pro')
       expect(row.get('stripe_customer_id')).to.equal('cus_pro_1')
       expect(row.get('stripe_price_id')).to.equal('price_month')
       expect(unix(row.get('current_period_end'))).to.equal(PERIOD_END)
       expect(row.get('cancel_at_period_end')).to.be.false
       expect(await group.hasPro()).to.be.true
+      expect(await group.hasProFeature('designedViews')).to.be.true
+      expect(await group.hasProFeature('recording')).to.be.false
+    })
+
+    it('maps the price lookup key to the tier, treating unknown prices as Pro', () => {
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_monthly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'hylo_pro_yearly_usd' })).to.equal('pro')
+      expect(HyloProService.tierForPrice({ lookup_key: 'something_else' })).to.equal('pro')
+      expect(HyloProService.tierForPrice(null)).to.equal('pro')
     })
 
     it('applies the latest subscription state on later events, updating the same row', async () => {
@@ -271,8 +281,8 @@ describe('HyloProService', () => {
       expect(ids).to.deep.equal({ month: 'price_month', year: 'price_year' })
       expect(created.map(([kind]) => kind)).to.deep.equal(['product', 'price', 'price'])
       expect(created[0][1].id).to.equal('hylo_pro')
-      expect(created[1][1]).to.include({ unit_amount: 1000, currency: 'usd', lookup_key: 'hylo_pro_monthly_usd' })
-      expect(created[2][1]).to.include({ unit_amount: 10000, currency: 'usd', lookup_key: 'hylo_pro_yearly_usd' })
+      expect(created[1][1]).to.include({ unit_amount: 6000, currency: 'usd', lookup_key: 'hylo_pro_monthly_usd' })
+      expect(created[2][1]).to.include({ unit_amount: 60000, currency: 'usd', lookup_key: 'hylo_pro_yearly_usd' })
 
       await HyloProService.ensureProPrices()
       expect(created.length).to.equal(3)
@@ -284,7 +294,7 @@ describe('HyloProService', () => {
       stripeMock.prices = {
         list: async () => ({
           data: [
-            { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+            { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
             { id: 'price_y_old', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 9000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
           ]
         }),
@@ -297,14 +307,14 @@ describe('HyloProService', () => {
       const ids = await HyloProService.ensureProPrices()
       expect(ids).to.deep.equal({ month: 'price_m', year: 'price_y_new' })
       expect(created.length).to.equal(1)
-      expect(created[0]).to.include({ unit_amount: 10000, transfer_lookup_key: true })
+      expect(created[0]).to.include({ unit_amount: 60000, transfer_lookup_key: true })
     })
   })
 
   describe('ensurePortalConfiguration', () => {
     const PRICES = [
-      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 10000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 60000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
     ]
 
     function stubPortal (features) {
@@ -354,8 +364,8 @@ describe('HyloProService', () => {
 
   describe('createCheckoutSession', () => {
     const PRICES = [
-      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 1000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
-      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 10000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
+      { id: 'price_m', lookup_key: 'hylo_pro_monthly_usd', product: 'hylo_pro', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } },
+      { id: 'price_y', lookup_key: 'hylo_pro_yearly_usd', product: 'hylo_pro', unit_amount: 60000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } }
     ]
     let calls, stripeSubscriptions, openSessions
 
@@ -826,6 +836,107 @@ describe('HyloProService', () => {
       expect(reads).to.equal(2)
       const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
       expect(row.get('status')).to.equal('past_due')
+    })
+
+    it('reads the subscription with its discounts and stores what it pays: price, quantity, currency, period and discount', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const retrieved = []
+      stripeMock.subscriptions = {
+        retrieve: async (id, params) => {
+          retrieved.push([id, params])
+          return subscriptionFixture({
+            metadata,
+            items: { data: [{ id: 'si_1', quantity: 2, current_period_end: PERIOD_END, price: { id: 'price_year', unit_amount: 50000, currency: 'usd', recurring: { interval: 'year', interval_count: 1 } } }] },
+            // API 2025-09-30.clover and later: the coupon is under source.coupon
+            discounts: [{ id: 'di_1', end: PERIOD_END, source: { type: 'coupon', coupon: { id: 'LAUNCH', percent_off: 12.5, amount_off: null, currency: null, duration: 'repeating' } } }]
+          })
+        }
+      }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+
+      expect(retrieved).to.deep.equal([['sub_pro_1', { expand: ['discounts.source.coupon'] }]])
+      const row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(100000)
+      expect(row.get('currency')).to.equal('usd')
+      expect(row.get('interval')).to.equal('year')
+      expect(row.get('interval_count')).to.equal(1)
+      expect(row.get('discount_coupon_id')).to.equal('LAUNCH')
+      expect(Number(row.get('discount_percent_off'))).to.equal(12.5)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('discount_duration')).to.equal('repeating')
+      expect(new Date(row.get('discount_ends_at')).getTime()).to.equal(PERIOD_END * 1000)
+    })
+
+    it('clears a discount that has been removed, and reads an older-style discount.coupon', async () => {
+      await recordCustomer()
+      const metadata = { hylo_pro: 'true', group_id: String(group.id) }
+      const price = { id: 'price_month', unit_amount: 6000, currency: 'usd', recurring: { interval: 'month', interval_count: 1 } }
+      let subscription = subscriptionFixture({
+        metadata,
+        items: { data: [{ id: 'si_1', current_period_end: PERIOD_END, price }] },
+        discounts: [{ id: 'di_1', end: null, coupon: { id: 'TENOFF', percent_off: null, amount_off: 1000, currency: 'usd', duration: 'forever' } }]
+      })
+      stripeMock.subscriptions = { retrieve: async () => subscription }
+
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      let row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('amount')).to.equal(6000)
+      expect(row.get('discount_coupon_id')).to.equal('TENOFF')
+      expect(row.get('discount_amount_off')).to.equal(1000)
+      expect(row.get('discount_currency')).to.equal('usd')
+      expect(row.get('discount_ends_at')).to.equal(null)
+
+      subscription = { ...subscription, discounts: [] }
+      await HyloProService.syncSubscriptionById('sub_pro_1')
+      row = await HyloProSubscription.where({ stripe_subscription_id: 'sub_pro_1' }).fetch()
+      expect(row.get('discount_coupon_id')).to.equal(null)
+      expect(row.get('discount_amount_off')).to.equal(null)
+      expect(row.get('amount')).to.equal(6000)
+    })
+  })
+
+  describe('discountColumns', () => {
+    it('stores no discount when the discount or its coupon was not expanded', () => {
+      const none = { discount_coupon_id: null, discount_percent_off: null, discount_amount_off: null, discount_currency: null, discount_duration: null, discount_ends_at: null }
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: ['di_1'] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1', discounts: [{ id: 'di_1', source: { coupon: 'LAUNCH' } }] })).to.deep.equal(none)
+      expect(HyloProService.discountColumns({ id: 'sub_1' })).to.deep.equal(none)
+    })
+
+    it("falls back to the first item's discounts", () => {
+      const columns = HyloProService.discountColumns({ id: 'sub_1', discounts: [], items: { data: [{ discounts: [{ id: 'di_2', end: null, source: { coupon: { id: 'ITEM', percent_off: 20, duration: 'forever' } } }] }] } })
+      expect(columns).to.include({ discount_coupon_id: 'ITEM', discount_percent_off: 20, discount_duration: 'forever' })
+    })
+  })
+
+  describe('requireProFeature', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    const subscribe = attrs => HyloProSubscription.forge({ group_id: group.id, source: 'stripe', tier: 'pro', stripe_subscription_id: 'sub_gate', current_period_end: new Date(Date.now() + 30 * DAY), ...attrs }).save()
+
+    it('lets an active group use its features', async () => {
+      await subscribe({ status: 'active' })
+      await HyloProService.requireProFeature(group, 'designedViews')
+    })
+
+    it('keeps features working during the grace period after a failed payment', async () => {
+      await subscribe({ status: 'past_due', current_period_start: new Date(Date.now() - 2 * DAY) })
+      expect(await group.proState()).to.equal('grace')
+      await HyloProService.requireProFeature(group, 'designedViews')
+    })
+
+    it('refuses once Pro has lapsed, as for a group that never had it', async () => {
+      await subscribe({ status: 'past_due', current_period_start: new Date(Date.now() - 8 * DAY) })
+      expect(await group.proState()).to.equal('lapsed')
+      const error = await HyloProService.requireProFeature(group, 'designedViews').then(() => null, e => e)
+      expect(error.extensions).to.deep.equal({ code: 'HYLO_PRO_REQUIRED', feature: 'designedViews' })
+    })
+
+    it("refuses a feature the group's plan leaves out", async () => {
+      await subscribe({ status: 'active', features: { designedViews: false } })
+      const error = await HyloProService.requireProFeature(group, 'designedViews').then(() => null, e => e)
+      expect(error.extensions).to.deep.equal({ code: 'HYLO_PRO_FEATURE_REQUIRED', feature: 'designedViews' })
     })
   })
 })

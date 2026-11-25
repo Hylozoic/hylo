@@ -578,6 +578,26 @@ type Query {
 
   # Groups that have asked to be added to the commons, filtered by request status: pending, approved or denied. Omit status for all (admin only)
   publicListingRequests(status: String): [Group]
+
+  # Hylo Pro management (Hylo staff only)
+  # Counts and recurring revenue derived from Hylo Pro subscriptions and grants
+  hyloProMetrics: HyloProMetrics
+  # Subscription and grant rows, newest first. filter: active (default), past_due, manual, stripe or all. search matches the group's name or slug
+  hyloProSubscriptions(filter: String, search: String, first: Int, offset: Int): HyloProAdminSubscriptionQuerySet
+  # Active groups matching a slug or (all-digit) id typed by staff: the slug match and the id match, both when they differ
+  hyloProGroups(slugOrId: String!): [HyloProAdminGroup]
+  # Hylo Pro payments by a group's platform Stripe customer, newest first. groupId is the group's id (not a slug); after = the last charge id seen, for the next page
+  hyloProPayments(groupId: ID!, after: String): HyloProPaymentPage
+  # Hylo staff only: a group's Pro refunds and disputes, as recorded from Stripe webhooks
+  hyloProChargeEvents(groupId: ID!): [HyloProChargeEvent]
+  # The current user's Hylo supporter status, linked Open Collective contributions and badge setting
+  supportHylo: SupportHyloInfo
+
+  # A group's Hylo supporter status and badge setting (group administrators only)
+  groupSupporterInfo(groupId: ID!): GroupSupporterInfo
+
+  # Active supporter status grants made by Hylo staff (admin only)
+  supporterGrants: [SupporterGrant]
 }
 
 union Update = Message | MessageThread | Notification
@@ -917,6 +937,8 @@ union FeedItemContent = Post | Interstitial
 # A Hylo Group
 type Group {
   id: ID
+  # Whether to show a Hylo supporter badge: the group opted in and currently supports Hylo. Never exposes amounts
+  isSupporter: Boolean
   # Whether the current user has access to this group (via scope system or free access)
   canAccess: Boolean
   # Whether the current user has a currently valid user scope for this group or space
@@ -947,11 +969,14 @@ type Group {
   createdAt: Date
   # Group description text
   description: String
-  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant): proState is 'active' or 'grace'
+  # Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any tier: proState is 'active' or 'grace'.
+  # Not enough to gate a feature: see proFeatures
   hasPro: Boolean
   # This group's Hylo Pro state: 'active' (paid up or granted), 'grace' (payment failed, Pro still on for a few days;
   # only shown to stewards with Administration, others see 'active'), 'lapsed' (had Pro, no longer does) or 'none' (never had Pro)
   proState: String
+  # Which Hylo Pro features this group has now (all false without Pro, so all false once Pro has lapsed)
+  proFeatures: HyloProFeatures
   # gets the event calendar subscription URL
   eventCalendarUrl: String
   # A geoJSON object outlining a geographic shape describing the border/boundaries of the group in the world
@@ -2306,6 +2331,8 @@ type NotificationQuerySet {
 # A user of Hylo
 type Person {
   id: ID
+  # Whether to show a Hylo supporter badge: the person opted in and currently supports Hylo. Never exposes amounts
+  isSupporter: Boolean
   # Whether the current user may start a direct message with this person (never true for themself)
   canMessage: Boolean
   # The URL of this person's avatar image
@@ -3331,6 +3358,83 @@ type EmailEnabledTester {
   updatedAt: Date
 }
 
+# The current user's Hylo supporter details (#1754). Amounts are never exposed
+type SupportHyloInfo {
+  # Whether the Open Collective check is available (false until the integration token is set up)
+  checkAvailable: Boolean
+  # supporter or none
+  supporterStatus: String
+  # Whether this person chose to show their supporter badge
+  showSupporterBadge: Boolean
+  # Whether any linked contribution was made incognito on Open Collective
+  hasIncognitoContributions: Boolean
+  # Whether Hylo staff gave this person supporter status
+  manualGrant: Boolean
+  # When the supporter status from Hylo staff ends, if it does
+  manualGrantExpiresAt: Date
+  contributions: [SupporterContribution]
+  # Groups this person administers, which their support can count for
+  adminGroups: [Group]
+}
+
+# A contribution to Hylo's Open Collective linked to the current user
+type SupporterContribution {
+  id: ID
+  # ONETIME, MONTHLY or YEARLY
+  frequency: String
+  # The Open Collective order status, e.g. ACTIVE, PAID, CANCELLED
+  status: String
+  createdAt: Date
+  lastChargedAt: Date
+  isIncognito: Boolean
+  # Whether this contribution currently makes its owner a supporter
+  qualifies: Boolean
+  # The group this contribution counts for, if any
+  group: Group
+}
+
+type GroupSupporterInfo {
+  # supporter or none
+  supporterStatus: String
+  showSupporterBadge: Boolean
+}
+
+type OpenCollectiveCheckResult {
+  # Whether the email matched any contributor on Open Collective
+  found: Boolean
+  linkedCount: Int
+  # Whether a matching Open Collective account is already linked to another Hylo account
+  linkedElsewhere: Boolean
+  # supporter or none
+  supporterStatus: String
+}
+
+type SupportIntent {
+  token: String
+  # The tag to pass to Open Collective, hylo-<token>
+  tag: String
+}
+
+type SupportConfirmation {
+  # confirmed, pending, email_match or unmatched
+  outcome: String
+  # supporter or none
+  supporterStatus: String
+  # The group the contribution now counts for, if any
+  group: Group
+}
+
+# Supporter status given by Hylo staff to a person or a group
+type SupporterGrant {
+  id: ID
+  user: Person
+  group: Group
+  note: String
+  expiresAt: Date
+  createdAt: Date
+  grantedBy: Person
+}
+
 # A group's request to be added to the commons (have allowInPublic turned on)
 type PublicListingRequest {
   # pending, approved or denied
@@ -3964,6 +4068,20 @@ type Mutation {
   requestPublicListing(groupId: ID!, message: String): Group
   # Approve or deny a group's pending request to be added to the commons; the requester is emailed either way (admin only)
   reviewPublicListingRequest(groupId: ID!, approved: Boolean!, message: String): Group
+  # Look up the current user's verified email on Hylo's Open Collective and link the contributions found
+  checkOpenCollectiveContributions: OpenCollectiveCheckResult
+  # Count one of your contributions for a group you administer, or for no group (groupId null)
+  attributeSupportContribution(contributionId: ID!, groupId: ID): SupporterContribution
+  # Show or hide the supporter badge for yourself, or for a group you administer
+  setSupporterBadgeVisibility(groupId: ID, show: Boolean!): Boolean
+  # Start a donation on Open Collective, optionally counting it for a group you administer
+  createSupportIntent(groupId: ID): SupportIntent
+  # Check a donation after returning from Open Collective (orderId is the orderIdV2 Open Collective adds to the return URL)
+  confirmSupportIntent(orderId: String!): SupportConfirmation
+  # Give a person or a group supporter status, e.g. for non-monetary contributions (admin only)
+  grantSupporterStatus(userId: ID, groupId: ID, note: String, expiresAt: Date): SupporterGrant
+  # Remove supporter status given by Hylo staff (admin only)
+  revokeSupporterStatus(id: ID!): Boolean
   # Verify your email address, manually by code or automatically by URL token
   verifyEmail(
     # The shortcode sent via email
@@ -3983,6 +4101,25 @@ type Mutation {
   createHyloProPortalSession(groupId: ID!): HyloProSessionResult
   # Sync the subscription from a completed Checkout (session_id from the success URL), so Pro activates without waiting for the webhook
   activateHyloProCheckoutSession(groupId: ID!, sessionId: String!): HyloProActivationResult
+
+  # Hylo Pro management mutations (Hylo staff only)
+  # Grant a group Pro outside of payments. groupId is the group's id (not a slug; see hyloProGroups); expiresAt null = no end date
+  # tier: 'pro' (default), 'pro_plus' or 'custom'; features: single features to add to or remove from that tier's bundle
+  grantHyloPro(groupId: ID!, tier: String, features: [HyloProFeatureOverrideInput], expiresAt: Date, note: String): HyloProAdminSubscription
+  # Change an active grant's end date (null = no end date) and/or note; extending an expired grant re-activates it
+  # features replaces the grant's overrides ([] = the plain tier); omit it to keep them
+  updateHyloProGrant(id: ID!, tier: String, features: [HyloProFeatureOverrideInput], expiresAt: Date, note: String): HyloProAdminSubscription
+  # End a grant now
+  revokeHyloProGrant(id: ID!): HyloProAdminSubscription
+  # Cancel a Stripe subscription at the end of its paid period, or immediately (nothing is refunded)
+  cancelHyloProSubscription(id: ID!, immediately: Boolean): HyloProAdminSubscription
+  # Undo a Stripe subscription's scheduled cancellation
+  resumeHyloProSubscription(id: ID!): HyloProAdminSubscription
+  # Give a Stripe subscription `days` free days by pushing its next payment back (trial_end)
+  extendHyloProSubscription(id: ID!, days: Int!): HyloProAdminSubscription
+  # Refund a Hylo Pro payment (a charge on the group's platform customer), in full or `amount` cents.
+  # cancelSubscriptionId (a HyloProAdminSubscription id of the group's) also cancels that subscription immediately once the refund succeeds
+  refundHyloProPayment(groupId: ID!, chargeId: String!, amount: Int, cancelSubscriptionId: ID): HyloProRefund
 
   # Stripe Connect mutations
   # Create a Stripe Connected Account for a group
@@ -4173,8 +4310,55 @@ type HyloProBilling {
   subscription: HyloProSubscription
   # An active grant from Hylo, if any
   grant: HyloProSubscription
+  # The highest tier the group has now ('pro', 'pro_plus' or 'custom'), or null without Pro
+  tier: String
+  # Which Hylo Pro features the group has now
+  features: HyloProFeatures
   # Plans a group can subscribe to
   plans: [HyloProPlan]
+}
+
+# Which Hylo Pro features a group has: one Boolean per feature registered in packages/shared
+# HyloProFeatures.js, named by its key. A backend test fails when this type and the registry differ,
+# so a new feature is one registry entry plus one field here.
+type HyloProFeatures {
+  postAsGroup: Boolean
+  adminsEditAdminPosts: Boolean
+  advancedMetrics: Boolean
+  largerUploads: Boolean
+  advancedDashboard: Boolean
+  designedViews: Boolean
+  liveAudioVideo: Boolean
+  simpleWhitelabel: Boolean
+  groupThemes: Boolean
+  groupAssistant: Boolean
+  setupWizard: Boolean
+  matchmaking: Boolean
+  largerAudioVideo: Boolean
+  recording: Boolean
+  transcriptions: Boolean
+  broadcast: Boolean
+  higherUploadLimits: Boolean
+  collaborativeDocuments: Boolean
+  aiWorkflows: Boolean
+  higherAiLimits: Boolean
+  lowerPlatformFee: Boolean
+  childGroupsIncluded: Boolean
+  customDomain: Boolean
+  federation: Boolean
+  singleSignOn: Boolean
+}
+
+# One feature added to (enabled: true) or removed from (false) the bundle a grant's tier gives
+type HyloProFeatureOverride {
+  # A key from the feature registry (packages/shared HyloProFeatures.js)
+  key: String
+  enabled: Boolean
+}
+
+input HyloProFeatureOverrideInput {
+  key: String!
+  enabled: Boolean!
 }
 
 type HyloProPlan {
@@ -4190,6 +4374,189 @@ type HyloProActivationResult {
   success: Boolean
   # Whether the subscription gives the group Pro now (false while a payment is still processing)
   active: Boolean
+}
+
+# A Hylo Pro subscription or grant as Hylo staff see it on the management page
+type HyloProAdminSubscription {
+  id: ID
+  # 'stripe' or 'manual'
+  source: String
+  status: String
+  # Whether this row gives the group Pro now
+  active: Boolean
+  interval: String
+  # The bundle this row gives: 'pro', 'pro_plus' or 'custom'
+  tier: String
+  # Single features added to or removed from that bundle (manual grants); empty when none
+  features: [HyloProFeatureOverride]
+  group: HyloProAdminGroup
+  # Who made a manual grant
+  grantedBy: HyloProAdminUser
+  # Why a grant was made
+  note: String
+  # End of a manual grant; null = no end date
+  expiresAt: Date
+  stripeSubscriptionId: String
+  stripeCustomerId: String
+  currentPeriodEnd: Date
+  cancelAtPeriodEnd: Boolean
+  # When Pro access stops if nothing changes; null when it renews or has no end date
+  endsAt: Date
+  canceledAt: Date
+  endedAt: Date
+  createdAt: Date
+  # Stripe rows, as of the last sync: price per billing period in cents, before discounts (null until synced)
+  amount: Int
+  currency: String
+  # Billing period length in units of interval (e.g. 3 for every 3 months)
+  intervalCount: Int
+  # The discount applied to the subscription, if any
+  discount: HyloProDiscount
+  # Stripe rows: what this subscription adds to MRR (in its currency, discount included, yearly as 1/12); null until synced
+  monthlyRevenueCents: Int
+  # Stripe rows: the group's Pro disputes still waiting for an outcome, and its refunded Pro payments
+  openDisputes: Int
+  refunds: Int
+}
+
+type HyloProDiscount {
+  couponId: String
+  percentOff: Float
+  # In cents of currency
+  amountOff: Int
+  currency: String
+  # 'once', 'repeating' or 'forever'
+  duration: String
+  # When a repeating discount stops applying
+  endsAt: Date
+}
+
+# A refund or dispute of a Hylo Pro payment, recorded from Stripe webhooks
+type HyloProChargeEvent {
+  id: ID
+  # 'refund' or 'dispute'
+  type: String
+  # The Stripe charge refunded or disputed
+  chargeId: String
+  # Stripe dispute id (disputes) or charge id (refunds)
+  externalId: String
+  # Refunds: total refunded on the payment so far; disputes: the disputed amount. In cents
+  amount: Int
+  currency: String
+  reason: String
+  # Refunds: refunded or partially_refunded; disputes: Stripe's dispute status
+  status: String
+  # Disputes only: still waiting for an outcome
+  open: Boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+type HyloProAdminGroup {
+  id: ID
+  name: String
+  slug: String
+  # 'space' for spaces, which can't have Pro
+  type: String
+}
+
+type HyloProAdminUser {
+  id: ID
+  name: String
+}
+
+type HyloProAdminSubscriptionQuerySet {
+  items: [HyloProAdminSubscription]
+  total: Int
+  hasMore: Boolean
+}
+
+type HyloProMetricsMonth {
+  # YYYY-MM (UTC)
+  month: String
+  # Stripe subscriptions started this month
+  newSubscriptions: Int
+  # Stripe subscriptions whose cancellation was requested this month (they may run to the end of the period)
+  cancellations: Int
+  # Stripe subscriptions that ended this month
+  ended: Int
+  # Manual grants made this month
+  grants: Int
+}
+
+type HyloProMetrics {
+  # Groups with Pro now, from any source
+  activeGroups: Int
+  # Groups with Pro from a Stripe subscription
+  stripeGroups: Int
+  # Groups with Pro from a manual grant
+  manualGroups: Int
+  # Paying subscriptions (active, or past_due within the grace period) — the ones MRR counts; trialing ones are not included
+  monthlySubscriptions: Int
+  yearlySubscriptions: Int
+  # Active subscriptions that are trialing (e.g. extended by Hylo) and paying nothing now
+  trialing: Int
+  # Active subscriptions set to cancel
+  cancelling: Int
+  # Subscriptions whose payment failed and that haven't ended
+  pastDue: Int
+  # Active grants ending within 30 days
+  grantsExpiringSoon: Int
+  # Monthly recurring revenue in cents of `currency` (the plan currency), from what each paying
+  # subscription pays as of its last sync, discounts included; yearly plans count 1/12
+  mrrCents: Int
+  currency: String
+  # MRR per currency, never converted; the plan currency first
+  mrrByCurrency: [HyloProCurrencyRevenue]
+  # Paying subscriptions not yet synced with their own amount, counted at today's plan price
+  mrrEstimatedSubscriptions: Int
+  # The last six months, oldest first
+  months: [HyloProMetricsMonth]
+}
+
+type HyloProCurrencyRevenue {
+  currency: String
+  mrrCents: Int
+  # Paying subscriptions in this currency
+  subscriptions: Int
+}
+
+type HyloProPayment {
+  # Stripe charge id
+  id: ID
+  # In cents
+  amount: Int
+  amountRefunded: Int
+  currency: String
+  status: String
+  paid: Boolean
+  refunded: Boolean
+  # Whether the payment has ever been disputed (an inquiry or a chargeback, open or closed)
+  disputed: Boolean
+  # The latest dispute's Stripe status, e.g. warning_needs_response, needs_response, under_review, won or lost
+  disputeStatus: String
+  # Why the dispute stops a refund: dispute_open (an open chargeback) or dispute_lost; null if it doesn't
+  refundBlock: String
+  # The Stripe subscription this payment paid for, if any
+  subscriptionId: String
+  description: String
+  createdAt: Date
+}
+
+type HyloProPaymentPage {
+  items: [HyloProPayment]
+  hasMore: Boolean
+}
+
+type HyloProRefund {
+  id: ID
+  amount: Int
+  currency: String
+  status: String
+  # Whether the subscription was also cancelled (only when cancelSubscriptionId was passed)
+  subscriptionCanceled: Boolean
+  # Why cancelling failed after a successful refund; the refund still stands
+  cancelError: String
 }
 
 type HyloProSessionResult {

@@ -71,6 +71,9 @@ module.exports.routes = {
   'GET     /noo/stripe/checkout/cancel':                 'StripeController.checkoutCancel',
   'POST    /noo/stripe/webhook':                         'StripeController.webhook',
 
+  // Open Collective webhook (#1754): the secret path segment is OPEN_COLLECTIVE_WEBHOOK_SECRET
+  'POST    /noo/open-collective/webhook/:secret':         'OpenCollectiveController.webhook',
+
   // websockets routes
   'POST   /noo/user/subscribe':                           'UserController.subscribeToUpdates',
   'POST   /noo/user/unsubscribe':                         'UserController.unsubscribeFromUpdates',

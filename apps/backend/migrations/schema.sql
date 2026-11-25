@@ -1789,7 +1789,19 @@ CREATE TABLE public.hylo_pro_subscriptions (
     note text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    CONSTRAINT hylo_pro_subscriptions_source_check CHECK (((source)::text = ANY ((ARRAY['stripe'::character varying, 'manual'::character varying])::text[])))
+    tier character varying(16) DEFAULT 'pro'::character varying NOT NULL,
+    features jsonb,
+    amount integer,
+    currency character varying(3),
+    interval_count integer,
+    discount_coupon_id character varying(255),
+    discount_percent_off numeric(7,4),
+    discount_amount_off integer,
+    discount_currency character varying(3),
+    discount_duration character varying(16),
+    discount_ends_at timestamp with time zone,
+    CONSTRAINT hylo_pro_subscriptions_source_check CHECK (((source)::text = ANY ((ARRAY['stripe'::character varying, 'manual'::character varying])::text[]))),
+    CONSTRAINT hylo_pro_subscriptions_tier_check CHECK (((tier)::text = ANY ((ARRAY['pro'::character varying, 'pro_plus'::character varying, 'custom'::character varying])::text[])))
 );
 
 
@@ -3084,6 +3096,160 @@ CREATE SEQUENCE public.skills_users_id_seq
 --
 
 ALTER SEQUENCE public.skills_users_id_seq OWNED BY public.skills_users.id;
+
+
+--
+-- Name: open_collective_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.open_collective_orders (
+    id integer NOT NULL,
+    oc_order_id text NOT NULL,
+    oc_account_id text,
+    oc_account_slug text,
+    account_type text,
+    is_incognito boolean DEFAULT false NOT NULL,
+    status text,
+    frequency text,
+    currency text,
+    oc_created_at timestamp with time zone,
+    last_charged_at timestamp with time zone,
+    tags text[],
+    raw jsonb,
+    attributed_group_id bigint,
+    attributed_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: open_collective_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.open_collective_orders_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: open_collective_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.open_collective_orders_id_seq OWNED BY public.open_collective_orders.id;
+
+
+--
+-- Name: support_intents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.support_intents (
+    id integer NOT NULL,
+    token text NOT NULL,
+    user_id bigint NOT NULL,
+    group_id bigint,
+    oc_order_id text,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: support_intents_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.support_intents_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: support_intents_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.support_intents_id_seq OWNED BY public.support_intents.id;
+
+
+--
+-- Name: supporter_grants; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.supporter_grants (
+    id integer NOT NULL,
+    user_id bigint,
+    group_id bigint,
+    note text,
+    expires_at timestamp with time zone,
+    granted_by_id bigint,
+    revoked_at timestamp with time zone,
+    revoked_by_id bigint,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT supporter_grants_one_target CHECK (((user_id IS NULL) <> (group_id IS NULL)))
+);
+
+
+--
+-- Name: supporter_grants_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.supporter_grants_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: supporter_grants_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.supporter_grants_id_seq OWNED BY public.supporter_grants.id;
+
+
+--
+-- Name: supporter_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.supporter_links (
+    id integer NOT NULL,
+    user_id bigint NOT NULL,
+    oc_account_id text NOT NULL,
+    oc_account_slug text,
+    method text NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: supporter_links_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.supporter_links_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: supporter_links_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.supporter_links_id_seq OWNED BY public.supporter_links.id;
 
 
 --
@@ -7867,6 +8033,204 @@ CREATE TABLE public.retention_cache (
 
 ALTER TABLE ONLY public.retention_cache
     ADD CONSTRAINT retention_cache_pkey PRIMARY KEY (cache_key);
+
+--
+-- Name: open_collective_orders id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.open_collective_orders ALTER COLUMN id SET DEFAULT nextval('public.open_collective_orders_id_seq'::regclass);
+
+
+--
+-- Name: support_intents id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_intents ALTER COLUMN id SET DEFAULT nextval('public.support_intents_id_seq'::regclass);
+
+
+--
+-- Name: supporter_grants id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants ALTER COLUMN id SET DEFAULT nextval('public.supporter_grants_id_seq'::regclass);
+
+
+--
+-- Name: supporter_links id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links ALTER COLUMN id SET DEFAULT nextval('public.supporter_links_id_seq'::regclass);
+
+
+--
+-- Name: open_collective_orders open_collective_orders_oc_order_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.open_collective_orders
+    ADD CONSTRAINT open_collective_orders_oc_order_id_unique UNIQUE (oc_order_id);
+
+
+--
+-- Name: open_collective_orders open_collective_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.open_collective_orders
+    ADD CONSTRAINT open_collective_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: support_intents support_intents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_intents
+    ADD CONSTRAINT support_intents_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: support_intents support_intents_token_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_intents
+    ADD CONSTRAINT support_intents_token_unique UNIQUE (token);
+
+
+--
+-- Name: supporter_grants supporter_grants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants
+    ADD CONSTRAINT supporter_grants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: supporter_links supporter_links_oc_account_id_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links
+    ADD CONSTRAINT supporter_links_oc_account_id_unique UNIQUE (oc_account_id);
+
+
+--
+-- Name: supporter_links supporter_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links
+    ADD CONSTRAINT supporter_links_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: open_collective_orders_attributed_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX open_collective_orders_attributed_group_id_index ON public.open_collective_orders USING btree (attributed_group_id);
+
+
+--
+-- Name: open_collective_orders_oc_account_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX open_collective_orders_oc_account_id_index ON public.open_collective_orders USING btree (oc_account_id);
+
+
+--
+-- Name: support_intents_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX support_intents_user_id_index ON public.support_intents USING btree (user_id);
+
+
+--
+-- Name: supporter_grants_group_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX supporter_grants_group_id_index ON public.supporter_grants USING btree (group_id);
+
+
+--
+-- Name: supporter_grants_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX supporter_grants_user_id_index ON public.supporter_grants USING btree (user_id);
+
+
+--
+-- Name: supporter_links_user_id_index; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX supporter_links_user_id_index ON public.supporter_links USING btree (user_id);
+
+
+--
+-- Name: open_collective_orders open_collective_orders_attributed_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.open_collective_orders
+    ADD CONSTRAINT open_collective_orders_attributed_by_id_foreign FOREIGN KEY (attributed_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: open_collective_orders open_collective_orders_attributed_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.open_collective_orders
+    ADD CONSTRAINT open_collective_orders_attributed_group_id_foreign FOREIGN KEY (attributed_group_id) REFERENCES public.groups(id) ON DELETE SET NULL;
+
+
+--
+-- Name: support_intents support_intents_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_intents
+    ADD CONSTRAINT support_intents_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE SET NULL;
+
+
+--
+-- Name: support_intents support_intents_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.support_intents
+    ADD CONSTRAINT support_intents_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: supporter_grants supporter_grants_granted_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants
+    ADD CONSTRAINT supporter_grants_granted_by_id_foreign FOREIGN KEY (granted_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: supporter_grants supporter_grants_group_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants
+    ADD CONSTRAINT supporter_grants_group_id_foreign FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: supporter_grants supporter_grants_revoked_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants
+    ADD CONSTRAINT supporter_grants_revoked_by_id_foreign FOREIGN KEY (revoked_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: supporter_grants supporter_grants_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_grants
+    ADD CONSTRAINT supporter_grants_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: supporter_links supporter_links_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.supporter_links
+    ADD CONSTRAINT supporter_links_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
 
 --
 -- PostgreSQL database dump complete

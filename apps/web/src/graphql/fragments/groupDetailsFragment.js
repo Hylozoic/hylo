@@ -1,3 +1,5 @@
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
+
 const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites, withExtensions }) => `
   id
   aboutVideoUri
@@ -8,6 +10,9 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   description
   geoShape
   invitePath
+  isSupporter
+  proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+  proState
   location
   memberCount
   openJoinRequestCount

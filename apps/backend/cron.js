@@ -54,6 +54,11 @@ const daily = now => {
   sails.log.debug('Sending expired access notifications')
   tasks.push(ContentAccess.sendExpiredAccessNotifications().then(count => sails.log.debug(`Sent ${count} expired access notification emails`)))
 
+  sails.log.debug('Syncing Open Collective contributions')
+  tasks.push(OpenCollectiveService.syncOrders()
+    .then(result => sails.log.debug(result.skipped ? 'Open Collective sync skipped' : `Synced ${result.count} Open Collective contributions`))
+    .catch(err => sails.log.error('Open Collective sync failed; continuing daily tasks', err)))
+
   sails.log.debug('Cleaning up expired OIDC payloads')
   tasks.push(OIDCAdapter.cleanupExpired().then(count => {
     sails.log.debug(`Removed ${count} expired OIDC payloads`)

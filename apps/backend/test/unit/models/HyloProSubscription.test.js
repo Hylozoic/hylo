@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-expressions */
 import setup from '../../setup'
 import factories from '../../setup/factories'
+import { HYLO_PRO_FEATURE_KEYS, noProFeatures } from '@hylo/shared'
 
 /* global HyloProSubscription */
 
@@ -188,7 +189,7 @@ describe('HyloProSubscription', () => {
     it('has no Pro without any rows', async () => {
       expect(await group.hasPro()).to.be.false
       expect(await group.proState()).to.equal('none')
-      expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false, state: 'none', graceEndsAt: null })
+      expect(await HyloProSubscription.billingForGroup(group.id)).to.deep.equal({ subscription: null, grant: null, hasPro: false, state: 'none', graceEndsAt: null, tier: null, features: noProFeatures() })
     })
 
     it('has Pro when any row is active, and shows the active Stripe subscription first', async () => {
@@ -308,6 +309,107 @@ describe('HyloProSubscription', () => {
       await expect(
         HyloProSubscription.forge({ group_id: group.id, source: 'other', status: 'active' }).save()
       ).to.be.rejectedWith(/hylo_pro_subscriptions_source_check/)
+    })
+
+    it('rejects an unknown tier, and defaults to Pro', async () => {
+      await expect(
+        HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', tier: 'gold' }).save()
+      ).to.be.rejectedWith(/hylo_pro_subscriptions_tier_check/)
+      const row = await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active' }).save()
+      expect((await row.refresh()).tier()).to.equal('pro')
+      expect(row.featureOverrides()).to.deep.equal({})
+    })
+  })
+
+  describe('features', () => {
+    let group
+
+    beforeEach(async () => {
+      await setup.clearDb()
+      group = await factories.group().save()
+    })
+
+    after(() => setup.clearDb())
+
+    const on = features => Object.keys(features).filter(key => features[key])
+
+    it('gives every registered feature as false without Pro', async () => {
+      const features = await HyloProSubscription.featuresForGroup(group.id)
+      expect(Object.keys(features)).to.deep.equal(HYLO_PRO_FEATURE_KEYS)
+      expect(on(features)).to.deep.equal([])
+      expect(await group.proFeatures()).to.deep.equal(features)
+      expect(await group.hasProFeature('groupThemes')).to.be.false
+      const billing = await HyloProSubscription.billingForGroup(group.id)
+      expect(billing.tier).to.equal(null)
+      expect(billing.features).to.deep.equal(features)
+    })
+
+    it("gives an active row's tier bundle, with its overrides adding and removing single features", async () => {
+      await HyloProSubscription.forge({
+        group_id: group.id, source: 'manual', status: 'active', tier: 'pro', features: { recording: true, groupThemes: false }
+      }).save()
+      const features = await HyloProSubscription.featuresForGroup(group.id)
+      expect(features.designedViews).to.be.true
+      expect(features.recording).to.be.true
+      expect(features.groupThemes).to.be.false
+      expect(features.singleSignOn).to.be.false
+      expect(await group.hasProFeature('recording')).to.be.true
+      expect(await group.hasProFeature('groupThemes')).to.be.false
+      expect(await group.hasPro()).to.be.true
+      expect((await HyloProSubscription.billingForGroup(group.id)).tier).to.equal('pro')
+    })
+
+    it('gives nothing from rows that are not active, whatever their tier', async () => {
+      await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', tier: 'custom', expires_at: PAST }).save()
+      await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'canceled', tier: 'custom', features: { recording: true } }).save()
+      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'canceled', tier: 'pro_plus', stripe_subscription_id: 'sub_over', ended_at: PAST }).save()
+      expect(on(await HyloProSubscription.featuresForGroup(group.id))).to.deep.equal([])
+      expect((await HyloProSubscription.billingForGroup(group.id)).tier).to.equal(null)
+    })
+
+    it('unions the bundles of several active rows and reports the highest tier', async () => {
+      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'active', tier: 'pro', stripe_subscription_id: 'sub_pro', current_period_end: FAR_FUTURE, features: { groupThemes: false } }).save()
+      await HyloProSubscription.forge({ group_id: group.id, source: 'manual', status: 'active', tier: 'pro_plus' }).save()
+      const features = await HyloProSubscription.featuresForGroup(group.id)
+      expect(features.groupThemes, 'one row cannot take away what another gives').to.be.true
+      expect(features.recording).to.be.true
+      expect(features.customDomain).to.be.false
+      expect((await HyloProSubscription.billingForGroup(group.id)).tier).to.equal('pro_plus')
+    })
+
+    it('computes features at the time asked for, from models or plain rows', () => {
+      const rows = [
+        manualRow({ tier: 'pro', expires_at: FUTURE, features: { recording: true } }),
+        stripeRow({ tier: 'custom', current_period_end: PAST })
+      ]
+      const now = HyloProSubscription.effectiveFeatures(rows, NOW)
+      expect(now.recording).to.be.true
+      expect(now.federation).to.be.false
+      expect(HyloProSubscription.effectiveTier(rows, NOW)).to.equal('pro')
+      const later = HyloProSubscription.effectiveFeatures(rows, new Date('2027-01-01T00:00:00Z'))
+      expect(on(later)).to.deep.equal([])
+      // Overrides stored as JSON text (a raw insert) read the same as objects
+      expect(HyloProSubscription.featureOverrides({ features: '{"recording":true,"retired":true,"groupThemes":"yes"}' })).to.deep.equal({ recording: true })
+    })
+
+    it('follows the Pro state: features work in grace and are all off once Pro has lapsed', async () => {
+      const periodStart = new Date(NOW.getTime() - 2 * DAY)
+      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'past_due', tier: 'pro', stripe_subscription_id: 'sub_grace', current_period_start: periodStart, current_period_end: FUTURE }).save()
+
+      expect(await HyloProSubscription.groupProState(group.id, NOW)).to.equal('grace')
+      expect((await HyloProSubscription.featuresForGroup(group.id, NOW)).designedViews).to.be.true
+      expect((await HyloProSubscription.billingForGroup(group.id, NOW)).features.designedViews).to.be.true
+
+      const lapsedAt = new Date(periodStart.getTime() + 7 * DAY)
+      expect(await HyloProSubscription.groupProState(group.id, lapsedAt)).to.equal('lapsed')
+      expect(on(await HyloProSubscription.featuresForGroup(group.id, lapsedAt))).to.deep.equal([])
+      const lapsedBilling = await HyloProSubscription.billingForGroup(group.id, lapsedAt)
+      expect(lapsedBilling).to.include({ state: 'lapsed', tier: null })
+      expect(on(lapsedBilling.features)).to.deep.equal([])
+    })
+
+    it('fails loudly on an unregistered feature key, so a typo in a gate is not a silent lockout', async () => {
+      await expect(group.hasProFeature('groupTheme')).to.be.rejectedWith(/Unknown Hylo Pro feature: groupTheme/)
     })
   })
 })

@@ -12,6 +12,7 @@ import AppearanceTab from './AppearanceTab'
 import NotificationSettingsTab from './NotificationSettingsTab'
 import AccountSettingsTab from './AccountSettingsTab/AccountSettingsTab'
 import SavedSearchesTab from './SavedSearchesTab/SavedSearchesTab'
+import SupportHyloTab from './SupportHyloTab/SupportHyloTab'
 import FullPageModal from 'routes/FullPageModal'
 import deactivateMe from 'store/actions/deactivateMe'
 import deleteMe from 'store/actions/deleteMe'
@@ -112,6 +113,11 @@ const UserSettings = () => {
       name: t('Saved Searches'),
       path: 'saved-searches',
       component: <SavedSearchesTab />
+    },
+    {
+      name: t('Support Hylo'),
+      path: 'support',
+      component: <SupportHyloTab />
     }
   ]
 

@@ -39,6 +39,7 @@ import {
   spaceAccessDescription
 } from 'store/models/Group'
 import presentGroup from 'store/presenters/presentGroup'
+import SupporterBadge from 'components/SupporterBadge/SupporterBadge'
 import { bgImageStyle, cn } from 'util/index'
 
 /**
@@ -432,6 +433,7 @@ export default function GroupAboutView ({
                   <span>{parentGroup.name}</span>
                 </>
               )}
+              {group.isSupporter && <SupporterBadge group className='[text-shadow:none]' />}
             </div>
           </div>
         </div>

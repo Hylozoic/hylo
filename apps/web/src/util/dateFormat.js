@@ -12,7 +12,7 @@ export function toUserDateTime (date, locale) {
 /**
  * Formats a date using the user's Hylo locale (not the browser locale).
  * @param {string|Date|DateTime|Object} date
- * @param {{ style?: 'short'|'medium'|'long'|'monthYear'|'dayMonthYear'|'time'|'datetime', locale?: string }} options
+ * @param {{ style?: 'short'|'medium'|'long'|'monthYear'|'dayMonthYear'|'time'|'datetime'|'mediumDateTime', locale?: string }} options
  */
 export function formatLocalizedDate (date, { style = 'short', locale } = {}) {
   if (!date) return null
@@ -35,6 +35,8 @@ export function formatLocalizedDate (date, { style = 'short', locale } = {}) {
       return dt.toFormat('t')
     case 'datetime':
       return dt.toLocaleString(DateTime.DATETIME_SHORT)
+    case 'mediumDateTime':
+      return dt.toLocaleString(DateTime.DATETIME_MED)
     default:
       return dt.toLocaleString(DateTime.DATE_SHORT)
   }
@@ -58,4 +60,23 @@ export function formatUserDatePair (options = {}) {
     ...options,
     locale: options.locale ?? getDateLocale()
   })
+}
+
+/**
+ * A YYYY-MM-DD date input value as an ISO timestamp for the end of that day in the viewer's time
+ * zone (so "until 31 Dec" includes the 31st), or null when empty or invalid.
+ */
+export function endOfDayIso (value) {
+  if (!value) return null
+  const date = new Date(`${value}T23:59:59`)
+  return isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+/** A date (ISO string or Date) as a YYYY-MM-DD date input value in the viewer's time zone, or '' */
+export function toDateInputValue (date) {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
