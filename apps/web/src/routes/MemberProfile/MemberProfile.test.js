@@ -187,6 +187,41 @@ describe('MemberProfile', () => {
     })
   })
 
+  it('falls back to the first tab when the current tab is unknown', async () => {
+    render(<MemberProfile currentTab='Nonexistent' />, { wrapper: testWrapper() })
+    await waitFor(() => {
+      expect(screen.getByText("Rich Churcher's recent activity")).toBeInTheDocument()
+    })
+  })
+
+  describe('in another language', () => {
+    let translationSpy
+    beforeEach(async () => {
+      // useTranslation is mocked globally (t returns the key); use real i18next so labels differ from ids
+      const i18n = require('i18next').createInstance()
+      await i18n.init({
+        lng: 'de',
+        fallbackLng: 'en',
+        resources: { de: { translation: require('../../../public/locales/de.json') } },
+        keySeparator: false,
+        nsSeparator: false,
+        interpolation: { escapeValue: false }
+      })
+      translationSpy = jest.spyOn(require('react-i18next'), 'useTranslation')
+        .mockReturnValue({ t: i18n.t.bind(i18n), i18n })
+    })
+    afterEach(() => translationSpy.mockRestore())
+
+    it('switches tabs from the content dropdown without crashing', async () => {
+      render(<MemberProfile />, { wrapper: testWrapper() })
+      await screen.findByText('Neueste Aktivitäten von Rich Churcher')
+      fireEvent.click(screen.getByRole('button', { name: /Übersicht/ }))
+      fireEvent.click(screen.getByText('Kommentare'))
+      expect(await screen.findByText('Kommentare von Rich Churcher')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Kommentare/ })).toBeInTheDocument()
+    })
+  })
+
   it('displays an error if can\'t find person', async () => {
     jest.spyOn(require('react-router-dom'), 'useParams').mockReturnValue({ personId: '112' })
     render(<MemberProfile />, { wrapper: testWrapper() })
