@@ -1,5 +1,3 @@
-import { once } from 'lodash'
-
 // add polyfill due to Firefox off-by-one bug https://github.com/moment/luxon/issues/1563
 import('@formatjs/intl-locale/polyfill-force')
 
@@ -50,20 +48,6 @@ export const mapbox = {
   token: import.meta.env.VITE_MAPBOX_TOKEN
 }
 
-export const featureFlags = () => {
-  if (isServer) {
-    return once(() =>
-      Object.keys(import.meta.env).reduce((flags, key) => {
-        if (key.startsWith('VITE_FEATURE_FLAG_')) {
-          flags[key.replace('VITE_FEATURE_FLAG_', '')] = import.meta.env[key]
-        }
-        return flags
-      }, {}))()
-  } else {
-    return window.FEATURE_FLAGS || {}
-  }
-}
-
 const config = {
   environment,
   filestackKey,
@@ -73,7 +57,6 @@ const config = {
   s3,
   google,
   segment,
-  featureFlags,
   intercom,
   mixpanel,
   mapbox

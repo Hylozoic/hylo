@@ -1,14 +1,13 @@
-import featureFlag, { MEMBER_INVITES, PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
-import { hasFeature } from 'store/models/Me'
+import featureFlag, { HYLO_PRO, hasFeature, isHyloProEnabled } from 'config/featureFlags'
 
-describe('featureFlag', () => {
+describe('feature flags', () => {
   const ENV_KEYS = [
     'NODE_ENV',
     'VITE_SENTRY_ENV',
-    'VITE_FEATURE_FLAG_MEMBER_INVITES',
-    'FEATURE_FLAG_MEMBER_INVITES',
-    'VITE_FEATURE_FLAG_PROJECT_CONTRIBUTIONS',
-    'FEATURE_FLAG_PROJECT_CONTRIBUTIONS'
+    'VITE_FEATURE_FLAG_HYLO_PRO',
+    'FEATURE_FLAG_HYLO_PRO',
+    'VITE_FEATURE_FLAG_SOMETHING_ELSE',
+    'FEATURE_FLAG_SOMETHING_ELSE'
   ]
   let saved
 
@@ -28,36 +27,61 @@ describe('featureFlag', () => {
 
   afterEach(() => setEnv(saved))
 
-  it('turns member invitations on in development, test and staging builds', () => {
-    setEnv({ NODE_ENV: 'test' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(true)
-    setEnv({ NODE_ENV: 'development' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(true)
-    setEnv({ NODE_ENV: 'production', VITE_SENTRY_ENV: 'staging' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(true)
+  describe('hasFeature', () => {
+    it('turns Hylo Pro on outside production and off in production unless turned on', () => {
+      setEnv({ NODE_ENV: 'test' })
+      expect(hasFeature(HYLO_PRO)).toBe(true)
+      setEnv({ NODE_ENV: 'development' })
+      expect(hasFeature(HYLO_PRO)).toBe(true)
+      setEnv({ NODE_ENV: 'production', VITE_SENTRY_ENV: 'staging' })
+      expect(hasFeature(HYLO_PRO)).toBe(true)
+      setEnv({ NODE_ENV: 'production' })
+      expect(featureFlag(HYLO_PRO)).toBeUndefined()
+      expect(hasFeature(HYLO_PRO)).toBe(false)
+      setEnv({ NODE_ENV: 'production', VITE_SENTRY_ENV: 'production' })
+      expect(hasFeature(HYLO_PRO)).toBe(false)
+    })
+
+    it('follows VITE_FEATURE_FLAG_ (and FEATURE_FLAG_ in tests) in any environment', () => {
+      setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_HYLO_PRO: 'on' })
+      expect(hasFeature(HYLO_PRO)).toBe(true)
+      setEnv({ NODE_ENV: 'test', VITE_FEATURE_FLAG_HYLO_PRO: 'off' })
+      expect(hasFeature(HYLO_PRO)).toBe(false)
+      setEnv({ NODE_ENV: 'test', FEATURE_FLAG_HYLO_PRO: 'off' })
+      expect(hasFeature(HYLO_PRO)).toBe(false)
+    })
+
+    it('leaves other flags off unless they are turned on', () => {
+      setEnv({ NODE_ENV: 'development' })
+      expect(hasFeature('SOMETHING_ELSE')).toBe(false)
+      setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_SOMETHING_ELSE: 'on' })
+      expect(hasFeature('SOMETHING_ELSE')).toBe(true)
+    })
+
+    it("turns a 'testing' flag on only for testers", () => {
+      setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_SOMETHING_ELSE: 'testing' })
+      expect(hasFeature('SOMETHING_ELSE')).toBe(false)
+      expect(hasFeature('SOMETHING_ELSE', true)).toBe(true)
+    })
+
+    it('needs a key', () => {
+      expect(() => hasFeature()).toThrow()
+    })
   })
 
-  it('turns member invitations off in production builds', () => {
-    setEnv({ NODE_ENV: 'production' })
-    expect(featureFlag(MEMBER_INVITES)).toBeUndefined()
-    expect(hasFeature(MEMBER_INVITES)).toBe(false)
-    setEnv({ NODE_ENV: 'production', VITE_SENTRY_ENV: 'production' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(false)
-  })
+  describe('isHyloProEnabled', () => {
+    it('follows the flag for people who are not Hylo staff', () => {
+      setEnv({ NODE_ENV: 'test', VITE_FEATURE_FLAG_HYLO_PRO: 'on' })
+      expect(isHyloProEnabled({ isAdmin: false })).toBe(true)
+      setEnv({ NODE_ENV: 'test', VITE_FEATURE_FLAG_HYLO_PRO: 'off' })
+      expect(isHyloProEnabled({ isAdmin: false })).toBe(false)
+      expect(isHyloProEnabled({})).toBe(false)
+      expect(isHyloProEnabled(null)).toBe(false)
+    })
 
-  it('follows VITE_FEATURE_FLAG_ in any environment', () => {
-    setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_MEMBER_INVITES: 'on' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(true)
-    setEnv({ NODE_ENV: 'test', VITE_FEATURE_FLAG_MEMBER_INVITES: 'off' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(false)
-    setEnv({ NODE_ENV: 'test', FEATURE_FLAG_MEMBER_INVITES: 'off' })
-    expect(hasFeature(MEMBER_INVITES)).toBe(false)
-  })
-
-  it('leaves other flags off unless they are turned on', () => {
-    setEnv({ NODE_ENV: 'development' })
-    expect(hasFeature(PROJECT_CONTRIBUTIONS)).toBe(false)
-    setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_PROJECT_CONTRIBUTIONS: 'on' })
-    expect(hasFeature(PROJECT_CONTRIBUTIONS)).toBe(true)
+    it('is on for Hylo staff even when the flag is off', () => {
+      setEnv({ NODE_ENV: 'production', VITE_FEATURE_FLAG_HYLO_PRO: 'off' })
+      expect(isHyloProEnabled({ isAdmin: true })).toBe(true)
+    })
   })
 })

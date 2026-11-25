@@ -215,6 +215,8 @@
       "GroupView",
       "GroupViewPin",
       "GroupViewUser",
+      "HyloProService",
+      "HyloProSubscription",
       "Invitation",
       "InvitationSend",
       "JoinRequest",

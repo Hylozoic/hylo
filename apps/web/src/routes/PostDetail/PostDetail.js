@@ -9,7 +9,6 @@ import { Video } from 'lucide-react'
 import { Helmet } from 'react-helmet'
 import { toast } from 'sonner'
 import { AnalyticsEvents, TextHelpers } from '@hylo/shared'
-import { PROJECT_CONTRIBUTIONS } from 'config/featureFlags'
 import ActionCompletionResponsesDialog from 'components/ActionCompletionResponsesDialog'
 import CardImageAttachments from 'components/CardImageAttachments'
 import { FlagCover } from 'components/FlagBadge'
@@ -28,7 +27,6 @@ import Button from 'components/ui/button'
 import NotFound from 'components/NotFound'
 import PostDetailSkeleton from './PostDetailSkeleton'
 import PeopleInfo from 'components/PostCard/PeopleInfo'
-import ProjectContributions from './ProjectContributions'
 import PostPeopleDialog from 'components/PostPeopleDialog'
 import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug, useGroupRouteOpts } from 'contexts/SpaceGroupContext'
@@ -36,7 +34,6 @@ import fetchPost from 'store/actions/fetchPost'
 import { followPost, unfollowPost } from 'store/actions/followPost'
 import joinProject from 'store/actions/joinProject'
 import leaveProject from 'store/actions/leaveProject'
-import processStripeToken from 'store/actions/processStripeToken'
 import respondToEvent from 'store/actions/respondToEvent'
 import trackAnalyticsEvent from 'store/actions/trackAnalyticsEvent'
 import { FETCH_POST, RESP_ADMINISTRATION } from 'store/constants'
@@ -552,8 +549,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
     return link.startsWith('http') ? link : `https://${link}`
   }, [post?.meetingLink])
 
-  const { acceptContributions, totalContributions } = post || {}
-
   let people, postPeopleDialogTitle
 
   if (isProject) {
@@ -721,13 +716,6 @@ const PostDetail = forwardRef(function PostDetail (props, forwardedRef) {
                 </div>
               )}
             </div>
-          )}
-          {isProject && acceptContributions && currentUser.hasFeature(PROJECT_CONTRIBUTIONS) && (
-            <ProjectContributions
-              postId={post.id}
-              totalContributions={totalContributions}
-              processStripeToken={(token, amount) => dispatch(processStripeToken(postId, token, amount))}
-            />
           )}
           {post.type === 'action' && post.completionAction && (
             <ActionCompletionSection

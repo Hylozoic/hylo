@@ -63,6 +63,13 @@ const daily = now => {
   return tasks
 }
 
+// Re-syncs one 24th of the Hylo Pro subscriptions from Stripe, picked by the UTC hour (not the
+// local one, so daylight saving doesn't skip or repeat a slice): each is checked once a day
+const resyncHyloPro = now =>
+  HyloProService.resyncSubscriptions({ slot: now.toUTC().hour })
+    .then(result => sails.log.debug(`Hylo Pro re-sync: ${result.synced} subscriptions synced for ${result.groups} groups, ${result.failed} failed${result.rateLimited ? ', stopped by Stripe rate limit' : ''}`))
+    .catch(err => sails.log.error('Hylo Pro re-sync failed; continuing hourly tasks', err))
+
 const hourly = now => {
   const tasks = [
     GroupViewUser.sendDigests()
@@ -70,7 +77,8 @@ const hourly = now => {
       .catch(err => {
         sails.log.error('Chat digest job failed; continuing hourly tasks', err)
         return 0
-      })
+      }),
+    resyncHyloPro(now)
   ]
 
   switch (now.hour) {

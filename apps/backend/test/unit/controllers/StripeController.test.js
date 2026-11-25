@@ -2,7 +2,7 @@
 const root = require('root-path')
 const setup = require(root('test/setup'))
 const factories = require(root('test/setup/factories'))
-/* global ContentAccess, StripeProduct, SubscriptionChangeEvent */
+/* global ContentAccess, StripeAccount, StripeProduct, SubscriptionChangeEvent */
 
 let currentWebhookEvent = null
 
@@ -245,5 +245,238 @@ describe('StripeController.webhook', () => {
     expect(payload.applied).to.equal(true)
     expect(payload.appliedFromWebhookType).to.equal('customer.subscription.deleted')
     expect(payload.appliedFromWebhookEventId).to.equal('evt_lifetime_deleted')
+  })
+
+  describe('Hylo Pro events', () => {
+    const stripeMock = new (require('stripe'))('sk_test_fake')
+    let group, savedSubscriptions, savedHandlers
+
+    beforeEach(async () => {
+      group = await factories.group().save()
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_pro' })
+      savedSubscriptions = stripeMock.subscriptions
+      savedHandlers = {
+        handleSubscriptionUpdated: StripeController.handleSubscriptionUpdated,
+        handleCheckoutSessionCompleted: StripeController.handleCheckoutSessionCompleted
+      }
+      StripeController.handleSubscriptionUpdated = spy(async () => {})
+      StripeController.handleCheckoutSessionCompleted = spy(async () => {})
+    })
+
+    afterEach(() => {
+      stripeMock.subscriptions = savedSubscriptions
+      Object.assign(StripeController, savedHandlers)
+    })
+
+    function proSubscription (overrides = {}) {
+      return {
+        id: 'sub_pro_webhook',
+        object: 'subscription',
+        status: 'active',
+        customer: 'cus_pro',
+        cancel_at_period_end: false,
+        metadata: { hylo_pro: 'true', group_id: String(group.id) },
+        items: { data: [{ current_period_end: 4102444800, price: { id: 'price_y', recurring: { interval: 'year' } } }] },
+        ...overrides
+      }
+    }
+
+    it('syncs platform Pro events and keeps them away from the Connect handlers', async () => {
+      const retrieved = []
+      stripeMock.subscriptions = {
+        retrieve: async id => {
+          retrieved.push(id)
+          return proSubscription()
+        }
+      }
+      currentWebhookEvent = {
+        id: 'evt_pro_updated',
+        type: 'customer.subscription.updated',
+        data: { object: proSubscription() }
+      }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.received).to.equal(true)
+      expect(retrieved).to.deep.equal(['sub_pro_webhook'])
+      expect(StripeController.handleSubscriptionUpdated).to.not.have.been.called()
+      expect(await group.hasPro()).to.be.true
+
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_updated' }).first()
+      expect(stored).to.not.equal(undefined)
+    })
+
+    it('skips a Pro event already processed', async () => {
+      await bookshelf.knex('stripe_webhook_processed_events').insert({ stripe_event_id: 'evt_pro_dup' })
+      const retrieved = []
+      stripeMock.subscriptions = { retrieve: async id => { retrieved.push(id); return proSubscription() } }
+      currentWebhookEvent = { id: 'evt_pro_dup', type: 'customer.subscription.updated', data: { object: proSubscription() } }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.duplicate).to.equal(true)
+      expect(retrieved).to.deep.equal([])
+    })
+
+    it('does not mark a Pro event processed when syncing fails, so Stripe retries it', async () => {
+      stripeMock.subscriptions = { retrieve: async () => { throw new Error('stripe down') } }
+      currentWebhookEvent = { id: 'evt_pro_fail', type: 'customer.subscription.updated', data: { object: proSubscription() } }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.statusCode).to.equal(400)
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_fail' }).first()
+      expect(stored).to.equal(undefined)
+    })
+
+    it('records refunds of Pro payments without running the Connect refund handler', async () => {
+      const savedCharges = stripeMock.charges
+      const savedHandler = StripeController.handleChargeRefunded
+      StripeController.handleChargeRefunded = spy(async () => {})
+      const proCharge = { id: 'ch_pro', object: 'charge', customer: 'cus_pro', amount: 1000, amount_refunded: 1000, refunded: true, currency: 'usd', refunds: { data: [] } }
+      stripeMock.charges = { retrieve: async () => proCharge }
+      try {
+        currentWebhookEvent = { id: 'evt_pro_refund', type: 'charge.refunded', data: { object: proCharge } }
+        await StripeController.webhook(req, res)
+
+        expect(res.body).to.deep.equal({ received: true })
+        expect(StripeController.handleChargeRefunded).to.not.have.been.called()
+        const log = await bookshelf.knex('stripe_logs').where({ log_type: 'hylo_pro_refund', external_id: 'ch_pro' }).first()
+        expect(log.group_id).to.equal(group.id)
+        const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_pro_refund' }).first()
+        expect(stored).to.not.equal(undefined)
+
+        // A refund of some other platform charge still goes the old way
+        currentWebhookEvent = { id: 'evt_other_refund', type: 'charge.refunded', data: { object: { ...proCharge, id: 'ch_other', customer: 'cus_someone' } } }
+        res = factories.mock.response()
+        await StripeController.webhook(req, res)
+        expect(StripeController.handleChargeRefunded).to.have.been.called()
+      } finally {
+        stripeMock.charges = savedCharges
+        StripeController.handleChargeRefunded = savedHandler
+      }
+    })
+
+    it('sends Connect events to the Connect handlers even if their metadata looks like Pro', async () => {
+      await StripeAccount.forge({ stripe_account_external_id: 'acct_known_pro_lookalike' }).save()
+      const retrieved = []
+      stripeMock.subscriptions = { retrieve: async id => { retrieved.push(id); return proSubscription() } }
+      currentWebhookEvent = {
+        id: 'evt_connect_lookalike',
+        type: 'customer.subscription.updated',
+        account: 'acct_known_pro_lookalike',
+        data: { object: proSubscription() }
+      }
+
+      await StripeController.webhook(req, res)
+
+      expect(res.body.received).to.equal(true)
+      expect(StripeController.handleSubscriptionUpdated).to.have.been.called()
+      expect(retrieved).to.deep.equal([])
+      expect(await group.hasPro()).to.be.false
+    })
+  })
+
+  describe('signature verification', () => {
+    const stripeMock = new (require('stripe'))('sk_test_fake')
+    let savedWebhooks, savedEnv, triedSecrets
+
+    // Stripe signs each endpoint with its own secret; this fake accepts only `validSecret`
+    function signedWith (validSecret, event = { id: `evt_signed_${validSecret}`, type: 'product.created', data: { object: {} } }) {
+      triedSecrets = []
+      stripeMock.webhooks = {
+        constructEvent: (payload, signature, secret) => {
+          triedSecrets.push(secret)
+          if (secret !== validSecret) throw new Error('No signatures found matching the expected signature for payload')
+          return event
+        }
+      }
+    }
+
+    beforeEach(() => {
+      delete global.__stripeWebhookConstructEvent
+      savedWebhooks = stripeMock.webhooks
+      savedEnv = {
+        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+        STRIPE_PLATFORM_WEBHOOK_SECRET: process.env.STRIPE_PLATFORM_WEBHOOK_SECRET,
+        STRIPE_WEBHOOK_BYPASS_SIGNATURE: process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE
+      }
+      delete process.env.STRIPE_WEBHOOK_BYPASS_SIGNATURE
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_connect'
+      process.env.STRIPE_PLATFORM_WEBHOOK_SECRET = 'whsec_platform'
+    })
+
+    afterEach(() => {
+      stripeMock.webhooks = savedWebhooks
+      for (const [key, value] of Object.entries(savedEnv)) {
+        if (value === undefined) delete process.env[key]
+        else process.env[key] = value
+      }
+    })
+
+    it('accepts events signed by the Connect endpoint secret', async () => {
+      signedWith('whsec_connect')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.not.equal(400)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_connect'])
+    })
+
+    it('accepts events signed by the platform endpoint secret', async () => {
+      signedWith('whsec_platform')
+      await StripeController.webhook(req, res)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_connect', 'whsec_platform'])
+      const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_signed_whsec_platform' }).first()
+      expect(stored).to.not.equal(undefined)
+    })
+
+    it('acknowledges non-Pro platform endpoint events without running the Connect handlers', async () => {
+      const savedHandler = StripeController.handleChargeRefunded
+      StripeController.handleChargeRefunded = spy(async () => {})
+      try {
+        // e.g. a refund of a platform charge that isn't a Hylo Pro payment
+        signedWith('whsec_platform', { id: 'evt_platform_refund', type: 'charge.refunded', data: { object: { id: 'ch_1', metadata: {} } } })
+        await StripeController.webhook(req, res)
+        expect(res.body).to.deep.equal({ received: true, skipped: 'platform_event' })
+        expect(StripeController.handleChargeRefunded).to.not.have.been.called()
+        const stored = await bookshelf.knex('stripe_webhook_processed_events').where({ stripe_event_id: 'evt_platform_refund' }).first()
+        expect(stored).to.not.equal(undefined)
+
+        // The same event type from the Connect endpoint still reaches its handler
+        await StripeAccount.forge({ stripe_account_external_id: 'acct_refund' }).save()
+        signedWith('whsec_connect', { id: 'evt_connect_refund', type: 'charge.refunded', account: 'acct_refund', data: { object: { id: 'ch_2' } } })
+        res = factories.mock.response()
+        await StripeController.webhook(req, res)
+        expect(res.body).to.deep.equal({ received: true })
+        expect(StripeController.handleChargeRefunded).to.have.been.called()
+      } finally {
+        StripeController.handleChargeRefunded = savedHandler
+      }
+    })
+
+    it('works with only the platform secret set', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET
+      signedWith('whsec_platform')
+      await StripeController.webhook(req, res)
+      expect(res.body.received).to.equal(true)
+      expect(triedSecrets).to.deep.equal(['whsec_platform'])
+    })
+
+    it('rejects events no configured secret signed', async () => {
+      signedWith('whsec_someone_else')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.equal(400)
+      expect(res.body).to.deep.equal({ error: 'Invalid signature' })
+    })
+
+    it('fails when no secret is configured', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET
+      delete process.env.STRIPE_PLATFORM_WEBHOOK_SECRET
+      signedWith('whsec_connect')
+      await StripeController.webhook(req, res)
+      expect(res.statusCode).to.equal(500)
+      expect(triedSecrets).to.deep.equal([])
+    })
   })
 })
