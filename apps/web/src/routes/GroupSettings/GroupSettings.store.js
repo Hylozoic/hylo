@@ -95,6 +95,7 @@ export function fetchGroupSettings (slug) {
             theme
           }
           proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+          proState
           type
           parentId
           slug
@@ -297,6 +298,7 @@ export function updateGroupSettings (id, changes) {
             theme
           }
           proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+          proState
           agreements {
             items {
               id

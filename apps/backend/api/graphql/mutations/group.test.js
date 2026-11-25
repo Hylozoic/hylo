@@ -821,6 +821,41 @@ describe('mutations/group', () => {
         expect(await savedSettings()).to.not.have.property('theme')
       })
 
+      it('keeps a lapsed group\'s theme and lets it be removed, but refuses changes and imports', async () => {
+        await updateGroupTheme(admin.id, group.id, theme)
+        await removePro()
+        await HyloProSubscription.forge({
+          group_id: group.id, source: 'stripe', status: 'canceled', stripe_subscription_id: 'sub_theme_lapsed', ended_at: new Date(Date.now() - 86400000)
+        }).save()
+        expect(await group.proState()).to.equal('lapsed')
+        expect((await savedSettings()).theme).to.deep.equal(theme)
+
+        const error = await updateGroupTheme(admin.id, group.id, { light: { background: '1 2% 3%' } }).catch(err => err)
+        expect(error.extensions).to.deep.include({ code: 'HYLO_PRO_REQUIRED', feature: 'groupThemes' })
+        expect((await savedSettings()).theme).to.deep.equal(theme)
+        await expect(importGroupThemeFromUrl(admin.id, group.id, 'https://example.org', {
+          isConfigured: () => true, withinLimit: async () => true, importTheme: async () => ({})
+        })).to.be.rejectedWith(/part of Hylo Pro/)
+
+        await updateGroupTheme(admin.id, group.id, null)
+        expect(await savedSettings()).to.not.have.property('theme')
+      })
+
+      it('still lets a group in its payment grace period save a theme', async () => {
+        await removePro()
+        await HyloProSubscription.forge({
+          group_id: group.id,
+          source: 'stripe',
+          status: 'past_due',
+          stripe_subscription_id: 'sub_theme_grace',
+          current_period_start: new Date(Date.now() - 86400000),
+          current_period_end: new Date('2099-01-01T00:00:00Z')
+        }).save()
+        expect(await group.proState()).to.equal('grace')
+        await updateGroupTheme(admin.id, group.id, theme)
+        expect((await savedSettings()).theme).to.deep.equal(theme)
+      })
+
       it('refuses to import a theme, before doing any work', async () => {
         await removePro()
         let called = false

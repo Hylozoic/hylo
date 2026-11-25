@@ -28,8 +28,8 @@ jest.mock('store/selectors/getMe', () => ({ __esModule: true, default: jest.fn()
 
 const savedTheme = { light: { background: '150 22% 86%' }, radius: 'xl' }
 
-function renderTab (theme = null, { hasGroupThemes = true } = {}) {
-  const group = { id: '42', slug: 'my-group', proFeatures: { groupThemes: hasGroupThemes }, settings: { layout: 'two-column', theme } }
+function renderTab (theme = null, { hasGroupThemes = true, proState } = {}) {
+  const group = { id: '42', slug: 'my-group', proFeatures: { groupThemes: hasGroupThemes }, proState, settings: { layout: 'two-column', theme } }
   return render(<AppearanceTab group={group} updateGroupSettings={jest.fn()} />)
 }
 
@@ -221,6 +221,16 @@ describe('AppearanceTab group theme editor', () => {
     it('still lets a group reset a theme it saved while it had Pro', async () => {
       renderTab(savedTheme, { hasGroupThemes: false })
       expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
+      fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
+      await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
+      expect(mockDispatch.mock.calls[0][0].graphql.variables).toEqual({ groupId: '42', theme: null })
+    })
+
+    it('treats a lapsed group as without the feature, even with a stale proFeatures', async () => {
+      renderTab(savedTheme, { hasGroupThemes: true, proState: 'lapsed' })
+      expect(screen.getByTestId('group-theme-pro-notice')).toHaveTextContent("This group's theme stays as it is")
+      fireEvent.click(screen.getByTestId('group-theme-preset-snow'))
+      expect(saveButton()).toBeDisabled()
       fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
       await waitFor(() => expect(mockDispatch).toHaveBeenCalled())
       expect(mockDispatch.mock.calls[0][0].graphql.variables).toEqual({ groupId: '42', theme: null })
