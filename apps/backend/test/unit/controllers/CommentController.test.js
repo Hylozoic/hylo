@@ -85,6 +85,21 @@ describe('CommentController', function () {
         })
     })
 
+    it('does not create a comment from an autoresponder email', async () => {
+      attachMultipartEmailFields(req, {
+        'stripped-text': 'I am on sabbatical until May 1st.',
+        headers: 'From: someone@example.com\r\nAuto-Submitted: auto-replied\r\n',
+        to: Email.postReplyAddress(fixtures.p2.id, fixtures.u3.id)
+      })
+      const send = spy(() => {})
+      res.status = spy(() => ({ send }))
+
+      await CommentController.createFromEmail(req, res)
+      expect(res.status).to.have.been.called.with(200)
+      const comments = await fixtures.p2.comments().fetch()
+      expect(comments.length).to.equal(0)
+    })
+
     describe('with a SendGrid signing key configured', () => {
       const crypto = require('crypto')
       const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' })

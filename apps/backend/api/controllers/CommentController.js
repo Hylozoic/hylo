@@ -6,6 +6,7 @@ import createComment from '../models/comment/createComment'
 import Busboy from 'busboy'
 import { PassThrough } from 'stream'
 import { isValidInboundEmailSignature } from '../../lib/inboundEmailSignature'
+import { isAutoresponderEmail } from '../../lib/email/isAutoresponderEmail'
 
 module.exports = {
   createFromEmail: function (req, res) {
@@ -17,31 +18,8 @@ module.exports = {
         return res.status(422).send('Invalid reply address: ' + params.to)
       }
 
-      // Check for autoresponder patterns
-      const isAutoresponder = (headers) => {
-        const autoResponderHeaders = ['auto-submitted', 'x-autoreply', 'x-autorespond']
-        const autoResponderSubjects = ['out of office', 'auto-reply', 'automated response']
-
-        // Check headers
-        for (const header of autoResponderHeaders) {
-          if (headers[header] && headers[header].toLowerCase() !== 'no') {
-            return true
-          }
-        }
-
-        // Check subject
-        const subject = params.subject ? params.subject.toLowerCase() : ''
-        for (const phrase of autoResponderSubjects) {
-          if (subject.includes(phrase)) {
-            return true
-          }
-        }
-
-        return false
-      }
-
       // Detect autoresponder email
-      if (isAutoresponder(req.headers)) {
+      if (isAutoresponderEmail(params)) {
         return res.status(200).send({ message: 'Autoresponder email detected, no comment created.' })
       }
 
