@@ -21,6 +21,13 @@ describe('useProFeature', () => {
     expect(hasProFeature(null, 'groupThemes')).toBe(false)
   })
 
+  it('follows the Pro state: features work in grace, and are off once Pro has lapsed', () => {
+    expect(hasProFeature({ ...group, proState: 'active' }, 'groupThemes')).toBe(true)
+    expect(hasProFeature({ ...group, proState: 'grace' }, 'groupThemes')).toBe(true)
+    expect(hasProFeature({ ...group, proState: 'lapsed' }, 'groupThemes')).toBe(false)
+    expect(hasProFeature({ ...group, proState: 'none' }, 'groupThemes')).toBe(false)
+  })
+
   it('throws for a key that is not registered', () => {
     expect(() => hasProFeature(group, 'groupTheme')).toThrow('Unknown Hylo Pro feature: groupTheme')
   })

@@ -155,10 +155,18 @@ module.exports = bookshelf.Model.extend(merge({
 
   /**
    * Whether this group currently has Hylo Pro (a paid subscription or a manual grant), at any
-   * tier. Not enough to gate a feature: use hasProFeature(key) for that.
+   * tier: its Pro state is 'active' or 'grace' (see proState). Not enough to gate a feature: use
+   * hasProFeature(key) for that.
    */
   hasPro () {
     return HyloProSubscription.groupHasPro(this.id)
+  },
+
+  /**
+   * This group's Hylo Pro state: 'active', 'grace', 'lapsed' or 'none' (see HyloProSubscription.PRO_STATES)
+   */
+  proState () {
+    return HyloProSubscription.groupProState(this.id)
   },
 
   /**

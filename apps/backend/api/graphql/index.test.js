@@ -167,9 +167,10 @@ describe('graphql request handler', () => {
 
     const query = id => `{ group(id: "${id}") {
       hasPro
+      proState
       proFeatures { designedViews recording }
       proBilling {
-        hasPro canUpgrade canManage needsPaymentUpdate tier
+        hasPro state graceEndsAt canUpgrade canManage needsPaymentUpdate tier
         features { designedViews recording }
         subscription { source status active interval cancelAtPeriodEnd endsAt }
         grant { id }
@@ -182,10 +183,11 @@ describe('graphql request handler', () => {
       req.user = steward
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      const { hasPro, proFeatures, proBilling } = executionResult.data.group
+      const { hasPro, proState, proFeatures, proBilling } = executionResult.data.group
       expect(hasPro).to.equal(true)
+      expect(proState).to.equal('active')
       expect(proFeatures).to.deep.equal({ designedViews: true, recording: false })
-      expect(proBilling).to.deep.include({ hasPro: true, canUpgrade: false, canManage: true, needsPaymentUpdate: false, grant: null, tier: 'pro' })
+      expect(proBilling).to.deep.include({ hasPro: true, state: 'active', graceEndsAt: null, canUpgrade: false, canManage: true, needsPaymentUpdate: false, grant: null, tier: 'pro' })
       expect(proBilling.features).to.deep.equal({ designedViews: true, recording: false })
       expect(proBilling.subscription).to.deep.include({
         source: 'stripe',
@@ -206,7 +208,40 @@ describe('graphql request handler', () => {
       req.user = member
       const { executionResult } = await handler.inject({ document: query(proGroup.id), serverContext: { req, res } })
       expect(executionResult.errors).to.be.undefined
-      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proFeatures: { designedViews: true, recording: false }, proBilling: null })
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proFeatures: { designedViews: true, recording: false }, proBilling: null })
+    })
+
+    it("shows the grace state only to stewards; other members see 'active'", async () => {
+      const graceGroup = await factories.group().save()
+      await steward.joinGroup(graceGroup, { assignAdministrator: true })
+      await member.joinGroup(graceGroup)
+      const periodStart = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      await HyloProSubscription.forge({
+        group_id: graceGroup.id,
+        source: 'stripe',
+        status: 'past_due',
+        interval: 'month',
+        stripe_subscription_id: 'sub_graphql_grace',
+        stripe_customer_id: 'cus_graphql_grace',
+        current_period_start: periodStart,
+        current_period_end: new Date('2099-01-01T00:00:00Z')
+      }).save()
+
+      req.session.userId = steward.id
+      req.user = steward
+      let { executionResult } = await handler.inject({ document: query(graceGroup.id), serverContext: { req, res } })
+      expect(executionResult.errors).to.be.undefined
+      // Features keep working in grace
+      expect(executionResult.data.group).to.deep.include({ hasPro: true, proState: 'grace', proFeatures: { designedViews: true, recording: false } })
+      expect(executionResult.data.group.proBilling).to.deep.include({ hasPro: true, state: 'grace', needsPaymentUpdate: true })
+      expect(new Date(executionResult.data.group.proBilling.graceEndsAt).getTime())
+        .to.equal(periodStart.getTime() + HyloProSubscription.STRIPE_GRACE_DAYS * 24 * 60 * 60 * 1000)
+
+      req.session.userId = member.id
+      req.user = member
+      ;({ executionResult } = await handler.inject({ document: query(graceGroup.id), serverContext: { req, res } }))
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data.group).to.deep.equal({ hasPro: true, proState: 'active', proFeatures: { designedViews: true, recording: false }, proBilling: null })
     })
 
     it('has no billing for spaces, even for their stewards', async () => {

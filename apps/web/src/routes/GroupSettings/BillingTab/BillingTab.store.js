@@ -28,6 +28,8 @@ export function fetchProBilling (groupId) {
           id
           proBilling {
             hasPro
+            state
+            graceEndsAt
             canUpgrade
             canManage
             needsPaymentUpdate
