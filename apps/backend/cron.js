@@ -72,7 +72,7 @@ const daily = now => {
 // local one, so daylight saving doesn't skip or repeat a slice): each is checked once a day
 const resyncHyloPro = now =>
   HyloProService.resyncSubscriptions({ slot: now.toUTC().hour })
-    .then(result => sails.log.debug(`Hylo Pro re-sync: ${result.synced} subscriptions synced for ${result.customers} groups, ${result.failed} failed${result.rateLimited ? ', stopped by Stripe rate limit' : ''}`))
+    .then(result => sails.log.debug(`Hylo Pro re-sync: ${result.synced} subscriptions synced for ${result.groups} groups, ${result.failed} failed${result.rateLimited ? ', stopped by Stripe rate limit' : ''}`))
     .catch(err => sails.log.error('Hylo Pro re-sync failed; continuing hourly tasks', err))
 
 const hourly = now => {
