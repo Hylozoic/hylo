@@ -76,6 +76,8 @@ export function groupViewUrl (groupSlug, view) {
       return groupUrl(groupSlug, 'proposals')
     case 'projects':
       return groupUrl(groupSlug, 'projects')
+    case 'tasks':
+      return groupUrl(groupSlug, 'tasks')
     case 'resources':
       return groupUrl(groupSlug, 'resources')
     case 'requests-and-offers':

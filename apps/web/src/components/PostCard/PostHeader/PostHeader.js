@@ -19,6 +19,8 @@ import FlagBadge from 'components/FlagBadge'
 import Icon from 'components/Icon'
 import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
+import TaskStatusChip from 'components/TaskStatusChip'
+import ConvertProjectPill from 'components/ConvertProjectPill'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
 import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
@@ -142,6 +144,10 @@ function PostHeader (props) {
   // Other group admins can edit too when the creator allowed it (#1727); the server decides
   const canEdit = isCreator || !!canEditFromServer
   const canFlag = !isCreator
+  // A legacy project post can become a project space. Only its creator is offered this, and
+  // only in a group where they are allowed to create spaces.
+  const canConvertToSpace = type === 'project' && isCreator && !!group?.id && group.type !== 'space' &&
+    responsibilities.includes(RESP_ADMINISTRATION)
   const canModerate = !isCreator && responsibilities.includes(RESP_MANAGE_CONTENT)
   const pinnableView = useCurrentPinnableView()
   const belongsToCurrentGroup = (postGroups || []).length === 0 ||
@@ -382,9 +388,10 @@ function PostHeader (props) {
       { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove From Group'), onClick: canModerate ? () => removePost(t('Are you sure you want to remove this post? You cannot undo this.')) : undefined, red: true }
     ], item => item && (isFunction(item.onClick) || item.disabled || item.items?.length))
 
-  const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'proposal']
+  const typesWithTimes = ['action', 'offer', 'request', 'resource', 'project', 'task', 'proposal']
   const canHaveTimes = typesWithTimes.includes(type)
 
+  // Tasks are completed by moving them to a done column (see TaskStatusChip), not with the completion checkbox
   const typesWithCompletion = ['offer', 'request', 'resource', 'project', 'proposal']
   const canBeCompleted = typesWithCompletion.includes(type) && (type !== 'proposal' || (proposalStatus === PROPOSAL_STATUS_COMPLETED || proposalStatus === PROPOSAL_STATUS_CASUAL))
   const actualEndTime = fulfilledAt && fulfilledAt < endTime ? fulfilledAt : endTime
@@ -413,7 +420,9 @@ function PostHeader (props) {
   if (fulfilledAt && fulfilledAt <= endTime) {
     endString = t('Completed: {{endTime}}', { endTime: endDisplay })
   } else {
-    endString = TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: endDisplay }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: endDisplay }) : false
+    endString = type === 'task' && endTime
+      ? t('Due: {{endTime}}', { endTime: endDisplay })
+      : TextHelpers.isDateInTheFuture(endTime) ? t('Ends: {{endTime}}', { endTime: endDisplay }) : actualEndTime ? t('Ended: {{endTime}}', { endTime: endDisplay }) : false
   }
 
   let timeWindow = ''
@@ -499,6 +508,16 @@ function PostHeader (props) {
       </div>
 
       <div className={cn('flex flex-col xs:flex-row justify-between')}>
+        {type === 'task' && (
+          <div className={cn('ml-2 mb-1', { hidden: constrained })}>
+            <TaskStatusChip post={post} groupId={group?.id} canEdit={canEdit && !!currentUser} />
+          </div>
+        )}
+        {canConvertToSpace && (
+          <div className={cn('ml-2 mb-1', { hidden: constrained })}>
+            <ConvertProjectPill postId={id} group={group} />
+          </div>
+        )}
         {canHaveTimes && timeWindow.length > 0 && (
           <div className={cn('ml-2 mb-1 bg-selected/10 p-1 rounded-lg text-selected text-xs font-bold flex items-center justify-center inline-block px-2', { hidden: constrained })}>
             {timeWindow}

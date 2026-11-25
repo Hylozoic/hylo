@@ -19,7 +19,8 @@ const POST_TYPE_OPTIONS = [
   { id: 'project', label: 'Projects' },
   { id: 'proposal', label: 'Proposals' },
   { id: 'request', label: 'Requests' },
-  { id: 'resource', label: 'Resources' }
+  { id: 'resource', label: 'Resources' },
+  { id: 'task', label: 'Tasks' }
 ]
 
 const TIMEFRAME_OPTIONS = [
@@ -67,6 +68,7 @@ const ico = (props = {}) => ({
 })
 
 const VIEW_MODE_ICONS = {
+  kanban: <svg {...ico()}><rect x='3' y='4' width='5' height='16' rx='1.2' /><rect x='10' y='4' width='5' height='11' rx='1.2' /><rect x='17' y='4' width='4' height='7' rx='1.2' /></svg>,
   cards: <svg {...ico()}><rect x='3' y='4' width='18' height='16' rx='2' /><path d='M3 14h18' /></svg>,
   list: <svg {...ico()}><path d='M4 6h16M4 12h16M4 18h16' /></svg>,
   bigGrid: <Grid2x2 size={15} strokeWidth={1.9} />,
@@ -111,6 +113,7 @@ const RSVP_OPTIONS = [
 
 const StreamViewControls = ({
   activePostsOnly,
+  allowKanban,
   changeActivePostsOnly,
   changeChildPostInclusion,
   changePostTypeFilter,
@@ -196,6 +199,7 @@ const StreamViewControls = ({
               </span>
             }
             items={[
+              ...(allowKanban ? [{ label: t('Kanban'), icon: VIEW_MODE_ICONS.kanban, onClick: () => changeView('kanban') }] : []),
               { label: t('Card'), icon: VIEW_MODE_ICONS.cards, onClick: () => changeView('cards') },
               { label: t('List'), icon: VIEW_MODE_ICONS.list, onClick: () => changeView('list') },
               { label: t('Large Grid'), icon: VIEW_MODE_ICONS.bigGrid, onClick: () => changeView('bigGrid') },
@@ -206,6 +210,11 @@ const StreamViewControls = ({
         </div>
 
         <div className={cn(GROUP_CLASS, 'max-sm:hidden')} data-testid='stream-view-controls' data-tour='stream-view-modes'>
+          {allowKanban && (
+            <ToolBtn active={viewMode === 'kanban'} onClick={() => changeView('kanban')} tooltip={t('Kanban')}>
+              {VIEW_MODE_ICONS.kanban}
+            </ToolBtn>
+          )}
           <ToolBtn active={viewMode === 'cards'} onClick={() => changeView('cards')} tooltip={t('Card')}>
             {VIEW_MODE_ICONS.cards}
           </ToolBtn>

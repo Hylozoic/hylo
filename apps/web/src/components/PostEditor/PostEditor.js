@@ -1271,6 +1271,7 @@ function PostEditorInner ({
         }
         break
       case 'project':
+      case 'task':
         if ((donationsLink?.length > 0 && !sanitizeURL(donationsLink)) || (projectManagementLink?.length > 0 && !sanitizeURL(projectManagementLink))) {
           errorMessages.push(t('Donations and project management links must be valid URLs'))
         }
@@ -1775,9 +1776,9 @@ function PostEditorInner ({
           />
         </div>
       </AttachmentDropZone>
-      {currentPost.type === 'project' && (
-        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
-          <div className='text-xs text-foreground-muted w-[120px]'>{t('Project Members')}</div>
+      {(currentPost.type === 'task' || currentPost.type === 'project') && (
+        <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2' data-testid='task-assignees-field'>
+          <div className='text-xs text-foreground-muted w-[120px]'>{currentPost.type === 'project' ? t('Project Members') : t('Who’s on it')}</div>
           <div className='w-full'>
             <MemberSelector
               initialMembers={currentPost.members || []}
@@ -2128,7 +2129,7 @@ function PostEditorInner ({
           )}
         </div>
       )}
-      {currentPost.type === 'project' && (
+      {(currentPost.type === 'task' || currentPost.type === 'project') && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className={cn('text-xs text-foreground-muted w-[100px]', { 'text-destructive': !!currentPost.donationsLink && !sanitizeURL(currentPost.donationsLink) })}>{t('Donation Link')}</div>
           <div className='w-full'>
@@ -2143,7 +2144,7 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {currentPost.type === 'project' && (
+      {(currentPost.type === 'task' || currentPost.type === 'project') && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className={cn('text-xs text-foreground-muted w-[160px]', { 'text-destructive': !!currentPost.projectManagementLink && !sanitizeURL(currentPost.projectManagementLink) })}>{t('Project Management')}</div>
           <div className='w-full'>
@@ -2158,7 +2159,7 @@ function PostEditorInner ({
           </div>
         </div>
       )}
-      {(currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
+      {(currentPost.type === 'task' || currentPost.type === 'project' || (currentPost.type === 'submission' && currentFundingRound?.requireBudget)) && (
         <div className='flex items-center border-2 border-transparent transition-all bg-input rounded-md p-2 gap-2'>
           <div className='text-xs text-foreground-muted mr-2 whitespace-nowrap'>
             {t('Budget Total')}

@@ -29,9 +29,9 @@ import {
 } from 'components/ui/dropdown-menu'
 import { CONTEXT_MY } from 'store/constants'
 import { DEFAULT_BANNER } from 'store/models/Group'
-import { POST_TYPES } from 'store/models/Post'
 import childGroupLabel from 'util/childGroupLabel'
 import { STREAM_SORT_OPTIONS } from 'util/constants'
+import { FEATURE_TYPES } from '../MapExplorer.store'
 
 import styles from './MapDrawer.module.scss'
 
@@ -171,7 +171,8 @@ function childPostGroupLabel (post, { context, group }, t) {
 function MapPostRow ({ post, routeParams, context, group }) {
   const { t } = useTranslation()
   const groupLabel = childPostGroupLabel(post, { context, group }, t)
-  const type = POST_TYPES[post.type] || {}
+  // FEATURE_TYPES also covers legacy project posts, which can no longer be created
+  const type = FEATURE_TYPES[post.type] || {}
   const [red, green, blue] = type.primaryColor || [128, 128, 128]
   const typeColor = `rgb(${red} ${green} ${blue})`
   const firstImage = (post.attachments || []).find(a => a.type === 'image')

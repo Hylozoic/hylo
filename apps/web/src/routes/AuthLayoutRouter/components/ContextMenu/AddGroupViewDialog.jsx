@@ -42,7 +42,7 @@ const COMMON_VIEW_TYPES = [
   'requests-and-offers',
   'resources',
   'proposals',
-  'projects'
+  'tasks'
 ]
 
 /** User-created view types. Always offered; can add more than one of each. */

@@ -22,7 +22,7 @@ export const PROPOSAL_STATUS_VOTING = 'voting'
 export const PROPOSAL_STATUS_CASUAL = 'casual'
 export const PROPOSAL_STATUS_COMPLETED = 'completed'
 
-export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'event']
+export const POST_TYPES_SHOW_LOCATION_BY_DEFAULT = ['request', 'offer', 'resource', 'project', 'task', 'event']
 
 export const POST_COMPLETION_ACTIONS = [
   'button',
@@ -42,6 +42,7 @@ export function getPostTypeIcon (type) {
     request: 'Heart',
     resource: 'Resource',
     project: 'Project',
+    task: 'Project',
     proposal: 'Proposal',
     event: 'Calendar',
     post: 'Post',
@@ -117,6 +118,8 @@ Post.fields = {
   projectManagementLink: attr(),
   sortOrder: attr(),
   startsAt: attr(),
+  taskCategory: attr(), // Tasks only: 'todo' | 'active' | 'done', shared by every board the task is on
+  taskPlacements: attr(), // Tasks only: [{ groupId, taskStatusId, statusName, statusCategory, position }] per group
   timezone: attr(),
   title: attr(),
   tokensAllocated: attr(), // Tokens allocated by current user in a funding round
@@ -210,12 +213,12 @@ export const POST_TYPES = {
     label: 'Resource',
     description: 'Let people know about available resources'
   },
-  project: {
+  task: {
     primaryColor: [252, 128, 0, 255], // $color-fuchsia-pink;
     backgroundColor: 'rgba(252, 128, 0, .2)', // $color-prim;
     map: true,
-    label: 'Project',
-    description: 'Create a project that people can help with'
+    label: 'Task',
+    description: 'Create a task that people can pick up'
   },
   proposal: {
     primaryColor: [0, 163, 227, 255], // $color-picton-blue

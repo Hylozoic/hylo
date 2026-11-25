@@ -18,7 +18,6 @@ import {
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST,
-  CREATE_PROJECT,
   DROP_QUERY_RESULTS,
   FIND_OR_CREATE_THREAD,
   FETCH_THREADS,
@@ -98,7 +97,6 @@ export default function (state = {}, action) {
       }, nextState)
     }
 
-    case CREATE_PROJECT:
     case CREATE_POST:
     case RECEIVE_POST:
       root = {
@@ -383,7 +381,7 @@ const MATCH_PREPEND = 'prepend'
 const MATCH_REFETCH = 'refetch'
 
 // Mirrors the backend's filterAndSortPosts streamTypes
-const STREAM_POST_TYPES = ['discussion', 'request', 'offer', 'project', 'proposal', 'event', 'resource']
+const STREAM_POST_TYPES = ['discussion', 'request', 'offer', 'project', 'task', 'proposal', 'event', 'resource']
 const NOTICE_POST_TYPES = ['chat_activity']
 // Sorts where a just-created post is first
 const NEWEST_FIRST_SORTS = [undefined, 'created', 'updated', 'id']

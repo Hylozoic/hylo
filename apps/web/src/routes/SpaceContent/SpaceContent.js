@@ -205,6 +205,7 @@ export default function SpaceContent ({ parentGroup: parentGroupProp, isOneColum
         <Route path='discussions/*' element={<ViewContent context='groups' view='discussions' />} />
         <Route path='events/*' element={<ViewContent context='groups' view='events' />} />
         <Route path='resources/*' element={<ViewContent context='groups' view='resources' />} />
+        <Route path='tasks/*' element={<ViewContent context='groups' view='tasks' />} />
         <Route path='projects/*' element={<ViewContent context='groups' view='projects' />} />
         <Route path='proposals/*' element={<ViewContent context='groups' view='proposals' />} />
         <Route path='requests-and-offers/*' element={<ViewContent context='groups' view='requests-and-offers' />} />

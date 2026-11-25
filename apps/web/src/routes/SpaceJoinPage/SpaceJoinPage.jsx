@@ -18,6 +18,7 @@ import { useViewHeader } from 'contexts/ViewHeaderContext'
 import { useKeyJoinRequestsByGroupId } from 'hooks/useGetJoinRequests'
 import useRouteParams from 'hooks/useRouteParams'
 import GroupViewPresenter, { avatarForView, iconForView } from '@hylo/presenters/GroupViewPresenter'
+import { isProjectSpace } from 'components/TaskBoard/boardState'
 import { createJoinRequest } from 'routes/GroupDetail/GroupDetail.store'
 import PaywallOfferingsSection from 'routes/GroupDetail/PaywallOfferingsSection'
 import fetchForGroup from 'store/actions/fetchForGroup'
@@ -306,7 +307,7 @@ export default function SpaceJoinPage () {
                 : canJoinDirectly || canJoinViaInviteDirectly
                   ? (
                     <Button variant='highVisibility' className='w-full justify-center' onClick={handleJoinSpace} disabled={joining}>
-                      {joining ? t('Joining...') : t('Join Space')}
+                      {joining ? t('Joining...') : isProjectSpace(spaceGroup) ? t('Join project') : t('Join Space')}
                     </Button>
                     )
                   : spaceGroup.paywall
@@ -338,7 +339,7 @@ export default function SpaceJoinPage () {
                               )
                             : (
                               <Button variant='highVisibility' className='w-full justify-center' onClick={handleRequestToJoin} disabled={requesting}>
-                                {requesting ? t('Requesting...') : t('Request to Join Space')}
+                                {requesting ? t('Requesting...') : isProjectSpace(spaceGroup) ? t('Request to join project') : t('Request to Join Space')}
                               </Button>
                               )
                           : (

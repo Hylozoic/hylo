@@ -15,7 +15,6 @@ import {
   CREATE_MODERATION_ACTION,
   CREATE_MODERATION_ACTION_PENDING,
   CREATE_POST_PENDING,
-  CREATE_PROJECT_PENDING,
   CREATE_GROUP_VIEW,
   DECLINE_JOIN_REQUEST,
   DELETE_DRAFT,
@@ -609,7 +608,6 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       break
     }
 
-    case CREATE_PROJECT_PENDING:
     case CREATE_POST_PENDING: {
       const postType = meta?.type
       if (!postType) break

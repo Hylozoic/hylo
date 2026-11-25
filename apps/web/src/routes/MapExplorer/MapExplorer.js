@@ -343,8 +343,8 @@ function MapExplorer (props) {
 
   // Members can only be loaded for a single group
   const possibleFeatureTypes = useMemo(() => context === 'groups'
-    ? ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'member', 'group']
-    : ['discussion', 'request', 'offer', 'resource', 'project', 'proposal', 'event', 'group'], [context])
+    ? ['discussion', 'request', 'offer', 'resource', 'project', 'task', 'proposal', 'event', 'member', 'group']
+    : ['discussion', 'request', 'offer', 'resource', 'project', 'task', 'proposal', 'event', 'group'], [context])
 
   const groupPending = useSelector(state => state.pending[FETCH_FOR_GROUP])
   const pendingPostsMap = useSelector(state => state.pending[FETCH_POSTS_MAP])

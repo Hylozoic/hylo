@@ -71,6 +71,9 @@ export const ACTION_FUNDING_ROUND_PHASE_TRANSITION = 'fundingRoundPhaseTransitio
 export const ACTION_FUNDING_ROUND_REMINDER = 'fundingRoundReminder'
 export const ACTION_POST_FULFILLED = 'postFulfilled'
 export const ACTION_POST_UNFULFILLED = 'postUnfulfilled'
+export const ACTION_TASK_ASSIGNED = 'taskAssigned'
+export const ACTION_TASK_STATUS_CHANGED = 'taskStatusChanged'
+export const ACTION_TASK_DUE_SOON = 'taskDueSoon'
 
 export default function NotificationPresenter (notification) {
   return {
@@ -81,7 +84,7 @@ export default function NotificationPresenter (notification) {
 }
 
 export function titleForNotification (notification, t) {
-  const { activity: { action, actor, post, group, track, fundingRound, meta: { reasons } } } = notification
+  const { activity: { action, actor, post, group, track, fundingRound, meta: { reasons, statusName, when } } } = notification
 
   const postSummary = post ? (post.title && post.title.length > 0 ? post.title : truncateHTML(post.details)) : null
   const name = actor?.name
@@ -152,6 +155,12 @@ export function titleForNotification (notification, t) {
       return t('<strong>{{name}}</strong> closed your post', { name })
     case ACTION_POST_UNFULFILLED:
       return t('<strong>{{name}}</strong> reopened your post', { name })
+    case ACTION_TASK_ASSIGNED:
+      return t('<strong>{{name}}</strong> assigned you to a task', { name })
+    case ACTION_TASK_STATUS_CHANGED:
+      return t('<strong>{{name}}</strong> moved a task to <strong>{{statusName}}</strong>', { name, statusName })
+    case ACTION_TASK_DUE_SOON:
+      return when === 'today' ? t('A task you’re on is due today') : t('A task you’re on is due tomorrow')
     default:
       return null
   }
@@ -249,6 +258,9 @@ export function bodyForNotification (notification, t) {
     }
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
+    case ACTION_TASK_ASSIGNED:
+    case ACTION_TASK_STATUS_CHANGED:
+    case ACTION_TASK_DUE_SOON:
       return t('"<strong>{{postSummary}}</strong>"', { postSummary })
     default:
       return null
@@ -341,6 +353,9 @@ export function urlForNotification ({ id, activity: { action, actor, post, comme
     }
     case ACTION_POST_FULFILLED:
     case ACTION_POST_UNFULFILLED:
+    case ACTION_TASK_ASSIGNED:
+    case ACTION_TASK_STATUS_CHANGED:
+    case ACTION_TASK_DUE_SOON:
       return primaryPostUrl(post, postOpts)
   }
 }

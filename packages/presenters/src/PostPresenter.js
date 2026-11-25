@@ -78,6 +78,12 @@ export const POST_TYPES = {
     backgroundColor: fakeAlpha(flushOrange, 0.2),
     map: false
   },
+  task: {
+    primaryColor: flushOrange,
+    iconName: 'Project',
+    backgroundColor: fakeAlpha(flushOrange, 0.2),
+    map: false
+  },
   proposal: {
     primaryColor: butterflyBush,
     iconName: 'Proposal',

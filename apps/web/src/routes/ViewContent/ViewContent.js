@@ -59,6 +59,8 @@ import fetchGroupTopic from 'store/actions/fetchGroupTopic'
 import fetchTopic from 'store/actions/fetchTopic'
 import fetchPosts from 'store/actions/fetchPosts'
 import fetchViewPinnedPosts from 'store/actions/fetchViewPinnedPosts'
+import TaskActivityCard from 'components/TaskActivityCard'
+import TaskBoard from 'components/TaskBoard'
 import { reorderViewPost } from 'store/actions/groupViews'
 // import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import { FETCH_POSTS, FETCH_TOPIC, FETCH_GROUP_TOPIC, CONTEXT_MY, VIEW_MENTIONS, VIEW_ANNOUNCEMENTS, VIEW_INTERACTIONS, VIEW_POSTS, VIEW_SAVED_POSTS, VIEW_DRAFTS, RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
@@ -240,9 +242,18 @@ export default function ViewContent (props) {
   const querystringParams = getQuerystringParam(['s', 't', 'v', 'c', 'search', 'timeframe', 'activeOnly', 'rsvpFilter', 'calendarMode', 'calendarDate'], location)
 
   const search = querystringParams.search || (streamViewConfig?.type === 'stream' ? streamViewConfig.searchText : undefined)
-  const configuredViewMode = querystringParams.v || streamViewConfig?.defaultViewMode || defaultViewMode
-  const viewMode = configuredViewMode === 'map' ? 'cards' : configuredViewMode
+  // A typed view's own default (set in its view settings) comes before the system default
+  const typedViewDefaultViewMode = pinnableView?.type === view ? pinnableView?.settings?.defaultViewMode : undefined
+  // The view mode shown when the URL doesn't name one
+  const baseViewMode = streamViewConfig?.defaultViewMode || typedViewDefaultViewMode || defaultViewMode
+  const configuredViewMode = querystringParams.v || baseViewMode
+  // The kanban board belongs to one group's Tasks view; anywhere else it falls back to a list
+  const canShowKanban = view === 'tasks' && context === 'groups' && !!group?.id
+  const viewMode = configuredViewMode === 'map'
+    ? 'cards'
+    : (configuredViewMode === 'kanban' && !canShowKanban ? 'list' : configuredViewMode)
   const isCalendarViewMode = viewMode === 'calendar'
+  const isKanbanViewMode = viewMode === 'kanban'
   const collectionDefaultSort = streamViewConfig?.type === 'collection' ? 'order' : defaultSortBy
   let sortBy = querystringParams.s || streamViewConfig?.defaultSort || collectionDefaultSort
   if (!streamViewConfig && sortBy === 'order') {
@@ -588,10 +599,12 @@ export default function ViewContent (props) {
     dispatch(changeQuerystringParam(location, 's', sort, 'all'))
   }, [location])
 
-  const changeView = useCallback(view => {
-    dispatch(updateUserSettings({ settings: { streamViewMode: view } }))
-    dispatch(changeQuerystringParam(location, 'v', view, 'cards'))
-  }, [location])
+  const changeView = useCallback(mode => {
+    // Kanban only exists on Tasks views, so it is not remembered as the person's mode for every stream
+    if (mode !== 'kanban') dispatch(updateUserSettings({ settings: { streamViewMode: mode } }))
+    // The URL only carries the mode when it differs from what this view shows by default
+    dispatch(changeQuerystringParam(location, 'v', mode, baseViewMode))
+  }, [location, baseViewMode])
 
   const changeActivePostsOnly = useCallback(v => {
     dispatch(changeQuerystringParam(location, 'activeOnly', v, false))
@@ -811,7 +824,7 @@ export default function ViewContent (props) {
             <div className='flex-1 min-w-0'>
               <ViewControls
                 routeParams={routeParams} view={view} postTypeFilter={postTypeFilter} postTypesAvailable={postTypesAvailable} customViewType={streamViewConfig?.type}
-                sortBy={sortBy} viewMode={viewMode} searchValue={search}
+                sortBy={sortBy} viewMode={viewMode} searchValue={search} allowKanban={canShowKanban}
                 changePostTypeFilter={changePostTypeFilter} context={context} changeSort={changeSort} changeView={changeView} changeSearch={changeSearch}
                 changeChildPostInclusion={changeChildPostInclusion} childPostInclusion={childPostInclusion}
                 changeTimeframe={changeTimeframe} timeframe={timeframe} activePostsOnly={activePostsOnly} changeActivePostsOnly={changeActivePostsOnly}
@@ -826,8 +839,9 @@ export default function ViewContent (props) {
         id='stream-inner-container'
         className={cn(
           'flex flex-col flex-1',
-          !isCalendarViewMode && STREAM_MAIN_COLUMN_CLASS,
-          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4'
+          !isCalendarViewMode && !isKanbanViewMode && STREAM_MAIN_COLUMN_CLASS,
+          isCalendarViewMode && 'w-full mx-auto p-1 sm:p-4',
+          isKanbanViewMode && 'w-full min-h-0 px-2 sm:px-4 pb-2'
         )}
       >
         {showPaywallBlock
@@ -858,7 +872,18 @@ export default function ViewContent (props) {
                   />
                 </div>
               )}
-              {!isCalendarViewMode && (
+              {context === 'groups' && view === 'all' && group?.id && !isCalendarViewMode && (
+                <TaskActivityCard groupId={group.id} routeParams={routeParams} />
+              )}
+              {isKanbanViewMode && (
+                <TaskBoard
+                  group={group}
+                  routeParams={routeParams}
+                  currentUser={currentUser}
+                  canManageColumns={canModerateContent}
+                />
+              )}
+              {!isCalendarViewMode && !isKanbanViewMode && (
                 <CollectionPostsGrid
                   canReorder={canReorderCollection}
                   sensors={collectionSensors}
