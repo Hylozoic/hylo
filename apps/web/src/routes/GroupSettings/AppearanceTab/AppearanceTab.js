@@ -2,13 +2,26 @@ import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Columns2, LayoutGrid } from 'lucide-react'
 import { useViewHeader } from 'contexts/ViewHeaderContext'
+import { useSelector } from 'react-redux'
+import useProFeature from 'hooks/useProFeature'
+import { isHyloProEnabled } from 'config/featureFlags'
+import getMe from 'store/selectors/getMe'
 import { cn } from 'util/index'
 import SaveButton from '../SaveButton'
+import GroupThemeEditor from './GroupThemeEditor'
 
 export default function AppearanceTab ({ group, updateGroupSettings }) {
   const { t } = useTranslation()
   const [layout, setLayout] = useState(group?.settings?.layout || 'two-column')
   const [changed, setChanged] = useState(false)
+  // Themes are the groupThemes Pro feature. The editor is offered to groups that have it, to groups
+  // whose Pro lapsed with a theme saved (they keep it and can only remove it), and, wherever Hylo
+  // Pro can be bought, to everyone else as a try-out that links to the Billing tab. Hylo staff
+  // always get it, and can save and import themes in any group.
+  const hasGroupThemes = useProFeature(group, 'groupThemes')
+  const me = useSelector(getMe)
+  const isStaff = !!me?.isAdmin
+  const showThemeEditor = hasGroupThemes || !!group?.settings?.theme || isStaff || isHyloProEnabled(me)
 
   const { setHeaderDetails } = useViewHeader()
   useEffect(() => {
@@ -63,6 +76,8 @@ export default function AppearanceTab ({ group, updateGroupSettings }) {
           </button>
         </div>
       </div>
+
+      {showThemeEditor && <GroupThemeEditor group={group} />}
 
       <SaveButton changed={changed} save={save} />
     </div>

@@ -99,7 +99,7 @@ const PostListRow = (props) => {
       <div className='flex flex-col min-w-0'>
         <div className='flex items-center gap-2'>
           {isFlagged && <Icon name='Flag' className='w-3 h-3 text-destructive shrink-0' />}
-          <span className={cn('flex items-center text-base text-foreground truncate font-bold', { 'font-bold': unread })}>
+          <span className={cn('flex items-center text-base text-foreground truncate font-bold font-display', { 'font-bold': unread })}>
             {pinnedInView && <Pin className='w-3.5 h-3.5 mr-1 shrink-0 text-[hsl(45_65%_45%)] dark:text-[hsl(45_65%_62%)]' strokeWidth={2.5} aria-hidden='true' />}
             {post.fulfilledAt && <span className='mr-1'><CircleCheckBig className='w-4 text-green-500' /></span>}
             {title}

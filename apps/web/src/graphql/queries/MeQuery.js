@@ -142,6 +142,7 @@ export default gql`
           showSuggestedSkills
           showWelcomePage
           layout
+          theme
           autoAddMembers
         }
         slug
