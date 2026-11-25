@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useTranslation } from 'react-i18next'
 import { ImagePlus, Loader2, Paperclip } from 'lucide-react'
+import { formatUploadLimit } from 'client/filestack'
 import useUploadFiles from 'hooks/useUploadFiles'
+import useUploadLimit from 'hooks/useUploadLimit'
 import {
   MAX_FILES_PER_DROP,
   dataTransferHasFiles,
@@ -28,6 +30,7 @@ const MESSAGE_TIMEOUT = 5000
 export default function AttachmentDropZone ({
   type,
   id,
+  groupIds, // the groups the attachment is for: sets the size limit (Hylo Pro) and is sent with the upload
   onAttachment,
   onLoadingChange,
   disabled = false,
@@ -36,7 +39,8 @@ export default function AttachmentDropZone ({
   children
 }) {
   const { t } = useTranslation()
-  const uploadFiles = useUploadFiles({ type, id })
+  const uploadFiles = useUploadFiles({ type, id, groupIds })
+  const maxSize = useUploadLimit(groupIds)
   const [dragging, setDragging] = useState(false)
   const [draggingImages, setDraggingImages] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -61,13 +65,13 @@ export default function AttachmentDropZone ({
   }, [])
 
   const handleFiles = useCallback(async files => {
-    const { accepted, rejected } = partitionFiles(files, { maxFiles })
+    const { accepted, rejected } = partitionFiles(files, { maxFiles, maxSize })
     const reasons = new Set(rejected.map(r => r.reason))
 
     if (reasons.has('type')) {
       showMessage(t('That type of file can\'t be attached'))
     } else if (reasons.has('size')) {
-      showMessage(t('Files must be smaller than 50 MB'))
+      showMessage(t('Files must be smaller than {{limit}}', { limit: formatUploadLimit(maxSize, t) }))
     } else if (reasons.has('count')) {
       showMessage(t('You can attach up to {{max}} files at a time', { max: maxFiles }))
     } else {
@@ -92,7 +96,7 @@ export default function AttachmentDropZone ({
         onLoadingChange?.(false)
       }
     }
-  }, [maxFiles, onAttachment, onLoadingChange, showMessage, t, uploadFiles])
+  }, [maxFiles, maxSize, onAttachment, onLoadingChange, showMessage, t, uploadFiles])
 
   const resetDrag = () => {
     dragDepth.current = 0
@@ -180,6 +184,7 @@ export default function AttachmentDropZone ({
 AttachmentDropZone.propTypes = {
   type: PropTypes.string.isRequired,
   id: PropTypes.string,
+  groupIds: PropTypes.array,
   onAttachment: PropTypes.func.isRequired,
   onLoadingChange: PropTypes.func,
   disabled: PropTypes.bool,

@@ -448,6 +448,7 @@ function ChatEditorInner ({
       <AttachmentDropZone
         type='post'
         id={currentPost.id}
+        groupIds={groupIds}
         onAttachment={handleDroppedAttachment}
         onLoadingChange={handleAttachmentLoadingChange}
         className='w-full'
@@ -470,6 +471,7 @@ function ChatEditorInner ({
                 <UploadAttachmentButton
                   type='post'
                   id={currentPost.id}
+                  groupIds={groupIds}
                   attachmentType='image'
                   onSuccess={(attachment) => {
                     dispatch(addAttachment('post', currentPost.id, attachment))
@@ -488,6 +490,7 @@ function ChatEditorInner ({
                 <UploadAttachmentButton
                   type='post'
                   id={currentPost.id}
+                  groupIds={groupIds}
                   attachmentType='file'
                   onSuccess={(attachment) => {
                     dispatch(addAttachment('post', currentPost.id, attachment))
@@ -571,6 +574,7 @@ function ChatEditorInner ({
           <AttachmentManager
             type='post'
             id={currentPost.id}
+            groupIds={groupIds}
             attachmentType='image'
             showAddButton
             showLabel
@@ -581,6 +585,7 @@ function ChatEditorInner ({
           <AttachmentManager
             type='post'
             id={currentPost.id}
+            groupIds={groupIds}
             attachmentType='file'
             showAddButton
             showLabel

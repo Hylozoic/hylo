@@ -1,6 +1,8 @@
 import { UPLOAD_ATTACHMENT } from 'store/constants'
 
-export default function uploadAttachment (type, id, attachment) {
+// `groupIds`: the groups a new post or comment is for, so the server applies their upload limit
+// (lib/uploader/limits.js); for an existing post the server uses the post's groups
+export default function uploadAttachment (type, id, attachment, { groupIds } = {}) {
   const { url, filename, attachmentType } = attachment
 
   if (!url) return {}
@@ -15,7 +17,8 @@ export default function uploadAttachment (type, id, attachment) {
           type,
           id,
           url,
-          filename
+          filename,
+          ...(groupIds && groupIds.length > 0 ? { groupIds } : {})
         }
       }
     },

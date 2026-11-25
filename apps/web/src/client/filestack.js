@@ -1,3 +1,4 @@
+import { FREE_UPLOAD_LIMIT_BYTES, uploadLimitParts } from '@hylo/shared'
 import { filestackKey, isTest } from 'config/index'
 import * as Filestack from 'filestack-js'
 import { isSandboxMode } from 'sandbox/isSandbox'
@@ -45,8 +46,17 @@ export const FILESTACK_ACCEPTED_MIME_TYPES = [
 
 export const ACCEPTED_ATTACHMENT_TYPES = ['csv', 'image', 'file']
 
-// Same per-file limit the Filestack picker enforces (50 MB)
-export const MAX_UPLOAD_FILE_SIZE = 52428800
+// Per-file limit for uploads that aren't for a group with Hylo Pro's larger upload limits
+// (hooks/useUploadLimit picks the limit for a group; packages/shared UploadLimits.js has the numbers)
+export const MAX_UPLOAD_FILE_SIZE = FREE_UPLOAD_LIMIT_BYTES
+
+/**
+ * A limit for the UI, in the user's language: '50 MB', '250 MB', '1 GB' (French '50 Mo', '1 Go')
+ */
+export function formatUploadLimit (bytes, t) {
+  const { size, unit } = uploadLimitParts(bytes)
+  return unit === 'GB' ? t('{{size}} GB', { size }) : t('{{size}} MB', { size })
+}
 
 /**
  * True when `mimetype` matches one of the accepted patterns (exact, or `root/*`).
@@ -241,6 +251,7 @@ export async function uploadFile (file) {
 export function filestackPicker ({
   attachmentType = 'image',
   maxFiles = 1,
+  maxSize = MAX_UPLOAD_FILE_SIZE,
   onFileUploadFinished = () => {},
   onUploadDone,
   onCancel,
@@ -257,6 +268,7 @@ export function filestackPicker ({
     })
   }
 
+  const limit = formatUploadLimit(maxSize, t)
   const mobileFilePick = attachmentType === 'file' && isMobileDevice()
   const typeAccept = acceptFromAttachmentType(attachmentType)
 
@@ -272,11 +284,13 @@ export function filestackPicker ({
         }
       : {}),
     customText: {
-      'Select Files to Upload': attachmentType === 'image' ? t('Select Images to Upload (max 50 MB each)') : t('Select Files to Upload (max 50 MB each)')
+      'Select Files to Upload': attachmentType === 'image'
+        ? t('Select Images to Upload (max {{limit}} each)', { limit })
+        : t('Select Files to Upload (max {{limit}} each)', { limit })
     },
     fromSources: FILESTACK_FROM_SOURCES[attachmentType],
     maxFiles,
-    maxSize: MAX_UPLOAD_FILE_SIZE,
+    maxSize,
     onFileUploadFinished: fileUploaded =>
       onFileUploadFinished(transformFile(fileUploaded)),
     onUploadDone: ({ filesUploaded, ...rest }) => {

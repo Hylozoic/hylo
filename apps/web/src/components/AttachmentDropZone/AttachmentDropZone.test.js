@@ -1,10 +1,19 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from 'util/testing/reactTestingLibraryExtended'
+import { FREE_UPLOAD_LIMIT_BYTES, PRO_PLUS_UPLOAD_LIMIT_BYTES, PRO_UPLOAD_LIMIT_BYTES } from '@hylo/shared'
 import useUploadFiles from 'hooks/useUploadFiles'
+import useUploadLimit from 'hooks/useUploadLimit'
 import AttachmentDropZone from './AttachmentDropZone'
 
 const mockUploadFiles = jest.fn()
 jest.mock('hooks/useUploadFiles', () => jest.fn(() => mockUploadFiles))
+jest.mock('hooks/useUploadLimit', () => jest.fn(() => 52428800))
+
+const bigFile = (name, type, size) => {
+  const f = new window.File(['x'], name, { type })
+  Object.defineProperty(f, 'size', { value: size })
+  return f
+}
 
 const png = new window.File(['x'], 'photo.png', { type: 'image/png' })
 const pdf = new window.File(['x'], 'doc.pdf', { type: 'application/pdf' })
@@ -30,6 +39,7 @@ function renderZone (props = {}) {
 
 describe('AttachmentDropZone', () => {
   beforeEach(() => {
+    useUploadLimit.mockReturnValue(FREE_UPLOAD_LIMIT_BYTES)
     mockUploadFiles.mockReset()
     mockUploadFiles.mockImplementation(async (files, onUploaded) => {
       const uploaded = files.map(f => ({ url: `https://s3/${f.name}`, attachmentType: f.type.startsWith('image/') ? 'image' : 'file' }))
@@ -38,9 +48,36 @@ describe('AttachmentDropZone', () => {
     })
   })
 
-  it('uploads with the given attachment type and id', () => {
-    renderZone({ type: 'comment', id: 'new' })
-    expect(useUploadFiles).toHaveBeenCalledWith({ type: 'comment', id: 'new' })
+  it('uploads with the given attachment type, id and groups', () => {
+    renderZone({ type: 'comment', id: 'new', groupIds: ['7'] })
+    expect(useUploadFiles).toHaveBeenCalledWith({ type: 'comment', id: 'new', groupIds: ['7'] })
+    expect(useUploadLimit).toHaveBeenCalledWith(['7'])
+  })
+
+  it('rejects files over the limit for the groups, naming the limit', async () => {
+    useUploadLimit.mockReturnValue(FREE_UPLOAD_LIMIT_BYTES)
+    const { input } = renderZone({ groupIds: ['7'] })
+    fireEvent.drop(input, { dataTransfer: dragData([bigFile('big.mp4', 'video/mp4', 60 * 1024 * 1024)]) })
+    expect(await screen.findByText('Files must be smaller than 50 MB')).toBeInTheDocument()
+    expect(mockUploadFiles).not.toHaveBeenCalled()
+  })
+
+  it('accepts larger files, and names the larger limit, when the groups have Hylo Pro', async () => {
+    useUploadLimit.mockReturnValue(PRO_UPLOAD_LIMIT_BYTES)
+    const { input, onAttachment } = renderZone({ groupIds: ['7'] })
+    fireEvent.drop(input, { dataTransfer: dragData([bigFile('big.mp4', 'video/mp4', 60 * 1024 * 1024)]) })
+    await waitFor(() => expect(onAttachment).toHaveBeenCalledTimes(1))
+
+    fireEvent.drop(input, { dataTransfer: dragData([bigFile('huge.mp4', 'video/mp4', 300 * 1024 * 1024)]) })
+    expect(await screen.findByText('Files must be smaller than 250 MB')).toBeInTheDocument()
+    expect(mockUploadFiles).toHaveBeenCalledTimes(1)
+  })
+
+  it('names the 1 GB limit when the groups have Hylo Pro Plus', async () => {
+    useUploadLimit.mockReturnValue(PRO_PLUS_UPLOAD_LIMIT_BYTES)
+    const { input } = renderZone({ groupIds: ['7'] })
+    fireEvent.drop(input, { dataTransfer: dragData([bigFile('huge.mp4', 'video/mp4', 2 * 1024 * 1024 * 1024)]) })
+    expect(await screen.findByText('Files must be smaller than 1 GB')).toBeInTheDocument()
   })
 
   it('shows "Drop image here" while images are dragged over, and hides it on leave', () => {

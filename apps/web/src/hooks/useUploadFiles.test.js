@@ -40,6 +40,17 @@ describe('useUploadFiles', () => {
     expect(failed).toHaveLength(0)
   })
 
+  it('sends the groups the upload is for, so the server applies their upload limit', async () => {
+    const png = new window.File(['x'], 'photo.png', { type: 'image/png' })
+    uploadFile.mockResolvedValue({ url: 'https://cdn/abc', filename: 'photo.png', mimetype: 'image/png', handle: 'abc' })
+    mockDispatch.mockResolvedValue({ payload: { url: 'https://s3/photo.png', attachmentType: 'image' } })
+
+    const { result } = renderHook(() => useUploadFiles({ type: 'post', groupIds: ['7', '8'] }))
+    await result.current([png])
+
+    expect(mockDispatch.mock.calls[0][0].payload.api.params).toEqual({ type: 'post', id: 'new', url: 'https://cdn/abc', filename: 'photo.png', groupIds: ['7', '8'] })
+  })
+
   it('keeps an uploaded mp4 as a file when the server labels it as a video embed', async () => {
     const mp4 = new window.File(['x'], 'clip.mp4', { type: 'video/mp4' })
     uploadFile.mockResolvedValue({ url: 'https://cdn.filestackcontent.com/abc', filename: 'clip.mp4', mimetype: 'video/mp4', handle: 'abc' })

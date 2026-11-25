@@ -6,7 +6,7 @@ import { FilePreview } from './FilePreview'
 import { addAttachment, removeAttachment } from './AttachmentManager.store'
 
 export function FileManager ({
-  type, id, attachments, onChange, onLoadingChange, canRemove = true,
+  type, id, groupIds, attachments, onChange, onLoadingChange, canRemove = true,
   uploadAttachmentPending, showLoading, showAddButton, showLabel
 }) {
   const { t } = useTranslation()
@@ -41,6 +41,7 @@ export function FileManager ({
           <UploadAttachmentButton
             id={id}
             type={type}
+            groupIds={groupIds}
             attachmentType='file'
             onSuccess={handleAddAttachment}
             onLoadingChange={onLoadingChange}

@@ -68,6 +68,7 @@ function AttachmentManager (props) {
 AttachmentManager.propTypes = {
   type: PropTypes.string.isRequired,
   id: PropTypes.string,
+  groupIds: PropTypes.array, // passed to the upload buttons: the groups the attachments are for
   attachmentType: PropTypes.string,
   showAddButton: PropTypes.bool,
   showLabel: PropTypes.bool,

@@ -1,4 +1,5 @@
 import { get } from 'lodash/fp'
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
 import { FETCH_FOR_GROUP } from 'store/constants'
 
 const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
@@ -6,6 +7,7 @@ const queryFragment = `group(slug: $slug, updateLastViewed: $updateLastViewed) {
     aboutVideoUri
     accessibility
     allowInPublic
+    proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
     agreements {
       items {
         id

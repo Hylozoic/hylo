@@ -1714,6 +1714,7 @@ function PostEditorInner ({
       <AttachmentDropZone
         type='post'
         id={currentPost.id}
+        groupIds={groupIds}
         onAttachment={handleDroppedAttachment}
         disabled={loading}
         className='w-full'
@@ -1753,6 +1754,7 @@ function PostEditorInner ({
           <AttachmentManager
             type='post'
             id={currentPost.id}
+            groupIds={groupIds}
             attachmentType='image'
             showAddButton
             showLabel
@@ -1761,6 +1763,7 @@ function PostEditorInner ({
           <AttachmentManager
             type='post'
             id={currentPost.id}
+            groupIds={groupIds}
             attachmentType='file'
             showAddButton
             showLabel
@@ -2147,6 +2150,7 @@ function PostEditorInner ({
       )}
       <ActionsBar
         id={currentPost.id}
+        groupIds={groupIds}
         addAttachment={addAttachment}
         announcementSelected={announcementSelected}
         canMakeAnnouncement={canMakeAnnouncement()}

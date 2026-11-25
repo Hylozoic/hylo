@@ -306,7 +306,7 @@ const HyloEditor = React.forwardRef(({
   return (
     <div className={cn('flex-1', containerClassName)}>
       {showMenu && (
-        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} className={menuClassName} onInsertEmoji={onInsertEmoji} />
+        <HyloEditorMenuBar editor={editor} extendedMenu={extendedMenu} type={type} id={groupIds?.[0]} groupIds={groupIds} className={menuClassName} onInsertEmoji={onInsertEmoji} />
       )}
       <EditorContent
         className={cn(

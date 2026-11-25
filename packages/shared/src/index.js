@@ -11,6 +11,7 @@ export * from './viewHelpers'
 export * from './LocaleHelpers'
 export * from './HyloProFeatures'
 export * from './CurrencyHelpers'
+export * from './UploadLimits'
 
 export {
   TextHelpers,

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import useUploadFiles from 'hooks/useUploadFiles'
+import useUploadLimit from 'hooks/useUploadLimit'
 import { FILESTACK_ACCEPTED_MIME_TYPES_BY_ATTACHMENT_TYPE } from 'client/filestack'
 import {
   dataTransferHasFiles,
@@ -17,16 +18,19 @@ const inlineImageDropKey = new PluginKey('hyloInlineImageDrop')
  * button and inserted where they were dropped (or at the cursor for a paste).
  * Other files are ignored, as the toolbar only inserts images.
  */
-export default function useInlineImageDrop (editor, { type, id, enabled }) {
-  const uploadFiles = useUploadFiles({ type, id })
+export default function useInlineImageDrop (editor, { type, id, groupIds, enabled }) {
+  const uploadFiles = useUploadFiles({ type, id, groupIds })
   const uploadFilesRef = useRef(uploadFiles)
   uploadFilesRef.current = uploadFiles
+  const maxSize = useUploadLimit(groupIds)
+  const maxSizeRef = useRef(maxSize)
+  maxSizeRef.current = maxSize
 
   useEffect(() => {
     if (!editor || editor.isDestroyed || !enabled) return
 
     const insertImages = (files, startPos) => {
-      const { accepted } = partitionFiles(files, { accept: FILESTACK_ACCEPTED_MIME_TYPES_BY_ATTACHMENT_TYPE.image })
+      const { accepted } = partitionFiles(files, { accept: FILESTACK_ACCEPTED_MIME_TYPES_BY_ATTACHMENT_TYPE.image, maxSize: maxSizeRef.current })
       if (accepted.length === 0) return
 
       // Keep the insert position pointing at the same place while uploads run,
