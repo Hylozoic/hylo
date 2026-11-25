@@ -43,6 +43,7 @@ export default function ChatActivityCard ({
   const parentSlug = parentGroupSlug || groupSlug
   const chatUrl = useMemo(() => chatUrlForActivityPost(post, parentSlug), [post, parentSlug])
   const messages = post?.noticePosts || []
+  const postCount = Number(post?.noticeData?.postCount)
   const visible = messages.slice(0, FULLY_VISIBLE_MESSAGES)
   const faded = messages.slice(FULLY_VISIBLE_MESSAGES)
   const latestChatAt = messages[0]?.createdAt || post?.createdAt
@@ -55,6 +56,8 @@ export default function ChatActivityCard ({
   const handleOpen = useCallback(() => {
     navigate(chatUrl)
   }, [navigate, chatUrl])
+
+  if (messages.length === 0 && !(postCount > 0)) return null
 
   return (
     <div

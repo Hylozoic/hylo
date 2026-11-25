@@ -588,6 +588,38 @@ describe('RECEIVE_POST chat_activity', () => {
       total: 3
     })
   })
+
+  it('removes a chat activity card that no longer has chats', () => {
+    const allActivityKey = '{"type":"FETCH_POSTS","params":{"childPostInclusion":"yes","context":"groups","filter":"all+notices","slug":"bar","sortBy":"created"}}'
+    const optimisticId = `${OPTIMISTIC_NOTICE_PREFIX}10:2026-08-14T04`
+    const state = {
+      [allActivityKey]: {
+        hasMore: true,
+        ids: ['500', optimisticId, '18'],
+        total: 3
+      }
+    }
+    const action = {
+      type: RECEIVE_POST,
+      payload: {
+        data: {
+          post: {
+            id: '500',
+            type: 'chat_activity',
+            active: false,
+            noticeData: { bucketKey: '10:2026-08-14T04', postCount: 0, recentPostIds: [] },
+            groups: [{ slug: 'bar' }]
+          }
+        }
+      }
+    }
+
+    expect(queryResults(state, action)[allActivityKey]).toEqual({
+      hasMore: true,
+      ids: ['18'],
+      total: 1
+    })
+  })
 })
 
 describe('makeQueryResultsModelSelector', () => {

@@ -30,6 +30,18 @@ it('renders chat activity header, timestamp, messages, and a link to the group c
   expect(openLink).toHaveAttribute('href', '/groups/buy-nothing/chat?postId=9')
 })
 
+it('renders nothing when the card has no chats left', () => {
+  render(<ChatActivityCard post={{
+    id: 'notice-1',
+    type: 'chat_activity',
+    noticeData: { postCount: 0, recentPostIds: [] },
+    noticePosts: [],
+    groups: [{ id: '1', name: 'Buy Nothing', slug: 'buy-nothing' }]
+  }} />)
+
+  expect(screen.queryByTestId('chat-activity-card')).not.toBeInTheDocument()
+})
+
 it('builds a space chat URL from the parent slug', () => {
   const url = chatUrlForActivityPost({
     groups: [{

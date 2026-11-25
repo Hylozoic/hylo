@@ -92,6 +92,27 @@ describe('upsertChatActivityNotice', function () {
     expect(notices.length).to.equal(2)
   })
 
+  it('drops a deleted chat from the notice and keeps the rest', async () => {
+    const hour = new Date(Date.UTC(2026, 7, 6, 17, 10, 0))
+    const later = new Date(Date.UTC(2026, 7, 6, 17, 40, 0))
+    const first = await createChat({ created_at: hour, updated_at: hour })
+    const second = await createChat({ created_at: later, updated_at: later })
+    await upsertChatActivityNotice({ postId: first.id })
+    await upsertChatActivityNotice({ postId: second.id })
+
+    await second.save({ active: false, deactivated_at: new Date() }, { patch: true })
+    await upsertChatActivityNotice({ postId: second.id })
+
+    const notice = await Post.query(q => {
+      q.whereRaw("posts.notice_data->>'bucketKey' = ?", [chatActivityBucketKey(group.id, hour)])
+    }).fetch({ require: false })
+    const data = notice.get('notice_data')
+    expect(notice.get('active')).to.equal(true)
+    expect(data.postCount).to.equal(1)
+    expect(data.recentPostIds.map(String)).to.deep.equal([String(first.id)])
+    expect(new Date(notice.get('created_at')).getTime()).to.equal(hour.getTime())
+  })
+
   it('deactivates the notice when the last chat in the hour is removed', async () => {
     const hour = new Date(Date.UTC(2026, 7, 6, 17, 10, 0))
     const chat = await createChat({ created_at: hour, updated_at: hour })

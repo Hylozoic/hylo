@@ -46,7 +46,7 @@ import {
   FETCH_POSTS_MAP_DRAWER
 } from 'routes/MapExplorer/MapExplorer.store'
 import { FETCH_MEMBERS, REMOVE_MEMBER_PENDING } from 'routes/Members/Members.store'
-import { OPTIMISTIC_NOTICE_PREFIX, parseNoticeData } from 'store/util/chatActivityNotice'
+import { isClearedChatActivityNotice, OPTIMISTIC_NOTICE_PREFIX, parseNoticeData } from 'store/util/chatActivityNotice'
 // reducer
 
 export default function (state = {}, action) {
@@ -106,8 +106,12 @@ export default function (state = {}, action) {
       }
       if (root.type === 'chat_activity') {
         const bucketKey = parseNoticeData(root.noticeData)?.bucketKey
+        const optimisticId = bucketKey ? `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}` : null
+        if (isClearedChatActivityNotice(root)) {
+          return removeIdsFromQueryResults(state, [root.id, optimisticId])
+        }
         if (bucketKey) {
-          state = replaceIdInQueryResults(state, `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}`, root.id)
+          state = replaceIdInQueryResults(state, optimisticId, root.id)
         }
       }
       return matchNewPostIntoQueryResults(state, root, { viewId: type === RECEIVE_POST ? null : meta?.viewId })
@@ -492,6 +496,22 @@ export function matchSubCommentsIntoQueryResults (state, { data }) {
 }
 
 /** Swaps a temporary notice id for the real server id in every result set. */
+/** Drops post ids from every cached list, including an emptied chat activity card. */
+function removeIdsFromQueryResults (state, ids) {
+  const drop = new Set(ids.filter(id => id != null && id !== '').map(String))
+  if (drop.size === 0) return state
+  return mapValues(state, results => {
+    if (!results?.ids) return results
+    const nextIds = results.ids.filter(id => !drop.has(String(id)))
+    if (nextIds.length === results.ids.length) return results
+    const removed = results.ids.length - nextIds.length
+    const total = (results.total || results.total === 0)
+      ? Math.max(0, results.total - removed)
+      : results.total
+    return { ...results, ids: nextIds, total }
+  })
+}
+
 function replaceIdInQueryResults (state, fromId, toId) {
   if (!fromId || String(fromId) === String(toId)) return state
   const from = String(fromId)

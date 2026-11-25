@@ -1,5 +1,6 @@
 import orm from 'store/models' // this initializes redux-orm
 import ormReducer from './index'
+import { RECEIVE_POST } from 'components/SocketListener/SocketListener.store'
 import toggleGroupTopicSubscribe from 'store/actions/toggleGroupTopicSubscribe'
 import {
   CLEAR_MODERATION_ACTION_PENDING,
@@ -238,6 +239,73 @@ describe('on CREATE_MESSAGE', () => {
     expect(newSession.Message.idExists('2')).toBeTruthy()
     const thread = newSession.MessageThread.withId('1')
     expect(Date.now() - new Date(thread.updatedAt).getTime()).toBeLessThan(1000)
+  })
+})
+
+describe('on DELETE_POST_PENDING for a chat shown on an activity card', () => {
+  function sessionWithNotice (posts) {
+    const session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+    session.Post.create({ id: '2', type: 'chat' })
+    session.Post.create({
+      id: 'notice',
+      type: 'chat_activity',
+      createdAt: posts[0].createdAt,
+      noticeData: {
+        bucketKey: '10:2026-08-14T04',
+        postCount: posts.length,
+        recentPostIds: posts.map(p => p.id)
+      },
+      noticePosts: posts,
+      groups: ['10']
+    })
+    return session
+  }
+
+  it('drops the chat from the card', () => {
+    const session = sessionWithNotice([
+      { id: '2', details: '<p>second</p>', createdAt: '2026-08-14T04:40:00.000Z' },
+      { id: '1', details: '<p>first</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    ])
+    const state = ormReducer(session.state, { type: DELETE_POST_PENDING, meta: { id: '2' } })
+    const next = orm.session(state)
+    const notice = next.Post.withId('notice')
+    expect(next.Post.idExists('2')).toBe(false)
+    expect(notice.noticePosts.map(p => p.id)).toEqual(['1'])
+    expect(notice.noticeData.postCount).toEqual(1)
+  })
+
+  it('removes the card when that chat was the only one', () => {
+    const session = sessionWithNotice([
+      { id: '2', details: '<p>only</p>', createdAt: '2026-08-14T04:40:00.000Z' }
+    ])
+    const state = ormReducer(session.state, { type: DELETE_POST_PENDING, meta: { id: '2' } })
+    const next = orm.session(state)
+    expect(next.Post.idExists('notice')).toBe(false)
+    expect(next.Post.idExists('2')).toBe(false)
+  })
+
+  it('drops the card when the server says it is empty', () => {
+    const session = sessionWithNotice([
+      { id: '2', details: '<p>only</p>', createdAt: '2026-08-14T04:40:00.000Z' }
+    ])
+    const state = ormReducer(session.state, {
+      type: RECEIVE_POST,
+      payload: {
+        data: {
+          post: {
+            id: 'notice',
+            type: 'chat_activity',
+            active: false,
+            noticeData: { bucketKey: '10:2026-08-14T04', postCount: 0, recentPostIds: [] },
+            noticePosts: [],
+            groups: [{ id: '10', slug: 'bar', name: 'Bar' }]
+          }
+        }
+      },
+      meta: { extractModel: 'Post' }
+    })
+    expect(orm.session(state).Post.idExists('notice')).toBe(false)
   })
 })
 

@@ -85,9 +85,14 @@ async function upsertForGroup (chatPost, groupId) {
   }).fetch({ require: false })
 
   if (chats.length === 0) {
-    if (existing) {
-      await existing.save({ active: false, deactivated_at: new Date() }, { patch: true })
-    }
+    if (!existing || existing.get('active') === false) return null
+    const previous = existing.get('notice_data') || {}
+    await existing.save({
+      active: false,
+      deactivated_at: new Date(),
+      notice_data: { ...previous, recentPostIds: [], postCount: 0 }
+    }, { patch: true })
+    await publishChatActivityNotice(existing)
     return existing
   }
 
@@ -165,24 +170,7 @@ async function stampTimestamps (postId, newestAt, transacting) {
 async function publishChatActivityNotice (notice) {
   const fresh = await Post.query(q => q.where('posts.id', notice.id))
     .fetch({ withRelated: ['groups', 'user'], require: false })
-  if (!fresh || !fresh.get('active')) return
-
-  const noticeData = fresh.get('notice_data') || {}
-  const ids = noticeData.recentPostIds || []
-  let noticePosts = []
-  if (ids.length) {
-    const chats = await Post.query(q => {
-      q.whereIn('posts.id', ids)
-      q.where('posts.active', true)
-    }).fetchAll({ withRelated: ['user'] })
-    const byId = new Map(chats.models.map(p => [String(p.id), p]))
-    noticePosts = ids.map(id => byId.get(String(id))).filter(Boolean).map(p => ({
-      id: p.id,
-      details: p.details(),
-      createdAt: p.get('created_at'),
-      creator: refineOne(p.relations.user, ['id', 'name', 'avatar_url'])
-    }))
-  }
+  if (!fresh) return
 
   const groups = (fresh.relations.groups?.models || []).map(g => ({
     id: g.id,
@@ -192,7 +180,27 @@ async function publishChatActivityNotice (notice) {
     parentId: g.get('parent_id') || null
   }))
 
+  const noticeData = fresh.get('notice_data') || {}
+  let noticePosts = []
+  if (fresh.get('active')) {
+    const ids = noticeData.recentPostIds || []
+    if (ids.length) {
+      const chats = await Post.query(q => {
+        q.whereIn('posts.id', ids)
+        q.where('posts.active', true)
+      }).fetchAll({ withRelated: ['user'] })
+      const byId = new Map(chats.models.map(p => [String(p.id), p]))
+      noticePosts = ids.map(id => byId.get(String(id))).filter(Boolean).map(p => ({
+        id: p.id,
+        details: p.details(),
+        createdAt: p.get('created_at'),
+        creator: refineOne(p.relations.user, ['id', 'name', 'avatar_url'])
+      }))
+    }
+  }
+
   const payload = Object.assign({}, fresh.getNewPostSocketPayload(), {
+    active: fresh.get('active') !== false,
     noticeData,
     noticePosts,
     groups

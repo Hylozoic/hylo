@@ -124,7 +124,11 @@ import { isPromise } from 'util/index'
 import { applyGroupViewsOrder, appendGroupViewToMenu, preserveViewLoadedPosts, removeGroupViewFromAllMenus, setGroupViewHiddenInAllMenus, syncAcceptedPostTypesInMenus, updateGroupViewInMenu, updateGroupViewInAllMenus } from 'store/util/groupViewsOrder'
 import {
   confirmOptimisticChatInNotice,
+  deleteChatActivityNotice,
+  isClearedChatActivityNotice,
+  reapplyRemovedChats,
   reconcileChatActivityNoticesAfterFetch,
+  removeChatFromActivityNotices,
   replaceOptimisticChatActivityNotice,
   snapshotChatActivityNotices,
   upsertOptimisticChatActivityNotice,
@@ -906,6 +910,8 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
     }
 
     case DELETE_POST_PENDING:
+      // Take the chat off activity cards before the post row itself is removed.
+      removeChatFromActivityNotices(session, { chatId: meta.id })
       // Posts sourced from a view's raw collectionPosts (e.g. TrackActionsView)
       // aren't normalized into the Post table, so they may not exist here.
       post = Post.idExists(meta.id) ? Post.withId(meta.id) : null
@@ -1075,7 +1081,13 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
     case RECEIVE_POST: {
       if (payload.data?.post?.type === 'chat_activity') {
-        replaceOptimisticChatActivityNotice(session, payload.data.post)
+        const incoming = payload.data.post
+        if (isClearedChatActivityNotice(incoming)) {
+          deleteChatActivityNotice(session, incoming)
+        } else {
+          replaceOptimisticChatActivityNotice(session, incoming)
+          reapplyRemovedChats(session)
+        }
         break
       }
       const post = Post.withId(payload.data?.post?.id)

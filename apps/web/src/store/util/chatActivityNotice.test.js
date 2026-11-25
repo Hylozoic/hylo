@@ -5,11 +5,17 @@ import {
   optimisticChatActivityNoticeId,
   prependCurrentHourNotices,
   reconcileChatActivityNoticesAfterFetch,
+  removeChatFromActivityNotices,
   replaceOptimisticChatActivityNotice,
+  resetRemovedChatsForTests,
   snapshotChatActivityNotices,
   upsertOptimisticChatActivityNotice,
   withdrawOptimisticChatFromNotice
 } from './chatActivityNotice'
+
+afterEach(() => {
+  resetRemovedChatsForTests()
+})
 
 describe('chatActivityBucketKey', () => {
   it('builds a UTC hour bucket key', () => {
@@ -75,6 +81,79 @@ describe('upsertOptimisticChatActivityNotice', () => {
       groupId: 'missing',
       chat: { id: 'post_1', details: '<p>hi</p>' }
     })).toBe(null)
+  })
+})
+
+describe('removeChatFromActivityNotices', () => {
+  let session
+
+  beforeEach(() => {
+    session = orm.session(orm.getEmptyState())
+    session.Group.create({ id: '10', slug: 'bar', name: 'Bar' })
+  })
+
+  function noticeWith (posts) {
+    session.Post.create({
+      id: 'notice',
+      type: 'chat_activity',
+      createdAt: posts[0].createdAt,
+      noticeData: {
+        bucketKey: '10:2026-08-14T04',
+        postCount: posts.length,
+        recentPostIds: posts.map(p => p.id)
+      },
+      noticePosts: posts,
+      groups: ['10']
+    })
+    return session.Post.withId('notice')
+  }
+
+  it('removes the deleted chat from the card and rolls its time back', () => {
+    noticeWith([
+      { id: '2', details: '<p>second</p>', createdAt: '2026-08-14T04:40:00.000Z' },
+      { id: '1', details: '<p>first</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    ])
+
+    removeChatFromActivityNotices(session, { chatId: 2 })
+
+    const notice = session.Post.withId('notice')
+    expect(notice.noticePosts.map(p => p.id)).toEqual(['1'])
+    expect(notice.noticeData.recentPostIds).toEqual(['1'])
+    expect(notice.noticeData.postCount).toEqual(1)
+    expect(notice.createdAt).toEqual('2026-08-14T04:10:00.000Z')
+  })
+
+  it('deletes the card when the deleted chat was the last one', () => {
+    noticeWith([
+      { id: '2', details: '<p>only</p>', createdAt: '2026-08-14T04:40:00.000Z' }
+    ])
+
+    removeChatFromActivityNotices(session, { chatId: '2' })
+
+    expect(session.Post.idExists('notice')).toBe(false)
+  })
+
+  it('does not let a stale fetch put the deleted chat back', () => {
+    const notice = noticeWith([
+      { id: '2', details: '<p>second</p>', createdAt: '2026-08-14T04:40:00.000Z' },
+      { id: '1', details: '<p>first</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+    ])
+    const preserved = snapshotChatActivityNotices(session.Post)
+    removeChatFromActivityNotices(session, { chatId: '2' })
+    notice.update({
+      createdAt: '2026-08-14T04:40:00.000Z',
+      noticeData: { bucketKey: '10:2026-08-14T04', postCount: 2, recentPostIds: ['2', '1'] },
+      noticePosts: [
+        { id: '2', details: '<p>second</p>', createdAt: '2026-08-14T04:40:00.000Z' },
+        { id: '1', details: '<p>first</p>', createdAt: '2026-08-14T04:10:00.000Z' }
+      ]
+    })
+
+    reconcileChatActivityNoticesAfterFetch(session, preserved)
+
+    const next = session.Post.withId('notice')
+    expect(next.noticePosts.map(p => p.id)).toEqual(['1'])
+    expect(next.noticeData.postCount).toEqual(1)
   })
 })
 

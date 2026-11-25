@@ -90,6 +90,87 @@ export function confirmOptimisticChatInNotice (session, { groupId, localId, chat
   return notice
 }
 
+// Chats deleted in this session. A fetch or socket payload can still include them
+// until the server rebuilds the hour card, so they are stripped again on the way in.
+const removedChatIds = new Set()
+
+/**
+ * Clears locally deleted chat ids. Test-only.
+ */
+export function resetRemovedChatsForTests () {
+  removedChatIds.clear()
+}
+
+/**
+ * Removes a deleted chat from every activity card that shows it.
+ * Deletes a card that no longer has any chats.
+ * @param {object} session
+ * @param {{ chatId?: string|number }} opts
+ */
+export function removeChatFromActivityNotices (session, { chatId } = {}) {
+  if (chatId == null || chatId === '') return
+  let removed = false
+  session.Post.all().toModelArray()
+    .filter(p => p.type === 'chat_activity')
+    .forEach(notice => {
+      if (stripChatFromNotice(notice, chatId)) removed = true
+    })
+  if (removed) removedChatIds.add(String(chatId))
+}
+
+/**
+ * Puts local deletes back after a fetch or socket write includes a removed chat.
+ * @param {object} session
+ */
+export function reapplyRemovedChats (session) {
+  if (removedChatIds.size === 0) return
+  removedChatIds.forEach(chatId => {
+    session.Post.all().toModelArray()
+      .filter(p => p.type === 'chat_activity')
+      .forEach(notice => stripChatFromNotice(notice, chatId))
+  })
+}
+
+/**
+ * True when a chat_activity payload should be taken off the feed.
+ * @param {object} post
+ * @returns {boolean}
+ */
+export function isClearedChatActivityNotice (post) {
+  if (!post || post.type !== 'chat_activity') return false
+  if (post.active === false) return true
+  const data = parseNoticeData(post.noticeData)
+  return !!data && Number(data.postCount) === 0
+}
+
+/**
+ * True when a chat activity card still has chats to show.
+ * @param {object} post
+ * @returns {boolean}
+ */
+export function chatActivityNoticeHasChats (post) {
+  if (!post || post.type !== 'chat_activity') return true
+  const data = parseNoticeData(post.noticeData)
+  if (data && Number(data.postCount) === 0) return false
+  const messages = post.noticePosts || []
+  if (messages.length === 0 && !(Number(data?.postCount) > 0)) return false
+  return true
+}
+
+/**
+ * Deletes a chat activity notice and its optimistic stand-in.
+ * @param {object} session
+ * @param {object} post
+ */
+export function deleteChatActivityNotice (session, post) {
+  const { Post } = session
+  if (post?.id && Post.idExists(post.id)) Post.withId(post.id).delete()
+  const bucketKey = parseNoticeData(post?.noticeData)?.bucketKey
+  if (!bucketKey) return
+  const optimisticId = `${OPTIMISTIC_NOTICE_PREFIX}${bucketKey}`
+  if (Post.idExists(optimisticId)) Post.withId(optimisticId).delete()
+}
+
 /**
  * Takes a chat that failed to send back out of the notice it was optimistically
  * added to, dropping a temporary notice that held nothing else.
@@ -149,43 +230,45 @@ export function replaceOptimisticChatActivityNotice (session, realNotice) {
  * @param {object[]} preserved
  */
 export function reconcileChatActivityNoticesAfterFetch (session, preserved) {
-  if (!preserved?.length) return
   const { Post } = session
 
-  preserved.forEach(prev => {
-    const prevData = parseNoticeData(prev.noticeData)
-    const bucketKey = prevData?.bucketKey
-    if (!bucketKey) return
+  if (preserved?.length) {
+    preserved.forEach(prev => {
+      const prevData = parseNoticeData(prev.noticeData)
+      const bucketKey = prevData?.bucketKey
+      if (!bucketKey) return
 
-    const incoming = Post.all().toModelArray().find(p => {
-      if (p.type !== 'chat_activity') return false
-      return parseNoticeData(p.noticeData)?.bucketKey === bucketKey
-    })
+      const incoming = Post.all().toModelArray().find(p => {
+        if (p.type !== 'chat_activity') return false
+        return parseNoticeData(p.noticeData)?.bucketKey === bucketKey
+      })
 
-    if (incoming && isOptimisticChatActivityNoticeId(prev.id) && String(incoming.id) !== String(prev.id)) {
-      if (isLocallyNewer(prev, incoming)) {
+      if (incoming && isOptimisticChatActivityNoticeId(prev.id) && String(incoming.id) !== String(prev.id)) {
+        if (isLocallyNewer(prev, incoming)) {
+          incoming.update({
+            createdAt: prev.createdAt,
+            noticeData: prev.noticeData,
+            noticePosts: prev.noticePosts
+          })
+        }
+        if (Post.idExists(prev.id)) Post.withId(prev.id).delete()
+        return
+      }
+
+      if (!incoming && isOptimisticChatActivityNoticeId(prev.id) && !Post.idExists(prev.id)) {
+        return
+      }
+
+      if (incoming && isLocallyNewer(prev, incoming)) {
         incoming.update({
           createdAt: prev.createdAt,
           noticeData: prev.noticeData,
           noticePosts: prev.noticePosts
         })
       }
-      if (Post.idExists(prev.id)) Post.withId(prev.id).delete()
-      return
-    }
-
-    if (!incoming && isOptimisticChatActivityNoticeId(prev.id) && !Post.idExists(prev.id)) {
-      return
-    }
-
-    if (incoming && isLocallyNewer(prev, incoming)) {
-      incoming.update({
-        createdAt: prev.createdAt,
-        noticeData: prev.noticeData,
-        noticePosts: prev.noticePosts
-      })
-    }
-  })
+    })
+  }
+  reapplyRemovedChats(session)
 }
 
 /**
@@ -220,6 +303,7 @@ export function prependCurrentHourNotices (session, posts, { filter, slug, group
   const hourSuffix = `:${chatActivityBucketStart().toISOString().slice(0, 13)}`
   const hourNotices = session.Post.all().toModelArray().filter(p => {
     if (p.type !== 'chat_activity') return false
+    if (!chatActivityNoticeHasChats(p)) return false
     const data = parseNoticeData(p.noticeData)
     if (!data?.bucketKey || !String(data.bucketKey).endsWith(hourSuffix)) return false
     return noticeBelongsToView(p, slug, groupId)
@@ -336,6 +420,42 @@ function applyChatPreview (notice, preview, { replaceId, increment = true } = {}
     },
     noticePosts
   })
+}
+
+/**
+ * Drops one chat from a notice. Deletes the notice when it has no chats left.
+ * @param {object} notice
+ * @param {string|number} chatId
+ * @returns {boolean}
+ */
+function stripChatFromNotice (notice, chatId) {
+  const isMatch = id => String(id) === String(chatId)
+  const data = parseNoticeData(notice.noticeData) || {}
+  const prevPosts = notice.noticePosts || []
+  const prevIds = data.recentPostIds || []
+  if (!prevPosts.some(p => isMatch(p.id)) && !prevIds.some(isMatch)) return false
+
+  const noticePosts = prevPosts.filter(p => !isMatch(p.id))
+  const recentPostIds = prevIds.filter(id => !isMatch(id))
+  const counted = Number(data.postCount)
+  const postCount = Number.isFinite(counted) && counted > 0
+    ? Math.max(counted - 1, noticePosts.length)
+    : noticePosts.length
+  if (postCount === 0) {
+    notice.delete()
+    return true
+  }
+  const latest = noticePosts[0]
+  notice.update({
+    ...(latest?.createdAt ? { createdAt: latest.createdAt, updatedAt: latest.createdAt } : {}),
+    noticeData: {
+      ...data,
+      recentPostIds,
+      postCount
+    },
+    noticePosts
+  })
+  return true
 }
 
 function toPreview (chat, when) {
