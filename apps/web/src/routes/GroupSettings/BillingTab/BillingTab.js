@@ -286,7 +286,12 @@ export default function BillingTab ({ group }) {
       {billing?.needsPaymentUpdate && (
         <div className='flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-foreground' data-testid='billing-payment-failed'>
           <AlertCircle className='w-5 h-5 shrink-0 text-destructive' />
-          <span>{t('Your last payment failed. Update your payment method to keep Hylo Pro.')}</span>
+          <span>
+            {/* 'grace': the failed payment hasn't stopped Pro yet */}
+            {billing.state === 'grace' && billing.graceEndsAt
+              ? t('Your last payment failed. Hylo Pro features keep working until {{date}}. Update your payment method to keep Hylo Pro.', { date: formatDate(billing.graceEndsAt) })
+              : t('Your last payment failed. Update your payment method to keep Hylo Pro.')}
+          </span>
         </div>
       )}
 

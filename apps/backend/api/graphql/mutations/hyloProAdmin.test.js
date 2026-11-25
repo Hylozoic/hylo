@@ -168,13 +168,13 @@ describe('Hylo Pro management', () => {
   afterEach(async () => {
     for (const name of STUBBED_NAMESPACES) stripeMock[name] = saved[name]
     await bookshelf.knex('hylo_pro_subscriptions').del()
-    await bookshelf.knex('hylo_pro_customers').del()
+    await bookshelf.knex('groups').whereNotNull('hylo_pro_stripe_customer_id').update({ hylo_pro_stripe_customer_id: null })
     await bookshelf.knex('stripe_logs').del()
   })
 
   // The group's customer and our synced row for its Stripe subscription
   async function stripeRow (attrs = {}) {
-    await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_1' }).onConflict('group_id').ignore()
+    await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_1' })
     return HyloProSubscription.forge({
       group_id: group.id,
       source: 'stripe',

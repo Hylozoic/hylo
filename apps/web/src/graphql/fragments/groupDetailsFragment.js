@@ -12,6 +12,7 @@ const groupFieldsFragment = ({ withTopics, withJoinQuestions, withPrerequisites,
   invitePath
   isSupporter
   proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+  proState
   location
   memberCount
   openJoinRequestCount

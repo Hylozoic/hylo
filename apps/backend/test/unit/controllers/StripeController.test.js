@@ -253,7 +253,7 @@ describe('StripeController.webhook', () => {
 
     beforeEach(async () => {
       group = await factories.group().save()
-      await bookshelf.knex('hylo_pro_customers').insert({ group_id: group.id, stripe_customer_id: 'cus_pro' })
+      await bookshelf.knex('groups').where({ id: group.id }).update({ hylo_pro_stripe_customer_id: 'cus_pro' })
       savedSubscriptions = stripeMock.subscriptions
       savedHandlers = {
         handleSubscriptionUpdated: StripeController.handleSubscriptionUpdated,
