@@ -119,17 +119,20 @@ Blocks lay out by the width the page is given, not the window's (`DesignedView` 
 
 ## Stored sessions: chat and drafts
 
-The chat with Axl and the page a steward hasn't saved are kept on the server (decision Q-27), so they survive a reload and can be picked up on another device. Table `group_view_design_sessions`, one row per steward per designed view, with `view_id` null for a page not added to the menu yet:
+The chat with Axl and the page not saved yet are kept on the server (decision Q-27), so they survive a reload and can be picked up on another device. They are shared by the group's stewards (decision V-05): every steward sees the same conversation for a view and can carry it on, and nobody else can read it. Table `group_view_design_sessions`, one row per designed view (unique on `group_id, COALESCE(view_id, 0)`), with `view_id` null for the page not added to the menu yet, so a group has one shared new page:
 
-- `messages`: the conversation, `[{ role, text }]`, up to 200 kept. It stays after the page is saved, so reopening a saved view shows the conversation that made it.
+- `messages`: the conversation, `[{ role: 'user', text, userId } | { role: 'assistant', text }]`, up to 200 kept. `userId` is the steward who asked, shown with their name and avatar in the chat. The browser sends the whole conversation back, so the server keeps a message's `userId` only if that steward is already in the stored conversation, and otherwise sets it to the steward storing it. The conversation stays after the page is saved, so reopening a saved view shows the conversation that made it.
 - `draft`: the page as it stands, its name, the images, PDFs and posts added for it, Axl's suggestions and the running cost; `null` once saved.
+- `version`: goes up by one with every change, and `updated_by_id` is the steward who made it.
 
-A table rather than the view's `settings`: settings are sent to every member who opens the view, a new page has no view row yet, and two stewards designing at once would overwrite each other. Not the `drafts` table either: those rows are one composer's text, listed under My Drafts and deleted on submit, while a design conversation outlives the save. Rows go with their group, user or view (`ON DELETE CASCADE`).
+Two stewards can have the designer open at once. Each change sends the `version` the browser last saw, and the server refuses a change made against any other version (`extensions.code` `DESIGN_SESSION_CHANGED`), checked and written under a row lock. The web then loads the session and the group's views again and says another steward changed the design. A steward's question is stored before Axl is asked, so two stewards can't both spend a turn on the same page, and Save stores the session before saving the view, so a stale tab can't overwrite another steward's saved page.
 
-- Query `groupViewDesignSession(groupId: ID!, viewId: ID): JSON` returns `{ messages, draft, updatedAt }` or null. Needs the Administration responsibility only, so a lapsed group can still read its conversation.
-- `saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON): JSON` replaces the row; also needs the `designedViews` feature. Only known fields of the expected shape are kept (`apps/backend/lib/designedViewSessions.js`), up to 512 KB per session.
-- `deleteGroupViewDesignSession(groupId: ID!, viewId: ID): GenericResult`.
-- On the web, `useStoredDesignerSession` loads the row when the designer opens and stores changes 0.8 seconds after the last one. A saved view opens on its saved page unless the stored page has unsaved changes. Saving the page moves the conversation to the view and clears the draft.
+A table rather than the view's `settings`: settings are sent to every member who opens the view, a new page has no view row yet, and its writes would need the same version check. Not the `drafts` table either: those rows are one composer's text, listed under My Drafts and deleted on submit, while a design conversation outlives the save. Nor a hidden chat room (like a funding round's `‡` topic): Axl would need a poster identity, the room a stewards-only rule, and every stream, notification and search a filter for it, and the draft would still need a home. Rows go with their group or view (`ON DELETE CASCADE`); a deleted steward's `updated_by_id` becomes null.
+
+- Query `groupViewDesignSession(groupId: ID!, viewId: ID): JSON` returns `{ messages, draft, version, updatedAt, updatedById, authors }` or null, where `authors` are the stewards who asked something, `[{ id, name, avatarUrl }]`. Needs the Administration responsibility only, so a lapsed group can still read its conversation.
+- `saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON, version: Int): JSON` replaces the row if `version` is still current (empty when the browser saw no session); also needs the `designedViews` feature. Only known fields of the expected shape are kept (`apps/backend/lib/designedViewSessions.js`), up to 512 KB per session.
+- `deleteGroupViewDesignSession(groupId: ID!, viewId: ID, version: Int): GenericResult`; with `version`, only that version is forgotten.
+- On the web, `useStoredDesignerSession` loads the row when the designer opens and stores changes 0.8 seconds after the last one, through `storeDesignerSession`, which sends one store at a time per session with the version last seen. A saved view opens on its saved page unless the stored page has unsaved changes. Saving the page moves the conversation to the view and clears the draft.
 
 ## Limits and gating
 
@@ -147,7 +150,8 @@ A table rather than the view's `settings`: settings are sent to every member who
 - **Editing by hand.** A page can only be changed through the chat. There is no way to edit one block's text directly.
 - **Images** can be placed but not cropped or positioned, and an uploaded image cannot be removed from the list.
 - **Creating posts.** Buttons only navigate; a page cannot open the post editor or publish anything.
-- **Shared conversations.** Each steward has their own conversation and draft for a view; a co-steward doesn't see them.
+- **Live updates.** Another steward's change shows when the designer is opened again, or when this tab stores something and is refused; it is not pushed live.
+- **Stewards talking to each other.** The conversation is with Axl; stewards can't reply to each other there.
 - **The sandbox demo** refuses design turns.
 - **Live lists are not cached in the store.** Each block asks the server for its own short list.
 - Every save broadcasts a group update, like other view changes.

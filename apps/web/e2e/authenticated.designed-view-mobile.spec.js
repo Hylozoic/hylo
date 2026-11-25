@@ -10,7 +10,7 @@ import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGr
  * Only the AI turn is stubbed; storing the session and saving the view are real.
  *
  * Each project edits its own designed view, made here in e2e-private-group, because the stored
- * session belongs to the steward, the group and the view.
+ * session belongs to the view (shared by the group's stewards).
  */
 
 test.describe.configure({ timeout: 180000, mode: 'serial' })

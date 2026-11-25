@@ -7,9 +7,9 @@ import { useSyncExternalStore } from 'react'
  * instead of in either component.
  *
  * A session is kept per group and view ('new' for a page not saved yet). It is
- * also stored on the server for the steward (see useStoredDesignerSession), so
- * the chat with Axl and an unsaved page survive a reload and can be picked up
- * on another device.
+ * also stored on the server, shared by the group's stewards (see
+ * useStoredDesignerSession), so the chat with Axl and an unsaved page survive a
+ * reload, can be picked up on another device, and any steward can carry them on.
  */
 
 const sessions = new Map()
@@ -19,8 +19,10 @@ export const EMPTY_USAGE_TOTAL = { count: 0, tokens: 0, costUsd: 0, costKnown: t
 
 function emptySession () {
   return {
-    // [{ role: 'user' | 'assistant', text }]
+    // [{ role: 'user', text, userId } | { role: 'assistant', text }]; userId is the steward who asked
     messages: [],
+    // The stewards who asked something, by id: { [id]: { id, name, avatarUrl } }
+    authors: {},
     // The page as building blocks, or null before the first design
     design: null,
     name: '',
@@ -46,7 +48,11 @@ function emptySession () {
     loaded: false,
     loading: false,
     // What was last stored on the server (see storedDesignerSession), to only store changes
-    storedSnapshot: null
+    storedSnapshot: null,
+    // The stored session's version this tab last saw, sent back with each change (null: none stored yet)
+    version: null,
+    // True after another steward's change made this tab load the session again
+    changedByOther: false
   }
 }
 
@@ -186,9 +192,16 @@ export function storedDesignerSession (session) {
 }
 
 /**
+ * The stewards who asked something, by id, from the server's list [{ id, name, avatarUrl }].
+ */
+export function authorsById (authors) {
+  return (Array.isArray(authors) ? authors : []).reduce((byId, author) => author?.id ? { ...byId, [String(author.id)]: author } : byId, {})
+}
+
+/**
  * The session to start from when the designer opens: `saved` is an existing view's saved page,
  * { design, name, images } (empty for a new page), and `stored` what the server kept,
- * { messages, draft } or null. A stored page only replaces the saved one if it was changed
+ * { messages, draft, version, authors } or null. A stored page only replaces the saved one if it was changed
  * (dirty), and a stored name only if the steward typed it.
  */
 export function restoreDesignerSession (saved, stored) {
@@ -196,6 +209,8 @@ export function restoreDesignerSession (saved, stored) {
   const changed = !!draft?.dirty
   return {
     messages: Array.isArray(stored?.messages) ? stored.messages : [],
+    authors: authorsById(stored?.authors),
+    version: stored?.version || null,
     design: changed ? draft.design || null : saved.design || null,
     name: draft?.nameEdited ? draft.name || '' : saved.name || draft?.name || '',
     nameEdited: !!draft?.nameEdited,

@@ -8,7 +8,7 @@ import {
 import { buildGroupDigest, describePickedPosts, digestPostIds, postIdsInGroup } from '../../../lib/groupDigest'
 
 describe('designed views', () => {
-  let admin, member, group
+  let admin, admin2, member, group
 
   const design = {
     blocks: [
@@ -25,9 +25,11 @@ describe('designed views', () => {
 
   before(async () => {
     admin = await factories.user().save()
+    admin2 = await factories.user().save()
     member = await factories.user().save()
     group = await factories.group().save()
     await admin.joinGroup(group, { assignAdministrator: true })
+    await admin2.joinGroup(group, { assignAdministrator: true })
     await member.joinGroup(group)
   })
 
@@ -161,11 +163,14 @@ describe('designed views', () => {
 
     afterEach(() => bookshelf.knex('group_view_design_sessions').where('group_id', group.id).del())
 
-    it('keeps the chat and the unsaved page for a new page, per steward, with only known fields', async () => {
+    it('keeps the chat and the unsaved page for a new page, with only known fields', async () => {
       expect(await groupViewDesignSession(session(admin.id))).to.equal(null)
 
       const saved = await saveGroupViewDesignSession(session(admin.id, null, { messages: [...messages, { role: 'system', text: 'x' }], draft }))
-      expect(saved.messages).to.deep.equal(messages)
+      expect(saved.messages).to.deep.equal([{ ...messages[0], userId: String(admin.id) }, messages[1]])
+      expect(saved.version).to.equal(1)
+      expect(saved.updatedById).to.equal(String(admin.id))
+      expect(saved.authors).to.deep.equal([{ id: String(admin.id), name: admin.get('name'), avatarUrl: admin.get('avatar_url') }])
       expect(saved.draft).to.deep.equal({
         design: storedDesign,
         name: 'Welcome',
@@ -179,42 +184,85 @@ describe('designed views', () => {
       })
 
       const loaded = await groupViewDesignSession(session(admin.id))
-      expect(loaded.messages).to.deep.equal(messages)
+      expect(loaded.messages).to.deep.equal(saved.messages)
       expect(loaded.draft.name).to.equal('Welcome')
 
-      // Saving again replaces the one row; another steward has their own
-      await saveGroupViewDesignSession(session(admin.id, null, { messages: messages.slice(0, 1), draft: null }))
-      expect(await bookshelf.knex('group_view_design_sessions').where({ group_id: group.id, user_id: admin.id }).count().then(r => Number(r[0].count))).to.equal(1)
+      // Saving again replaces the one row
+      await saveGroupViewDesignSession(session(admin.id, null, { messages: messages.slice(0, 1), draft: null, version: 1 }))
+      expect(await bookshelf.knex('group_view_design_sessions').where({ group_id: group.id }).count().then(r => Number(r[0].count))).to.equal(1)
       expect((await groupViewDesignSession(session(admin.id))).draft).to.equal(null)
+    })
+
+    it('is one conversation shared by every steward, showing who asked what', async () => {
+      const first = await saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))
+      const seen = await groupViewDesignSession(session(admin2.id))
+      expect(seen.messages).to.deep.equal(first.messages)
+      expect(seen.draft.name).to.equal('Welcome')
+
+      // The second steward carries on; the first steward's question stays theirs
+      const next = await saveGroupViewDesignSession(session(admin2.id, null, {
+        messages: [...seen.messages, { role: 'user', text: 'Add events' }, { role: 'assistant', text: 'Added.' }],
+        draft,
+        version: seen.version
+      }))
+      expect(next.messages.map(message => message.userId)).to.deep.equal([String(admin.id), undefined, String(admin2.id), undefined])
+      expect(next.authors.map(author => author.id)).to.have.members([String(admin.id), String(admin2.id)])
+      expect(next.version).to.equal(2)
+      expect(next.updatedById).to.equal(String(admin2.id))
+      expect((await groupViewDesignSession(session(admin.id))).messages).to.deep.equal(next.messages)
+    })
+
+    it('refuses a change made against an older version, so stewards never overwrite each other', async () => {
+      const first = await saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))
+      // Both stewards loaded version 1; the first to store wins
+      await saveGroupViewDesignSession(session(admin2.id, null, { messages: [...first.messages, { role: 'user', text: 'Mine' }], draft, version: 1 }))
+      const error = await saveGroupViewDesignSession(session(admin.id, null, { messages: [...first.messages, { role: 'user', text: 'No, mine' }], draft, version: 1 }))
+        .catch(err => err)
+      expect(error.extensions).to.deep.include({ code: 'DESIGN_SESSION_CHANGED' })
+      // Starting a session that someone else already started is refused the same way
+      await expect(saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))).to.be.rejectedWith(/Another steward changed/)
+      // Storing against a session that is gone is refused too
+      await expect(saveGroupViewDesignSession(session(admin.id, (await create(admin.id)).id, { messages, draft, version: 4 }))).to.be.rejectedWith(/Another steward changed/)
+
+      const loaded = await groupViewDesignSession(session(admin.id))
+      expect(loaded.version).to.equal(2)
+      expect(loaded.messages[loaded.messages.length - 1]).to.deep.equal({ role: 'user', text: 'Mine', userId: String(admin2.id) })
+
+      // Forgetting it with an old version is refused, and with the current one works
+      await expect(deleteGroupViewDesignSession(session(admin.id, null, { version: 1 }))).to.be.rejectedWith(/Another steward changed/)
+      await deleteGroupViewDesignSession(session(admin.id, null, { version: 2 }))
+      expect(await groupViewDesignSession(session(admin.id))).to.equal(null)
     })
 
     it('keeps a session per designed view, and forgets it when the view is deleted', async () => {
       const view = await create(admin.id)
       await saveGroupViewDesignSession(session(admin.id, view.id, { messages, draft: null }))
-      await saveGroupViewDesignSession(session(admin.id, null, { messages: messages.slice(0, 1), draft }))
+      await saveGroupViewDesignSession(session(admin2.id, null, { messages: messages.slice(0, 1), draft }))
 
-      expect((await groupViewDesignSession(session(admin.id, view.id))).messages).to.deep.equal(messages)
+      expect((await groupViewDesignSession(session(admin2.id, view.id))).messages).to.have.length(2)
       expect((await groupViewDesignSession(session(admin.id))).messages).to.have.length(1)
 
       await deleteGroupViewDesignSession(session(admin.id))
-      expect(await groupViewDesignSession(session(admin.id))).to.equal(null)
+      expect(await groupViewDesignSession(session(admin2.id))).to.equal(null)
 
       await deleteGroupView(admin.id, view.id)
       expect(await bookshelf.knex('group_view_design_sessions').where({ group_id: group.id }).count().then(r => Number(r[0].count))).to.equal(0)
     })
 
     it('needs the Administration responsibility, a designed view of this group, and the feature to save', async () => {
+      await saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))
+      // A member who is not a steward can neither read nor change the stewards' conversation
       await expect(groupViewDesignSession(session(member.id))).to.be.rejectedWith(/permission/)
-      await expect(saveGroupViewDesignSession(session(member.id, null, { messages }))).to.be.rejectedWith(/permission/)
+      await expect(saveGroupViewDesignSession(session(member.id, null, { messages, version: 1 }))).to.be.rejectedWith(/permission/)
+      await expect(deleteGroupViewDesignSession(session(member.id))).to.be.rejectedWith(/permission/)
 
       const other = await createGroupView({ userId: admin.id, groupId: group.id, type: 'custom', name: 'Mine', settings: { postTypes: ['offer'] } })
       await expect(groupViewDesignSession(session(admin.id, other.id))).to.be.rejectedWith(/View not found/)
 
-      await saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))
       await removePro()
-      await expect(saveGroupViewDesignSession(session(admin.id, null, { messages, draft }))).to.be.rejectedWith(/part of Hylo Pro/)
+      await expect(saveGroupViewDesignSession(session(admin.id, null, { messages, draft, version: 1 }))).to.be.rejectedWith(/part of Hylo Pro/)
       // A lapsed group can still read its conversation
-      expect((await groupViewDesignSession(session(admin.id))).messages).to.deep.equal(messages)
+      expect((await groupViewDesignSession(session(admin2.id))).messages).to.have.length(2)
     })
 
     it('refuses a session too large to keep', async () => {

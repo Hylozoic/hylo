@@ -789,10 +789,10 @@ export function makeMutations ({ fetchOne }) {
     suggestGroupViews: (root, { groupId }, context) => suggestGroupViews({ userId: context.currentUserId, groupId }),
     designGroupViewTurn: (root, { groupId, messages, currentView, images, documents, postIds }, context) =>
       designGroupViewTurn({ userId: context.currentUserId, groupId, messages, currentView, images, documents, postIds }),
-    saveGroupViewDesignSession: (root, { groupId, viewId, messages, draft }, context) =>
-      saveGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId, messages, draft }),
-    deleteGroupViewDesignSession: (root, { groupId, viewId }, context) =>
-      deleteGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId }),
+    saveGroupViewDesignSession: (root, { groupId, viewId, messages, draft, version }, context) =>
+      saveGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId, messages, draft, version }),
+    deleteGroupViewDesignSession: (root, { groupId, viewId, version }, context) =>
+      deleteGroupViewDesignSession({ userId: context.currentUserId, groupId, viewId, version }),
 
     markViewAsRead: (root, { viewId }, context) => markViewAsRead(context.currentUserId, viewId),
 

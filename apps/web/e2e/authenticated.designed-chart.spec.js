@@ -11,7 +11,7 @@ import { canSeedHyloPro, grantHyloPro, revokeHyloPro } from './helpers/hyloProGr
 
 test.describe.configure({ timeout: 180000, mode: 'serial' })
 
-// Not e2e-public-group: the designer stores each steward's unsaved page per group, and the
+// Not e2e-public-group: the designer stores one unsaved new page per group, and the
 // designed view spec designs a new page there at the same time
 const GROUP_SLUG = 'e2e-private-group'
 const PRO_NOTE = 'e2e designed chart spec'

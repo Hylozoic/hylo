@@ -1529,10 +1529,11 @@ ALTER SEQUENCE public.group_views_users_id_seq OWNED BY public.group_views_users
 CREATE TABLE public.group_view_design_sessions (
     id bigint NOT NULL,
     group_id bigint NOT NULL,
-    user_id bigint NOT NULL,
     view_id bigint,
     messages jsonb DEFAULT '[]'::jsonb NOT NULL,
     draft jsonb,
+    version integer DEFAULT 1 NOT NULL,
+    updated_by_id bigint,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -8341,7 +8342,7 @@ ALTER TABLE ONLY public.group_view_design_sessions
 -- Name: group_view_design_sessions_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX group_view_design_sessions_unique ON public.group_view_design_sessions USING btree (group_id, user_id, COALESCE(view_id, (0)::bigint));
+CREATE UNIQUE INDEX group_view_design_sessions_unique ON public.group_view_design_sessions USING btree (group_id, COALESCE(view_id, (0)::bigint));
 
 
 --
@@ -8360,11 +8361,11 @@ ALTER TABLE ONLY public.group_view_design_sessions
 
 
 --
--- Name: group_view_design_sessions group_view_design_sessions_user_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: group_view_design_sessions group_view_design_sessions_updated_by_id_foreign; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.group_view_design_sessions
-    ADD CONSTRAINT group_view_design_sessions_user_id_foreign FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT group_view_design_sessions_updated_by_id_foreign FOREIGN KEY (updated_by_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

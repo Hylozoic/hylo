@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import TextareaAutosize from 'react-textarea-autosize'
 import { ArrowLeft, FileText, ImagePlus, Lightbulb, Newspaper, Plus, SendHorizontal, Sparkles } from 'lucide-react'
+import Avatar from 'components/Avatar'
 import PostSelector from 'components/PostSelector'
 import { Popover, PopoverContent, PopoverTrigger } from 'components/ui/popover'
 import UploadAttachmentButton from 'components/UploadAttachmentButton'
@@ -28,9 +29,11 @@ import {
   MAX_PICKED_POSTS,
   nameAfterTurn,
   designerSessionKey,
+  storedDesignerSession,
   updateDesignerSession,
   useDesignerSession
 } from './designerSession'
+import { isDesignSessionChanged, storeDesignerSession } from './storeDesignerSession'
 
 // The designer's assistant speaks as Axl
 export const ASSISTANT_NAME = 'Axl'
@@ -40,6 +43,23 @@ function AxlMessage ({ children }) {
     <div data-role='assistant' className='self-start max-w-[90%]'>
       <p className='m-0 mb-0.5 text-xs font-bold text-foreground/60'>{ASSISTANT_NAME}</p>
       <div className='rounded-lg px-3 py-2 text-sm whitespace-pre-line bg-card text-card-foreground border-2 border-foreground/10'>{children}</div>
+    </div>
+  )
+}
+
+/**
+ * A steward's message, with who asked: the chat is shared by the group's stewards (decision V-05).
+ */
+function StewardMessage ({ author, children }) {
+  return (
+    <div data-role='user' className='self-end max-w-[90%] flex flex-col items-end'>
+      {author && (
+        <p className='m-0 mb-0.5 flex items-center gap-1 text-xs font-bold text-foreground/60' data-testid='designer-message-author'>
+          {author.avatarUrl && <Avatar avatarUrl={author.avatarUrl} tiny />}
+          {author.name}
+        </p>
+      )}
+      <div className='rounded-lg px-3 py-2 text-sm whitespace-pre-line bg-selected/30'>{children}</div>
     </div>
   )
 }
@@ -61,7 +81,8 @@ export default function DesignerChatColumn () {
   const dispatch = useDispatch()
   const { groupSlug, viewId } = useParams()
   const group = useSelector(state => getGroupForSlug(state, groupSlug))
-  const hyloProEnabled = isHyloProEnabled(useSelector(getMe))
+  const me = useSelector(getMe)
+  const hyloProEnabled = isHyloProEnabled(me)
   const groupViews = useGroupViews(group)
   const groupId = group?.id
   const isNew = viewId === NEW_VIEW_ID
@@ -87,9 +108,21 @@ export default function DesignerChatColumn () {
   const send = async text => {
     const message = text.trim()
     if (!message || !canChat) return
-    const messages = [...session.messages, { role: 'user', text: message }]
-    updateDesignerSession(key, { messages, sending: true, error: null })
+    const messages = [...session.messages, { role: 'user', text: message, userId: me?.id ? String(me.id) : undefined }]
+    const authors = me?.id ? { ...session.authors, [String(me.id)]: { id: String(me.id), name: me.name, avatarUrl: me.avatarUrl } } : session.authors
+    updateDesignerSession(key, { messages, authors, sending: true, error: null, changedByOther: false })
     setDraft('')
+    // Store the question before asking Axl: the chat is shared, so if another steward changed it
+    // meanwhile this is refused, the chat is loaded again with their changes, and nothing is spent
+    try {
+      await storeDesignerSession(dispatch, key, groupId, isNew ? null : viewId, storedDesignerSession({ ...session, messages }))
+    } catch (err) {
+      if (isDesignSessionChanged(err)) {
+        setDraft(message)
+        return
+      }
+      // Storing is best effort otherwise; the answer is stored with the next change
+    }
     try {
       const response = await dispatch(designGroupViewTurn(groupId, messagesForModel(messages), session.design, session.images, session.documents, session.posts.map(post => post.id)))
       if (response?.error) throw response.payload || new Error(t('Something went wrong. Please try again.'))
@@ -247,13 +280,18 @@ export default function DesignerChatColumn () {
         )}
 
         {session.messages.map((message, index) => message.role === 'user'
-          ? <div key={index} data-role='user' className='self-end rounded-lg px-3 py-2 text-sm whitespace-pre-line max-w-[90%] bg-selected/30'>{message.text}</div>
+          ? <StewardMessage key={index} author={session.authors[message.userId]}>{message.text}</StewardMessage>
           : <AxlMessage key={index}>{message.text}</AxlMessage>)}
         {session.sending && (
           <p className='self-start text-xs text-foreground/60 m-0' role='status'>{t('Designing... this usually takes about 10 seconds.')}</p>
         )}
         {session.suggesting && (
           <p className='self-start text-xs text-foreground/60 m-0' role='status'>{t('Looking at your group...')}</p>
+        )}
+        {session.changedByOther && (
+          <p className='text-xs text-foreground/70 m-0 rounded-md border-2 border-accent/40 bg-accent/10 px-2 py-1' role='status' data-testid='designer-changed-by-other'>
+            {t('Another steward changed this design, so it has been loaded again with their changes.')}
+          </p>
         )}
         {session.error && <p className='text-xs text-destructive m-0' role='alert'>{session.error}</p>}
         <div ref={listEnd} />

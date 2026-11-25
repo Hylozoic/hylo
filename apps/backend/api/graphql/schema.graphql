@@ -303,9 +303,11 @@ type Query {
   # Get all drafts for the currently logged in user
   myDrafts: [Draft]
 
-  # The current user's stored "Design your own view" session for a Group: { messages, draft, updatedAt },
-  # or null. viewId is the designed view, or empty for a page not added to the menu yet. messages is the
-  # chat with Axl; draft is the unsaved page, or null. Requires the Administration responsibility.
+  # The stored "Design your own view" session for a Group's designed view, shared by the Group's stewards:
+  # { messages, draft, version, updatedAt, updatedById, authors }, or null. viewId is the designed view, or
+  # empty for the page not added to the menu yet (one per Group). messages is the chat with Axl, each
+  # steward's message with the userId of who asked; authors are those stewards, [{ id, name, avatarUrl }];
+  # draft is the unsaved page, or null. Requires the Administration responsibility.
   groupViewDesignSession(groupId: ID!, viewId: ID): JSON
 
   # Get a single draft by context (pass the relevant context IDs for the type)
@@ -3683,12 +3685,15 @@ type Mutation {
   # suggestion's prompt can be sent to designGroupViewTurn as the first message.
   # Requires the Administration responsibility and the designedViews Hylo Pro feature.
   suggestGroupViews(groupId: ID!): JSON
-  # Store the current user's "Design your own view" session (see Query.groupViewDesignSession), replacing
-  # what was there; draft null means the page matches what is saved. Requires the Administration
-  # responsibility and the designedViews Hylo Pro feature.
-  saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON): JSON
-  # Forget the current user's stored design session for a Group's view (or new page)
-  deleteGroupViewDesignSession(groupId: ID!, viewId: ID): GenericResult
+  # Store the shared "Design your own view" session (see Query.groupViewDesignSession), replacing what
+  # was there; draft null means the page matches what is saved. version is the session's version the
+  # browser last saw (empty if there was none); if another steward has changed it since, the change is
+  # refused with the DESIGN_SESSION_CHANGED error code. Requires the Administration responsibility and
+  # the designedViews Hylo Pro feature.
+  saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON, version: Int): JSON
+  # Forget the stored design session for a Group's view (or new page); with version, only if it is
+  # still that version (otherwise DESIGN_SESSION_CHANGED)
+  deleteGroupViewDesignSession(groupId: ID!, viewId: ID, version: Int): GenericResult
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

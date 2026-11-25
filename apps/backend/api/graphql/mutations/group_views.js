@@ -14,6 +14,7 @@ import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
 import RedisClient from '../../services/RedisClient'
 import HyloProService from '../../services/HyloProService'
 import {
+  designMessageAuthorIds,
   MAX_DESIGN_SESSION_BYTES,
   normalizeDesignSessionDraft,
   normalizeStoredDesignMessages,
@@ -630,66 +631,131 @@ export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
 }
 
 const DESIGN_SESSIONS = 'group_view_design_sessions'
+// Error code for a change made against an older version of a shared design session; the web
+// reloads the session and shows its own translated message
+export const DESIGN_SESSION_CHANGED = 'DESIGN_SESSION_CHANGED'
+
+function designSessionChangedError () {
+  return new GraphQLError('Another steward changed this design. Reload to see their changes.', {
+    extensions: { code: DESIGN_SESSION_CHANGED }
+  })
+}
 
 /**
- * Which stored design session a call is about: the steward's own, for one designed view of the
- * group or (viewId empty) for the page they have not added to the menu yet.
+ * Which stored design session a call is about: the one for a designed view of the group or (viewId
+ * empty) for the page not added to the menu yet. Sessions are shared by the group's stewards
+ * (decision V-05), so any of them may read or change one; nobody else may.
  */
 async function designSessionScope (userId, groupId, viewId) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
   await requireAdmin(userId, groupId, 'design views')
-  if (!viewId) return { groupId, userId, viewId: null }
+  if (!viewId) return { groupId, viewId: null }
   const view = await GroupView.where({ id: viewId }).fetch()
   if (!view || String(view.get('group_id')) !== String(groupId) || view.get('type') !== GroupView.Type.DESIGNED) {
     throw new GraphQLError('View not found in this group')
   }
-  return { groupId, userId, viewId: view.id }
+  return { groupId, viewId: view.id }
 }
 
-function whereDesignSession (query, { groupId, userId, viewId }) {
-  query.where({ group_id: groupId, user_id: userId })
+function whereDesignSession (query, { groupId, viewId }) {
+  query.where({ group_id: groupId })
   return viewId ? query.where('view_id', viewId) : query.whereNull('view_id')
 }
 
+/** The stewards who asked something in a session, for the chat to show who asked. */
+async function designSessionAuthors (messages) {
+  const ids = designMessageAuthorIds(messages)
+  if (ids.length === 0) return []
+  const users = await bookshelf.knex('users').whereIn('id', ids).select('id', 'name', 'avatar_url')
+  return users.map(user => ({ id: String(user.id), name: user.name, avatarUrl: user.avatar_url }))
+}
+
+async function presentWithAuthors (row) {
+  return row ? presentDesignSession(row, await designSessionAuthors(row.messages)) : null
+}
+
 /**
- * The steward's stored "Design your own view" session (decision Q-27): { messages, draft,
- * updatedAt }, or null. messages is the chat with Axl; draft is the page they have not saved, or
- * null. Reading needs only the Administration responsibility, so a group whose Pro lapsed can
- * still see its conversation.
+ * The stored "Design your own view" session (decision Q-27) for a designed view or the new page,
+ * shared by the group's stewards: { messages, draft, version, updatedAt, updatedById, authors },
+ * or null. messages is the chat with Axl, each steward's message with the userId of who asked;
+ * draft is the page not saved yet, or null. Reading needs only the Administration
+ * responsibility, so a group whose Pro lapsed can still see its conversation.
  */
 export async function groupViewDesignSession ({ userId, groupId, viewId }) {
   const scope = await designSessionScope(userId, groupId, viewId)
-  return presentDesignSession(await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first())
+  return presentWithAuthors(await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first())
 }
 
 /**
- * Stores the steward's design session, replacing what was there. draft null means the page
- * matches what is saved. Needs the designedViews Pro feature, like changing a design.
+ * Stores the shared design session, replacing what was there. draft null means the page matches
+ * what is saved. Needs the designedViews Pro feature, like changing a design.
+ *
+ * version is the version the steward's browser last loaded or stored (null or 0 when it saw no
+ * session). A change made against any other version is refused with DESIGN_SESSION_CHANGED, so
+ * two stewards' turns or saves never overwrite each other: the second one reloads and tries again.
  */
-export async function saveGroupViewDesignSession ({ userId, groupId, viewId, messages, draft }) {
+export async function saveGroupViewDesignSession ({ userId, groupId, viewId, messages, draft, version }) {
   const scope = await designSessionScope(userId, groupId, viewId)
   await requireDesignedViews(groupId)
+  const expected = version ? Number(version) : null
 
-  const storedMessages = JSON.stringify(normalizeStoredDesignMessages(messages))
   const storedDraft = draft == null ? null : JSON.stringify(normalizeDesignSessionDraft(draft))
-  if (Buffer.byteLength(storedMessages) + Buffer.byteLength(storedDraft || '') > MAX_DESIGN_SESSION_BYTES) {
-    throw new GraphQLError('This design is too large to keep. Save the page to keep going.')
-  }
 
-  const result = await bookshelf.knex.raw(`
-    INSERT INTO ${DESIGN_SESSIONS} (group_id, user_id, view_id, messages, draft, created_at, updated_at)
-    VALUES (?, ?, ?, ?::jsonb, ?::jsonb, now(), now())
-    ON CONFLICT (group_id, user_id, COALESCE(view_id, 0))
-    DO UPDATE SET messages = EXCLUDED.messages, draft = EXCLUDED.draft, updated_at = now()
-    RETURNING *
-  `, [scope.groupId, scope.userId, scope.viewId, storedMessages, storedDraft])
-  return presentDesignSession(result.rows[0])
+  try {
+    const row = await bookshelf.transaction(async trx => {
+      // Lock the row so the version check and the write happen as one
+      const current = await whereDesignSession(trx(DESIGN_SESSIONS), scope).forUpdate().first()
+      if ((current ? current.version : null) !== expected) throw designSessionChangedError()
+
+      const storedMessages = JSON.stringify(normalizeStoredDesignMessages(messages, {
+        userId,
+        knownUserIds: designMessageAuthorIds(current?.messages)
+      }))
+      if (Buffer.byteLength(storedMessages) + Buffer.byteLength(storedDraft || '') > MAX_DESIGN_SESSION_BYTES) {
+        throw new GraphQLError('This design is too large to keep. Save the page to keep going.')
+      }
+
+      if (current) {
+        const [updated] = await trx(DESIGN_SESSIONS).where('id', current.id).update({
+          messages: trx.raw('?::jsonb', [storedMessages]),
+          draft: trx.raw('?::jsonb', [storedDraft]),
+          version: current.version + 1,
+          updated_by_id: userId,
+          updated_at: trx.fn.now()
+        }).returning('*')
+        return updated
+      }
+      const [inserted] = await trx(DESIGN_SESSIONS).insert({
+        group_id: scope.groupId,
+        view_id: scope.viewId,
+        messages: trx.raw('?::jsonb', [storedMessages]),
+        draft: trx.raw('?::jsonb', [storedDraft]),
+        version: 1,
+        updated_by_id: userId
+      }).returning('*')
+      return inserted
+    })
+    return presentWithAuthors(row)
+  } catch (err) {
+    // Two stewards both started the first session for this view at once: the other one won
+    if (err.code === '23505') throw designSessionChangedError()
+    throw err
+  }
 }
 
-/** Forgets the steward's design session (used once a new page has been added to the menu). */
-export async function deleteGroupViewDesignSession ({ userId, groupId, viewId }) {
+/**
+ * Forgets a design session (used once the new page has been added to the menu, and its
+ * conversation stored with the saved view). With version, only that version is forgotten, so a
+ * change another steward made in the meantime is not lost.
+ */
+export async function deleteGroupViewDesignSession ({ userId, groupId, viewId, version }) {
   const scope = await designSessionScope(userId, groupId, viewId)
-  await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).del()
+  const query = whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope)
+  if (version) query.where('version', Number(version))
+  const deleted = await query.del()
+  if (version && deleted === 0 && await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first()) {
+    throw designSessionChangedError()
+  }
   return { success: true }
 }

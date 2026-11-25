@@ -14,8 +14,10 @@ import {
   messagesForModel,
   MAX_MESSAGES_FOR_MODEL,
   restoreDesignerSession,
-  storedDesignerSession
+  storedDesignerSession,
+  authorsById
 } from './designerSession'
+import { storeDesignerSession } from './storeDesignerSession'
 import { DELETE_GROUP_VIEW_DESIGN_SESSION, deleteGroupViewDesignSession, fetchGroupViewDesignSession, saveGroupViewDesignSession } from 'store/actions/groupViewDesignSession'
 import designGroupViewTurn, { DESIGN_GROUP_VIEW_TURN } from 'store/actions/designGroupViewTurn'
 import { designStatus } from './EditableViewName'
@@ -206,9 +208,52 @@ describe('stored designer sessions', () => {
 
   it('builds the session queries for a saved view or the page not added yet', () => {
     expect(fetchGroupViewDesignSession('5').graphql.variables).toEqual({ groupId: '5', viewId: null })
-    expect(saveGroupViewDesignSession('5', '9', messages, null).graphql.variables).toEqual({ groupId: '5', viewId: '9', messages, draft: null })
-    const remove = deleteGroupViewDesignSession('5')
+    expect(saveGroupViewDesignSession('5', '9', messages, null, 3).graphql.variables).toEqual({ groupId: '5', viewId: '9', messages, draft: null, version: 3 })
+    const remove = deleteGroupViewDesignSession('5', null, 2)
     expect(remove.type).toEqual(DELETE_GROUP_VIEW_DESIGN_SESSION)
-    expect(remove.graphql.query).toContain('deleteGroupViewDesignSession(groupId: $groupId, viewId: $viewId)')
+    expect(remove.graphql.query).toContain('deleteGroupViewDesignSession(groupId: $groupId, viewId: $viewId, version: $version)')
+    expect(remove.graphql.variables).toEqual({ groupId: '5', viewId: null, version: 2 })
+  })
+
+  it('restores the version to send back and who asked each question, from the shared session', () => {
+    const authors = [{ id: '4', name: 'Sam', avatarUrl: 'https://x.org/sam.png' }, { name: 'no id' }]
+    expect(authorsById(authors)).toEqual({ 4: authors[0] })
+    expect(authorsById(null)).toEqual({})
+    const restored = restoreDesignerSession({}, { messages: [{ role: 'user', text: 'Hi', userId: '4' }], draft: null, version: 5, authors })
+    expect(restored).toMatchObject({ version: 5, authors: { 4: authors[0] } })
+    expect(restoreDesignerSession({}, null)).toMatchObject({ version: null, authors: {} })
+  })
+
+  describe('storeDesignerSession', () => {
+    const storeKey = designerSessionKey('7', '9')
+    const stored = { messages, draft: null }
+    afterEach(() => resetDesignerSession(storeKey))
+
+    it('sends the version it last saw, one store at a time, and keeps the new version', async () => {
+      updateDesignerSession(storeKey, { version: 2, loaded: true })
+      const sent = []
+      const dispatch = jest.fn(async action => {
+        if (action.type === 'SAVE_GROUP_VIEW_DESIGN_SESSION') {
+          sent.push(action.graphql.variables.version)
+          return { payload: { data: { saveGroupViewDesignSession: { version: action.graphql.variables.version + 1, authors: [{ id: '4', name: 'Sam' }] } } } }
+        }
+        return {}
+      })
+      await Promise.all([
+        storeDesignerSession(dispatch, storeKey, '7', '9', stored),
+        storeDesignerSession(dispatch, storeKey, '7', '9', stored)
+      ])
+      expect(sent).toEqual([2, 3])
+      expect(getDesignerSession(storeKey)).toMatchObject({ version: 4, authors: { 4: { id: '4', name: 'Sam' } }, storedSnapshot: JSON.stringify(stored) })
+    })
+
+    it('loads the session again when another steward changed it', async () => {
+      updateDesignerSession(storeKey, { version: 2, loaded: true, sending: true })
+      const changed = Object.assign(new Error('Another steward changed this design.'), { extensions: { code: 'DESIGN_SESSION_CHANGED' } })
+      const dispatch = jest.fn(async action => action.type === 'SAVE_GROUP_VIEW_DESIGN_SESSION' ? { error: true, payload: changed } : {})
+      await expect(storeDesignerSession(dispatch, storeKey, '7', '9', stored)).rejects.toBe(changed)
+      expect(getDesignerSession(storeKey)).toMatchObject({ loaded: false, sending: false, changedByOther: true })
+      expect(dispatch.mock.calls.map(([action]) => action.type)).toContain('FETCH_GROUP_VIEWS')
+    })
   })
 })
