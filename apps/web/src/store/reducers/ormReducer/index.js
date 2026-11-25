@@ -1571,7 +1571,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
 
       if (comment) {
         const commentReactions = comment.commentReactions.filter(reaction => {
-          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          if (reaction.emojiFull === emojiFull && reaction.user?.id === me.id) return false
           return true
         })
         comment.update({ commentReactions })
@@ -1581,7 +1581,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const message = session.Message.withId(meta.commentId)
       if (message) {
         const commentReactions = (message.commentReactions || []).filter(reaction => {
-          if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+          if (reaction.emojiFull === emojiFull && reaction.user?.id === me.id) return false
           return true
         })
         message.update({ commentReactions })
@@ -1612,7 +1612,7 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       const emojiFull = meta.data.emojiFull
       me = Me.first()
       const postReactions = (post.postReactions || []).filter(reaction => {
-        if (reaction.emojiFull === emojiFull && reaction.user.id === me.id) return false
+        if (reaction.emojiFull === emojiFull && reaction.user?.id === me.id) return false
         return true
       })
       post.update({ postReactions })

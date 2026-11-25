@@ -162,6 +162,21 @@ describe('ChatPost', () => {
     })
   })
 
+  it('renders when a reaction has no user', () => {
+    renderComponent({
+      post: {
+        ...defaultProps.post,
+        postReactions: [
+          { emojiFull: '\uD83D\uDC4D' },
+          { emojiFull: '\uD83D\uDC4D', user: { id: '2', name: 'Jane Doe' } }
+        ]
+      }
+    })
+
+    expect(screen.getByText('the details')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+  })
+
   it('does not crash when a hover action that expects the click event is used', () => {
     const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false)
     renderComponent()

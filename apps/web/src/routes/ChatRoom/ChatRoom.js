@@ -780,7 +780,7 @@ export default function ChatRoom (props) {
 
   const handleRemoveReaction = useCallback((post, emojiFull) => {
     const postReactions = (post.postReactions || []).filter(reaction => {
-      if (reaction.emojiFull === emojiFull && reaction.user.id === currentUser.id) return false
+      if (reaction.emojiFull === emojiFull && currentUser && reaction.user?.id === currentUser.id) return false
       return true
     })
     const newPost = { ...post, postReactions }

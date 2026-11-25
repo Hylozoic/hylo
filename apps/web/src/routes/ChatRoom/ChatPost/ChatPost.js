@@ -325,7 +325,7 @@ export default function ChatPost ({
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: 'Remove From Group', onClick: !isCreator && currentUserResponsibilities.includes(RESP_MANAGE_CONTENT) ? removePostWithConfirm : null, red: true, tooltip: 'Remove post from group' }
   ])
 
-  const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => reaction.user.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
+  const myEmojis = useMemo(() => postReactions ? postReactions.filter(reaction => currentUser && reaction.user?.id === currentUser.id).map((reaction) => reaction.emojiFull) : [], [postReactions, currentUser])
 
   const moderationActionsGroupUrl = spaceSlug && parentGroupSlug
     ? spaceUrl(parentGroupSlug, spaceSlug, '/moderation')

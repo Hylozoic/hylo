@@ -23,7 +23,8 @@ import {
   UPDATE_MEMBERSHIP_NAV_ORDER_PENDING,
   UPDATE_POST_PENDING,
   REACT_ON_POST_PENDING,
-  REMOVE_POST_PENDING
+  REMOVE_POST_PENDING,
+  REMOVE_REACT_ON_POST_PENDING
 } from 'store/constants'
 import {
   UPDATE_MEMBERSHIP_SETTINGS_PENDING,
@@ -130,6 +131,27 @@ describe('on REACT_ON_POST_PENDING', () => {
       expect(newSession.Post.withId('1').postReactions[0].emojiFull).toEqual('\uD83D\uDC4D')
       expect(newSession.Post.withId('1').postReactions[0].user.name).toEqual('Mary')
     })
+  })
+})
+
+describe('on REMOVE_REACT_ON_POST_PENDING', () => {
+  it('removes my reaction and keeps reactions that have no user', () => {
+    const session = orm.session(orm.getEmptyState())
+    session.Me.create({ id: '1', name: 'Mary' })
+    session.Post.create({
+      id: '1',
+      postReactions: [
+        { emojiFull: '\uD83D\uDC4D' },
+        { emojiFull: '\uD83D\uDC4D', user: { id: '1', name: 'Mary' } }
+      ]
+    })
+
+    const newState = ormReducer(session.state, {
+      type: REMOVE_REACT_ON_POST_PENDING,
+      meta: { postId: '1', data: { emojiFull: '\uD83D\uDC4D' } }
+    })
+
+    expect(orm.session(newState).Post.withId('1').postReactions).toEqual([{ emojiFull: '\uD83D\uDC4D' }])
   })
 })
 
