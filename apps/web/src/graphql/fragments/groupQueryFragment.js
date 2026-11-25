@@ -1,3 +1,4 @@
+import { HYLO_PRO_FEATURE_KEYS } from '@hylo/shared'
 // Core group fields for stream / chat / nav (groupTopics loaded on demand, e.g. community_topics widget).
 export default function groupQueryFragment () {
   return `group(slug: $slug, updateLastViewed: $updateLastViewed) {
@@ -41,6 +42,8 @@ export default function groupQueryFragment () {
       layout
       autoAddMembers
     }
+    proFeatures { ${HYLO_PRO_FEATURE_KEYS.join(' ')} }
+    proState
     slug
     type
     parentId

@@ -303,6 +303,13 @@ type Query {
   # Get all drafts for the currently logged in user
   myDrafts: [Draft]
 
+  # The stored "Design your own view" session for a Group's designed view, shared by the Group's stewards:
+  # { messages, draft, version, updatedAt, updatedById, authors }, or null. viewId is the designed view, or
+  # empty for the page not added to the menu yet (one per Group). messages is the chat with Axl, each
+  # steward's message with the userId of who asked; authors are those stewards, [{ id, name, avatarUrl }];
+  # draft is the unsaved page, or null. Requires the Administration responsibility.
+  groupViewDesignSession(groupId: ID!, viewId: ID): JSON
+
   # Get a single draft by context (pass the relevant context IDs for the type)
   draft(type: String, postId: ID, groupId: ID, topicId: ID, messageThreadId: ID, postType: String, isEdit: Boolean): Draft
 
@@ -3668,6 +3675,29 @@ type Mutation {
   setGroupViewHidden(id: ID!, hidden: Boolean!): GroupView
   # Set a View as the home view for its Group or Space
   setHomeView(viewId: ID!, groupId: ID!): GenericResult
+  # One turn of the "Design your own view" chat for a Group. messages is the conversation so far,
+  # [{ role: "user" | "assistant", text }], ending with the steward's new message; currentView is the
+  # design being edited, if any; images is what the steward has uploaded for it, [{ url, name }], and is
+  # the only place the page's images can come from; documents is the PDFs they attached, [{ url, name }].
+  # postIds is the posts from this Group the steward picked to build the page around.
+  # The AI is shown the attached images and documents so it can read them. Saves nothing: returns { reply, name, view, usage } where name is a suggested menu name, view is the whole
+  # page as building blocks (store it as settings.design of a 'designed' GroupView) and usage holds the
+  # AI model, token counts and estimated cost. Requires the Administration responsibility and the designedViews Hylo Pro feature.
+  designGroupViewTurn(groupId: ID!, messages: JSON!, currentView: JSON, images: JSON, documents: JSON, postIds: [ID]): JSON
+  # Ideas for views that would help a Group grow, from its purpose, size, post counts and the titles of
+  # recent posts and coming events. Returns { reply, suggestions: [{ name, why, prompt }], usage }; a
+  # suggestion's prompt can be sent to designGroupViewTurn as the first message.
+  # Requires the Administration responsibility and the designedViews Hylo Pro feature.
+  suggestGroupViews(groupId: ID!): JSON
+  # Store the shared "Design your own view" session (see Query.groupViewDesignSession), replacing what
+  # was there; draft null means the page matches what is saved. version is the session's version the
+  # browser last saw (empty if there was none); if another steward has changed it since, the change is
+  # refused with the DESIGN_SESSION_CHANGED error code. Requires the Administration responsibility and
+  # the designedViews Hylo Pro feature.
+  saveGroupViewDesignSession(groupId: ID!, viewId: ID, messages: JSON, draft: JSON, version: Int): JSON
+  # Forget the stored design session for a Group's view (or new page); with version, only if it is
+  # still that version (otherwise DESIGN_SESSION_CHANGED)
+  deleteGroupViewDesignSession(groupId: ID!, viewId: ID, version: Int): GenericResult
   # Create a new Space (a child Group) within a parent Group
   createSpace(
     parentGroupId: ID!,

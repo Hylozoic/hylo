@@ -1,6 +1,25 @@
 import { GraphQLError } from 'graphql'
 import { notifyGroupUpdated } from './notifyGroupUpdated'
-import { recountPostTypesForView, TextHelpers } from '@hylo/shared'
+import { designedViewPostIds, recountPostTypesForView, TextHelpers, validateDesignedView } from '@hylo/shared'
+import {
+  designViewTurnInChildProcess,
+  isViewDesignConfigured,
+  normalizeDesignDocuments,
+  normalizeDesignImages,
+  normalizeDesignMessages,
+  suggestViewsTurnInChildProcess
+} from '../../../lib/designedViewDesign'
+import { buildGroupDigest, describePickedPosts, digestPostIds, formatGroupDigest, formatPickedPosts, postIdsInGroup } from '../../../lib/groupDigest'
+import { isHyloHostedUrl } from '../../../lib/uploader/rehostRemoteMedia'
+import RedisClient from '../../services/RedisClient'
+import HyloProService from '../../services/HyloProService'
+import {
+  designMessageAuthorIds,
+  MAX_DESIGN_SESSION_BYTES,
+  normalizeDesignSessionDraft,
+  normalizeStoredDesignMessages,
+  presentDesignSession
+} from '../../../lib/designedViewSessions'
 
 // Spaces & Views mutations — see docs/spaces-and-views-engineering-spec.md section 4.4
 
@@ -33,12 +52,50 @@ async function requireAdminOrManageContent (userId, groupId, action) {
   }
 }
 
+/**
+ * Designed views are the `designedViews` Hylo Pro feature (decision Q-82 on #1782): designing,
+ * creating and changing one need it. A view made while the group had it keeps showing after it
+ * lapses, and can still be renamed, moved or deleted, but its design can't be changed (Q-25).
+ * Refused with HYLO_PRO_REQUIRED (no Pro) or HYLO_PRO_FEATURE_REQUIRED (a plan without it).
+ */
+async function requireDesignedViews (groupId) {
+  const group = await Group.find(groupId)
+  if (!group) throw new GraphQLError('Group not found')
+  await HyloProService.requireProFeature(group, 'designedViews')
+  return group
+}
+
+/**
+ * The settings to store for a designed view: only its design, checked against
+ * the block format so nothing but known blocks is ever saved.
+ */
+async function designedViewSettings (settings, groupId) {
+  const { view, errors } = validateDesignedView(settings?.design)
+  if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+  // A page may only show posts from its own group
+  const postIds = designedViewPostIds(view)
+  if (postIds.length > 0) {
+    const inGroup = await postIdsInGroup(groupId, postIds)
+    const missing = postIds.filter(id => !inGroup.includes(id))
+    if (missing.length > 0) throw new GraphQLError(`Invalid design: post ${missing.join(', ')} is not in this group`)
+  }
+  return { design: view }
+}
+
+// How many posts a steward can pick for the AI to build a page around
+const MAX_PICKED_POSTS = 6
+
 export async function createGroupView ({ userId, groupId, type, name, icon, settings, link, pageContent, topics, orderInFrontOfViewId, addToEnd, linkedGroupId, postId, viewUserId, hidden, context }) {
   if (!userId) throw new GraphQLError('No userId passed into function')
   if (!groupId) throw new GraphQLError('No groupId passed into function')
   if (!type) throw new GraphQLError('No type passed into function')
 
   await requireAdmin(userId, groupId, 'create views')
+
+  if (type === GroupView.Type.DESIGNED) {
+    await requireDesignedViews(groupId)
+    settings = await designedViewSettings(settings, groupId)
+  }
 
   // Only space rows can live off-menu (More Spaces). Views are in the menu or deleted.
   if (hidden && type !== GroupView.Type.SPACE) {
@@ -99,6 +156,11 @@ export async function updateGroupView ({ userId, id, name, icon, settings, link,
     if (!responsibilities.includes(RESP_MANAGE_CONTENT) || !isSpaceCollectionSpaceIdsUpdate) {
       throw new GraphQLError("You don't have permission to update views for this group")
     }
+  }
+
+  if (view.get('type') === GroupView.Type.DESIGNED && settings !== undefined) {
+    await requireDesignedViews(groupId)
+    settings = await designedViewSettings(settings, groupId)
   }
 
   const changes = {}
@@ -444,5 +506,256 @@ export async function reorderViewPost (userId, viewId, postId, newOrder) {
     await linkedPost.save({ order: newOrder }, { transacting, patch: true })
   })
 
+  return { success: true }
+}
+
+// Each turn is a paid model call
+const DESIGN_TURNS_PER_GROUP_PER_HOUR = 60
+
+/**
+ * Counts one design turn for a group and reports whether it is within the
+ * hourly limit. Fails open if Redis is unavailable.
+ */
+async function withinDesignTurnLimit (groupId) {
+  try {
+    const redis = RedisClient.create()
+    const key = `ratelimit:designGroupView:group:${groupId}`
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, 60 * 60)
+    return count <= DESIGN_TURNS_PER_GROUP_PER_HOUR
+  } catch (err) {
+    sails.log.error(`withinDesignTurnLimit failed: ${err.message}`)
+    return true
+  }
+}
+
+/**
+ * One turn of the "Design your own view" chat. Saves nothing: returns the AI's
+ * reply, the whole page as a designed view, and the token usage and estimated
+ * cost. The steward saves the page with createGroupView or updateGroupView.
+ * Requires the Administration responsibility and the designedViews Pro feature.
+ *
+ * Cost limits: turns are counted per group per hour here (withinDesignTurnLimit). There is no
+ * monthly cost cap (decision Q-26); the per-group token limit coming in #1795 plugs in next to
+ * withinDesignTurnLimit, checked before the model call, with the turn's usage (returned below as
+ * `usage`, input and output tokens) counted against it afterwards.
+ */
+export async function designGroupViewTurn ({ userId, groupId, messages, currentView, images, documents, postIds }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+
+  // The model fetches attachments by address, so it is only pointed at files on Hylo's own storage:
+  // images elsewhere can still be placed on the page but are not shown to it, and documents elsewhere are refused
+  const hosted = deps.isHostedUrl || isHyloHostedUrl
+  let conversation, availableImages, attachedDocuments
+  try {
+    conversation = normalizeDesignMessages(messages)
+    availableImages = normalizeDesignImages(images).map(image => ({ ...image, visible: hosted(image.url) }))
+    attachedDocuments = normalizeDesignDocuments(documents)
+    if (attachedDocuments.some(document => !hosted(document.url))) throw new Error('Documents must be uploaded to Hylo before they can be read')
+    if (postIds !== undefined && postIds !== null && (!Array.isArray(postIds) || postIds.length > MAX_PICKED_POSTS)) throw new Error(`A design can be built around up to ${MAX_PICKED_POSTS} posts`)
+  } catch (err) {
+    throw new GraphQLError(err.message)
+  }
+
+  // The current design comes from the browser, so only pass on what is valid
+  let current = null
+  if (currentView) {
+    const { view, errors } = validateDesignedView(currentView)
+    if (errors.length > 0) throw new GraphQLError(`Invalid design: ${errors.slice(0, 5).join('; ')}`)
+    current = view
+  }
+
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  const digest = await (deps.buildDigest || buildGroupDigest)(group)
+  const pickedPosts = await (deps.describePosts || describePickedPosts)(group.id, postIds || [])
+
+  try {
+    return await (deps.designTurn || designViewTurnInChildProcess)({
+      group: { name: group.get('name'), description: group.get('description') || group.get('purpose') || '' },
+      // What the group is for and what it holds, so the page fits it (titles and counts only)
+      groupSummary: formatGroupDigest(digest),
+      // Posts the steward picked to build the page around, and every post the AI may show parts of
+      pickedPostsSummary: formatPickedPosts(pickedPosts),
+      allowedPostIds: [...new Set([...digestPostIds(digest), ...pickedPosts.map(post => post.id)])],
+      messages: conversation,
+      currentView: current,
+      images: availableImages,
+      documents: attachedDocuments
+    })
+  } catch (err) {
+    sails.log.error(`designGroupViewTurn failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`The design could not be made: ${err.message}`)
+  }
+}
+
+/**
+ * Ideas for views that would help a group grow, based on its purpose and what
+ * it already holds (see lib/groupDigest.js for exactly what the AI is shown).
+ * Returns { reply, suggestions: [{ name, why, prompt }], usage }; each prompt
+ * can be sent to designGroupViewTurn as the steward's first message.
+ * Requires the Administration responsibility and the designedViews Pro feature; counts toward the
+ * same hourly limit as design turns.
+ */
+export async function suggestGroupViews ({ userId, groupId }, deps = {}) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+
+  await requireAdmin(userId, groupId, 'design views')
+  const group = await requireDesignedViews(groupId)
+
+  if (!(deps.isConfigured || isViewDesignConfigured)()) {
+    throw new GraphQLError('Designing views with AI is not set up on this server')
+  }
+  if (!(await (deps.withinLimit || withinDesignTurnLimit)(group.id))) {
+    throw new GraphQLError('This group has used a lot of AI design in the last hour. Please try again later.')
+  }
+
+  try {
+    const groupSummary = formatGroupDigest(await (deps.buildDigest || buildGroupDigest)(group))
+    return await (deps.suggestTurn || suggestViewsTurnInChildProcess)({ groupSummary })
+  } catch (err) {
+    sails.log.error(`suggestGroupViews failed for group ${group.id}: ${err.message}`)
+    throw new GraphQLError(`Suggestions could not be made: ${err.message}`)
+  }
+}
+
+const DESIGN_SESSIONS = 'group_view_design_sessions'
+// Error code for a change made against an older version of a shared design session; the web
+// reloads the session and shows its own translated message
+export const DESIGN_SESSION_CHANGED = 'DESIGN_SESSION_CHANGED'
+
+function designSessionChangedError () {
+  return new GraphQLError('Another steward changed this design. Reload to see their changes.', {
+    extensions: { code: DESIGN_SESSION_CHANGED }
+  })
+}
+
+/**
+ * Which stored design session a call is about: the one for a designed view of the group or (viewId
+ * empty) for the page not added to the menu yet. Sessions are shared by the group's stewards
+ * (decision V-05), so any of them may read or change one; nobody else may.
+ */
+async function designSessionScope (userId, groupId, viewId) {
+  if (!userId) throw new GraphQLError('No userId passed into function')
+  if (!groupId) throw new GraphQLError('No groupId passed into function')
+  await requireAdmin(userId, groupId, 'design views')
+  if (!viewId) return { groupId, viewId: null }
+  const view = await GroupView.where({ id: viewId }).fetch()
+  if (!view || String(view.get('group_id')) !== String(groupId) || view.get('type') !== GroupView.Type.DESIGNED) {
+    throw new GraphQLError('View not found in this group')
+  }
+  return { groupId, viewId: view.id }
+}
+
+function whereDesignSession (query, { groupId, viewId }) {
+  query.where({ group_id: groupId })
+  return viewId ? query.where('view_id', viewId) : query.whereNull('view_id')
+}
+
+/** The stewards who asked something in a session, for the chat to show who asked. */
+async function designSessionAuthors (messages) {
+  const ids = designMessageAuthorIds(messages)
+  if (ids.length === 0) return []
+  const users = await bookshelf.knex('users').whereIn('id', ids).select('id', 'name', 'avatar_url')
+  return users.map(user => ({ id: String(user.id), name: user.name, avatarUrl: user.avatar_url }))
+}
+
+async function presentWithAuthors (row) {
+  return row ? presentDesignSession(row, await designSessionAuthors(row.messages)) : null
+}
+
+/**
+ * The stored "Design your own view" session (decision Q-27) for a designed view or the new page,
+ * shared by the group's stewards: { messages, draft, version, updatedAt, updatedById, authors },
+ * or null. messages is the chat with Axl, each steward's message with the userId of who asked;
+ * draft is the page not saved yet, or null. Reading needs only the Administration
+ * responsibility, so a group whose Pro lapsed can still see its conversation.
+ */
+export async function groupViewDesignSession ({ userId, groupId, viewId }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  return presentWithAuthors(await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first())
+}
+
+/**
+ * Stores the shared design session, replacing what was there. draft null means the page matches
+ * what is saved. Needs the designedViews Pro feature, like changing a design.
+ *
+ * version is the version the steward's browser last loaded or stored (null or 0 when it saw no
+ * session). A change made against any other version is refused with DESIGN_SESSION_CHANGED, so
+ * two stewards' turns or saves never overwrite each other: the second one reloads and tries again.
+ */
+export async function saveGroupViewDesignSession ({ userId, groupId, viewId, messages, draft, version }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  await requireDesignedViews(groupId)
+  const expected = version ? Number(version) : null
+
+  const storedDraft = draft == null ? null : JSON.stringify(normalizeDesignSessionDraft(draft))
+
+  try {
+    const row = await bookshelf.transaction(async trx => {
+      // Lock the row so the version check and the write happen as one
+      const current = await whereDesignSession(trx(DESIGN_SESSIONS), scope).forUpdate().first()
+      if ((current ? current.version : null) !== expected) throw designSessionChangedError()
+
+      const storedMessages = JSON.stringify(normalizeStoredDesignMessages(messages, {
+        userId,
+        knownUserIds: designMessageAuthorIds(current?.messages)
+      }))
+      if (Buffer.byteLength(storedMessages) + Buffer.byteLength(storedDraft || '') > MAX_DESIGN_SESSION_BYTES) {
+        throw new GraphQLError('This design is too large to keep. Save the page to keep going.')
+      }
+
+      if (current) {
+        const [updated] = await trx(DESIGN_SESSIONS).where('id', current.id).update({
+          messages: trx.raw('?::jsonb', [storedMessages]),
+          draft: trx.raw('?::jsonb', [storedDraft]),
+          version: current.version + 1,
+          updated_by_id: userId,
+          updated_at: trx.fn.now()
+        }).returning('*')
+        return updated
+      }
+      const [inserted] = await trx(DESIGN_SESSIONS).insert({
+        group_id: scope.groupId,
+        view_id: scope.viewId,
+        messages: trx.raw('?::jsonb', [storedMessages]),
+        draft: trx.raw('?::jsonb', [storedDraft]),
+        version: 1,
+        updated_by_id: userId
+      }).returning('*')
+      return inserted
+    })
+    return presentWithAuthors(row)
+  } catch (err) {
+    // Two stewards both started the first session for this view at once: the other one won
+    if (err.code === '23505') throw designSessionChangedError()
+    throw err
+  }
+}
+
+/**
+ * Forgets a design session (used once the new page has been added to the menu, and its
+ * conversation stored with the saved view). With version, only that version is forgotten, so a
+ * change another steward made in the meantime is not lost.
+ */
+export async function deleteGroupViewDesignSession ({ userId, groupId, viewId, version }) {
+  const scope = await designSessionScope(userId, groupId, viewId)
+  const query = whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope)
+  if (version) query.where('version', Number(version))
+  const deleted = await query.del()
+  if (version && deleted === 0 && await whereDesignSession(bookshelf.knex(DESIGN_SESSIONS), scope).first()) {
+    throw designSessionChangedError()
+  }
   return { success: true }
 }

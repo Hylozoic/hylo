@@ -13,6 +13,7 @@ const sizes = {
   [types.POST]: {width: 1200},
   [types.COMMENT]: {width: 1200},
   [types.WELCOME_PAGE]: {width: 1600},
+  [types.GROUP_VIEW_IMAGE]: {width: 1600},
   [types.FUNDING_ROUND_DESCRIPTION]: {width: 1600},
   [types.FUNDING_ROUND_CRITERIA]: {width: 1600}
 }
