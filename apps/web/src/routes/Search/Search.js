@@ -25,7 +25,7 @@ import {
   getSearchError,
   formatSearchErrorMessage
 } from './Search.store'
-import { groupUrl, personUrl } from '@hylo/navigation'
+import { groupUrl, myHomeLandingUrl, personUrl } from '@hylo/navigation'
 import changeQuerystringParam from 'store/actions/changeQuerystringParam'
 import getGroupForSlug from 'store/selectors/getGroupForSlug'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
@@ -165,7 +165,9 @@ export default function Search (props) {
       centered: true,
       backButton: true,
       mobileBackButton: true,
-      backTo: backDestination,
+      // With no page outside search to return to (e.g. a /search/post/:id link
+      // opened directly), the previous location is the post: going there loops.
+      backTo: backDestination || myHomeLandingUrl(),
       icon: undefined,
       search: false
     })

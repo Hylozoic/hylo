@@ -180,4 +180,19 @@ describe('closePostOverlay', () => {
       { replace: true }
     )
   })
+
+  it('closes a directly opened search post onto the search results', () => {
+    const navigate = jest.fn()
+    closePostOverlay({
+      navigate,
+      pathname: '/search/post/99',
+      search: '?t=lichen',
+      previousLocation: { pathname: '/messages/4' },
+      canGoBack: true
+    })
+    expect(navigate).toHaveBeenCalledWith(
+      { pathname: '/search', search: '?t=lichen', hash: '' },
+      { replace: true }
+    )
+  })
 })

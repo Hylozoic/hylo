@@ -96,7 +96,7 @@ afterEach(() => {
   if (centerColumn) centerColumn.remove()
 })
 
-function testProviders (mockResults = []) {
+function testProviders (mockResults = [], setHeaderDetails = jest.fn()) {
   const ormSession = orm.mutableSession(orm.getEmptyState())
   ormSession.Me.create({ id: '1' })
 
@@ -114,16 +114,16 @@ function testProviders (mockResults = []) {
   }
 
   const viewHeaderValue = {
-    setHeaderDetails: jest.fn(),
+    setHeaderDetails,
     headerDetails: {}
   }
 
   const Providers = ({ children }) => {
     const AllProviders = AllTheProviders(reduxState)
     return (
-      <ViewHeaderContext.Provider value={viewHeaderValue}>
-        <AllProviders>{children}</AllProviders>
-      </ViewHeaderContext.Provider>
+      <AllProviders>
+        <ViewHeaderContext.Provider value={viewHeaderValue}>{children}</ViewHeaderContext.Provider>
+      </AllProviders>
     )
   }
 
@@ -204,6 +204,13 @@ describe('Search', () => {
     render(<Search />, { wrapper: testProviders([]) })
 
     expect(mockFetchSearchResults).not.toHaveBeenCalled()
+  })
+
+  it('goes back to All My Groups when there is no page before search', () => {
+    const setHeaderDetails = jest.fn()
+    render(<Search />, { wrapper: testProviders([], setHeaderDetails) })
+
+    expect(setHeaderDetails).toHaveBeenLastCalledWith(expect.objectContaining({ backTo: '/all/all' }))
   })
 
   it('links a group result to the group page', () => {

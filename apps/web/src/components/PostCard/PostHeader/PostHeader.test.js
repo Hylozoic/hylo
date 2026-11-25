@@ -241,4 +241,16 @@ describe('PostHeader copy link', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalled()
     expect(trackAnalyticsEvent).toHaveBeenCalledWith(AnalyticsEvents.POST_SHARED, expect.objectContaining({ postId: 1, source: 'copy_link' }))
   })
+
+  it('copies a standalone post URL when the post is open from search', () => {
+    Object.assign(navigator, { clipboard: { writeText: jest.fn() } })
+    render(<PostHeader {...defaultProps} routeParams={{ context: 'search' }} />)
+
+    fireEvent.click(screen.getByTestId('post-header-more-icon'))
+    fireEvent.click(screen.getByText('Copy Link'))
+
+    const copied = navigator.clipboard.writeText.mock.calls[0][0]
+    expect(copied).toEqual(expect.stringMatching(/\/post\/1$/))
+    expect(copied).not.toContain('/search/')
+  })
 })

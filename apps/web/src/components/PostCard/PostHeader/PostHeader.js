@@ -21,7 +21,7 @@ import Tooltip from 'components/Tooltip'
 import PostCompletion from '../PostCompletion'
 import { getPostTypeIcon, PROPOSAL_STATUS_CASUAL, PROPOSAL_STATUS_COMPLETED } from 'store/models/Post'
 import { RESP_ADMINISTRATION, RESP_MANAGE_CONTENT } from 'store/constants'
-import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
+import { removePostFromUrl, editPostUrl, duplicatePostUrl, postUrl as buildPostUrl, groupUrl, personUrl, tagSearchUrl, spaceUrl } from '@hylo/navigation'
 import getMe from 'store/selectors/getMe'
 import deletePostAction from 'store/actions/deletePost'
 import removePostAction from 'store/actions/removePost'
@@ -70,7 +70,7 @@ const selectPostHeaderStateProps = createSelector(
     currentUser,
     group,
     moderationActionsGroupUrl: group && groupUrl(group.slug, 'moderation'),
-    postUrl: postUrl(postId, routeParams),
+    postUrl: buildPostUrl(postId, routeParams),
     responsibilities,
     roles
   })
@@ -325,7 +325,11 @@ function PostHeader (props) {
   if (!creator) return null
 
   const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${postUrl}`)
+    // A link copied while the post is open over search is /search/post/:id.
+    // Opening that later shows the post on a blank search page, and leaving
+    // the post returns to it. Share the standalone post URL instead.
+    const sharePath = routeParams.context === 'search' ? buildPostUrl(id, { context: '' }) : postUrl
+    navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}${sharePath}`)
     dispatch(trackAnalyticsEvent(AnalyticsEvents.POST_SHARED, { postId: id, type, source: 'copy_link' }))
   }
 
