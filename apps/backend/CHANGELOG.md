@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.13] - 2026-11-25
+
+### Added
+- Replaced the old profile website URL, Facebook, X and LinkedIn links with the ability to add any number of links to your profile. Links from known platforms use the platform's icon.
+- Default to sorting the Group Explorer by new "Recently active"
+
+### Changed
+- Improve detection of auto responder emails. To prevent them appearing as comments on posts.
+- Searches prioritize What I'm learning below current skills and interests
+- Track more details analytics
+
+### Fixed
+- Delete chat activity notices that become empty when a chat is deleted
+- Take a failed chat message out of the stream's chat activity notice
+- The unfollow link in post emails actually now unfollows the post
+- Fixed the manage notifications page linked to from email footers
+- Keep project members in the project when they unfollow it
+
 ## [7.1.12] - 2026-11-11
 
 ### Changed

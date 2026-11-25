@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.13] - 2026-11-25
+
+### Added
+- Replaced the old profile website URL, Facebook, X and LinkedIn links with the ability to add any number of links to your profile. Links from known platforms use the platform's icon.
+- Default to sorting the Group Explorer by new "Recently active"
+- Post type descriptions when creating a post
+- Point people who are in no groups to exploring or creating one
+
+### Changed
+- Name the web app Hylo in its manifest, so saved Home Screen shortcuts work correctly
+
+### Fixed
+- Broken back loop when going straight to a post link over search results
+- Delete chat activity notices that become empty when a chat is deleted
+- Uploading various file type attachments on iOS devices
+- Get video attachment uploads working again
+- Let proposal authors record an outcome once voting completes on its own
+- Take a failed chat message out of the stream's chat activity notice
+- The unfollow link in post emails actually now unfollows the post
+- Fixed the manage notifications page linked to from email footers
+
 ## [7.1.12] - 2026-11-11
 
 ### Changed
