@@ -910,4 +910,33 @@ describe('HyloProService', () => {
       expect(columns).to.include({ discount_coupon_id: 'ITEM', discount_percent_off: 20, discount_duration: 'forever' })
     })
   })
+
+  describe('requireProFeature', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    const subscribe = attrs => HyloProSubscription.forge({ group_id: group.id, source: 'stripe', tier: 'pro', stripe_subscription_id: 'sub_gate', current_period_end: new Date(Date.now() + 30 * DAY), ...attrs }).save()
+
+    it('lets an active group use its features', async () => {
+      await subscribe({ status: 'active' })
+      await HyloProService.requireProFeature(group, 'designedViews')
+    })
+
+    it('keeps features working during the grace period after a failed payment', async () => {
+      await subscribe({ status: 'past_due', current_period_start: new Date(Date.now() - 2 * DAY) })
+      expect(await group.proState()).to.equal('grace')
+      await HyloProService.requireProFeature(group, 'designedViews')
+    })
+
+    it('refuses once Pro has lapsed, as for a group that never had it', async () => {
+      await subscribe({ status: 'past_due', current_period_start: new Date(Date.now() - 8 * DAY) })
+      expect(await group.proState()).to.equal('lapsed')
+      const error = await HyloProService.requireProFeature(group, 'designedViews').then(() => null, e => e)
+      expect(error.extensions).to.deep.equal({ code: 'HYLO_PRO_REQUIRED', feature: 'designedViews' })
+    })
+
+    it("refuses a feature the group's plan leaves out", async () => {
+      await subscribe({ status: 'active', features: { designedViews: false } })
+      const error = await HyloProService.requireProFeature(group, 'designedViews').then(() => null, e => e)
+      expect(error.extensions).to.deep.equal({ code: 'HYLO_PRO_FEATURE_REQUIRED', feature: 'designedViews' })
+    })
+  })
 })

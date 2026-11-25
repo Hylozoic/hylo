@@ -101,10 +101,14 @@ function featureOverrides (row) {
  * The features a set of rows gives at `now`, as `{ [key]: boolean }` over every registered feature:
  * for each active row, its tier's features plus/minus its overrides; the union across rows.
  * Works on models or plain row objects.
+ *
+ * Follows the group's Pro state (proState): features work in 'active' and in 'grace' (a failed
+ * payment within the grace period), and are all off in 'lapsed' and 'none'. Once Pro has lapsed,
+ * what the group made with Pro stays, but gates using these features refuse to change it.
  */
 function effectiveFeatures (rows, now = new Date()) {
+  if (!stateHasPro(proState(rows, now))) return noProFeatures()
   const active = (rows || []).filter(row => isActive(row, now))
-  if (active.length === 0) return noProFeatures()
   return resolveProFeatures(active.map(row => ({
     tier: attrsOf(row).tier || HYLO_PRO_DEFAULT_TIER,
     features: featureOverrides(row)
@@ -346,6 +350,7 @@ module.exports = bookshelf.Model.extend({
    * feature of each active row's tier plus its overrides. All false for a group without Pro.
    */
   featuresForGroup: async function (groupId, now = new Date()) {
+    // Only rows giving Pro can give features, so the others needn't be read (see effectiveFeatures)
     const rows = await bookshelf.knex('hylo_pro_subscriptions')
       .where('group_id', groupId)
       .modify(q => whereActive(q, now))

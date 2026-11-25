@@ -187,6 +187,8 @@ Group.fields = {
   isSupporter: attr(),
   // Which Hylo Pro features the group has now: { [registry key]: boolean } (see hooks/useProFeature)
   proFeatures: attr(),
+  // Hylo Pro state: 'active', 'grace', 'lapsed' or 'none' (see hooks/useProFeature)
+  proState: attr(),
   acceptedPostTypes: attr(),
   activeProjects: many({
     to: 'Post',

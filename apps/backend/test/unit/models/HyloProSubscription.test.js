@@ -392,6 +392,22 @@ describe('HyloProSubscription', () => {
       expect(HyloProSubscription.featureOverrides({ features: '{"recording":true,"retired":true,"groupThemes":"yes"}' })).to.deep.equal({ recording: true })
     })
 
+    it('follows the Pro state: features work in grace and are all off once Pro has lapsed', async () => {
+      const periodStart = new Date(NOW.getTime() - 2 * DAY)
+      await HyloProSubscription.forge({ group_id: group.id, source: 'stripe', status: 'past_due', tier: 'pro', stripe_subscription_id: 'sub_grace', current_period_start: periodStart, current_period_end: FUTURE }).save()
+
+      expect(await HyloProSubscription.groupProState(group.id, NOW)).to.equal('grace')
+      expect((await HyloProSubscription.featuresForGroup(group.id, NOW)).designedViews).to.be.true
+      expect((await HyloProSubscription.billingForGroup(group.id, NOW)).features.designedViews).to.be.true
+
+      const lapsedAt = new Date(periodStart.getTime() + 7 * DAY)
+      expect(await HyloProSubscription.groupProState(group.id, lapsedAt)).to.equal('lapsed')
+      expect(on(await HyloProSubscription.featuresForGroup(group.id, lapsedAt))).to.deep.equal([])
+      const lapsedBilling = await HyloProSubscription.billingForGroup(group.id, lapsedAt)
+      expect(lapsedBilling).to.include({ state: 'lapsed', tier: null })
+      expect(on(lapsedBilling.features)).to.deep.equal([])
+    })
+
     it('fails loudly on an unregistered feature key, so a typo in a gate is not a silent lockout', async () => {
       await expect(group.hasProFeature('groupTheme')).to.be.rejectedWith(/Unknown Hylo Pro feature: groupTheme/)
     })
