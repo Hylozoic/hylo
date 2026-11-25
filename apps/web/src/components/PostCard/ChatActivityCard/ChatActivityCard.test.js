@@ -42,6 +42,19 @@ it('renders nothing when the card has no chats left', () => {
   expect(screen.queryByTestId('chat-activity-card')).not.toBeInTheDocument()
 })
 
+it('renders nothing when the saved count is stale but no chats are left to show', () => {
+  render(<ChatActivityCard post={{
+    id: 'notice-1',
+    type: 'chat_activity',
+    createdTimestamp: '6d ago',
+    noticeData: { postCount: 1, recentPostIds: ['9'] },
+    noticePosts: [],
+    groups: [{ id: '1', name: 'Hylo Dev Circle', slug: 'hylo-dev-circle' }]
+  }} />)
+
+  expect(screen.queryByTestId('chat-activity-card')).not.toBeInTheDocument()
+})
+
 it('builds a space chat URL from the parent slug', () => {
   const url = chatUrlForActivityPost({
     groups: [{

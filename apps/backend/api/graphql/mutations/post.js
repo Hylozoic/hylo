@@ -60,7 +60,14 @@ export function deletePost (userId, postId) {
         throw new GraphQLError("You don't have permission to modify this post")
       }
       const isEvent = post.isEvent()
-      return Post.deactivate(postId).then(() => isEvent)
+      const isChat = post.get('type') === Post.Type.CHAT
+      // Rebuild the hour card before the response, so a refresh does not bring
+      // back a notice whose only chats are already deleted. The queued job is
+      // a backup when this request never reaches the rebuild.
+      return Post.deactivate(postId).then(() => {
+        if (!isChat) return isEvent
+        return Post.upsertChatActivityNotice({ postId }).then(() => isEvent)
+      })
     })
     .then(isEvent => {
       isEvent && Queue.classMethod('Post', 'processEventDeleted', { postId })

@@ -152,9 +152,10 @@ export function chatActivityNoticeHasChats (post) {
   if (!post || post.type !== 'chat_activity') return true
   const data = parseNoticeData(post.noticeData)
   if (data && Number(data.postCount) === 0) return false
-  const messages = post.noticePosts || []
-  if (messages.length === 0 && !(Number(data?.postCount) > 0)) return false
-  return true
+  // noticePosts is what the card renders. A stale postCount can still be > 0
+  // after every chat in the card was deleted, which would paint a blank card.
+  if (Array.isArray(post.noticePosts)) return post.noticePosts.length > 0
+  return (data?.recentPostIds || []).length > 0
 }
 
 /**

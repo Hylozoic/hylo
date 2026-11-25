@@ -1,6 +1,7 @@
 import orm from 'store/models'
 import {
   chatActivityBucketKey,
+  chatActivityNoticeHasChats,
   confirmOptimisticChatInNotice,
   optimisticChatActivityNoticeId,
   prependCurrentHourNotices,
@@ -15,6 +16,24 @@ import {
 
 afterEach(() => {
   resetRemovedChatsForTests()
+})
+
+describe('chatActivityNoticeHasChats', () => {
+  it('hides a card whose saved count is stale and whose chats are gone', () => {
+    expect(chatActivityNoticeHasChats({
+      type: 'chat_activity',
+      noticeData: { postCount: 1, recentPostIds: ['9'] },
+      noticePosts: []
+    })).toBe(false)
+  })
+
+  it('keeps a card that still has chats', () => {
+    expect(chatActivityNoticeHasChats({
+      type: 'chat_activity',
+      noticeData: { postCount: 1, recentPostIds: ['9'] },
+      noticePosts: [{ id: '9', details: '<p>hi</p>' }]
+    })).toBe(true)
+  })
 })
 
 describe('chatActivityBucketKey', () => {
