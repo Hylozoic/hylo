@@ -14,12 +14,18 @@ const PLANS = [
 
 const OPEN_STATUSES = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused']
 
+const GRACE_ENDS_AT = '2027-03-08T12:00:00.000Z'
+
 // What the server's proBilling resolver returns for a Stripe subscription and/or grant
 function billingFor ({ subscription = null, grant = null } = {}) {
   const hasPro = !!(subscription?.active || grant?.active)
   const open = !!subscription && OPEN_STATUSES.includes(subscription.status) && !subscription.endedAt
+  const inGrace = !grant?.active && !!subscription?.active && subscription.status === 'past_due'
+  const state = inGrace ? 'grace' : hasPro ? 'active' : (subscription || grant) ? 'lapsed' : 'none'
   return {
     hasPro,
+    state,
+    graceEndsAt: inGrace ? GRACE_ENDS_AT : null,
     canUpgrade: !hasPro && !open,
     canManage: !!subscription,
     needsPaymentUpdate: open && ['past_due', 'unpaid', 'incomplete'].includes(subscription.status),
@@ -125,7 +131,7 @@ describe('BillingTab', () => {
     renderTab()
 
     expect(await screen.findByTestId('billing-plan-name')).toHaveTextContent('Hylo Pro (monthly)')
-    expect(screen.getByTestId('billing-payment-failed')).toHaveTextContent('Your last payment failed. Update your payment method to keep Hylo Pro.')
+    expect(screen.getByTestId('billing-payment-failed')).toHaveTextContent('Your last payment failed. Hylo Pro features keep working until March 8, 2027. Update your payment method to keep Hylo Pro.')
     expect(screen.queryByTestId('billing-plan-detail')).not.toBeInTheDocument()
     expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
     expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
@@ -135,7 +141,8 @@ describe('BillingTab', () => {
     mockBillingApi({ billing: billingFor({ subscription: stripeSub({ status: 'past_due', active: false }) }) })
     renderTab()
 
-    expect(await screen.findByTestId('billing-payment-failed')).toBeInTheDocument()
+    // Past the grace period ('lapsed'): no end date to give
+    expect(await screen.findByTestId('billing-payment-failed')).toHaveTextContent('Your last payment failed. Update your payment method to keep Hylo Pro.')
     expect(screen.getByTestId('billing-manage')).toBeInTheDocument()
     expect(screen.queryByTestId('billing-upgrade-month')).not.toBeInTheDocument()
   })

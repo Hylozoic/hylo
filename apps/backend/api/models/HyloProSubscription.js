@@ -21,13 +21,40 @@ const OPEN_UNPAID_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete', 'paused
 const NEEDS_PAYMENT_STRIPE_STATUSES = ['past_due', 'unpaid', 'incomplete']
 // Stripe statuses a subscription can never leave
 const TERMINAL_STRIPE_STATUSES = ['canceled', 'incomplete_expired']
+// Stripe statuses of a subscription whose first payment never went through, so it never gave Pro
+const NEVER_PAID_STRIPE_STATUSES = ['incomplete', 'incomplete_expired']
 // Grace period for Stripe rows, used two ways:
 // - a past_due subscription (its renewal payment failed; Stripe is retrying) keeps Pro this long
-//   after the payment was first attempted (current_period_start, when the renewal was billed)
+//   after the payment was first attempted (current_period_start, when the renewal was billed).
+//   That is the 'grace' state (see proState).
 // - a row this long past current_period_end means we missed the renewal or the deletion webhook;
-//   it stops granting Pro instead of granting it forever
-const STRIPE_GRACE_DAYS = 4
+//   it stops granting Pro instead of granting it forever. Stripe still says it is paid up, so
+//   until then it counts as 'active', not 'grace'.
+const STRIPE_GRACE_DAYS = 7
 const STRIPE_GRACE_MS = STRIPE_GRACE_DAYS * 24 * 60 * 60 * 1000
+
+/**
+ * A group's Hylo Pro state. proState (below) is the one place it is decided, from all the group's
+ * rows; hasPro, the Billing tab and the Pro feature gates all follow it.
+ * - active: paid up, in a trial, or granted by Hylo. Every Pro feature works and monthly limits
+ *   start afresh each month.
+ * - grace: the renewal payment failed less than STRIPE_GRACE_DAYS ago and Stripe is retrying.
+ *   Pro features keep working, but monthly limits don't start afresh until the group pays again,
+ *   and stewards are asked to update their payment method.
+ * - lapsed: the group had Pro and no longer does. What it made with Pro stays (a theme, designed
+ *   views...), but it can't be changed with Pro features any more.
+ * - none: the group never had Pro.
+ */
+const PRO_STATE_ACTIVE = 'active'
+const PRO_STATE_GRACE = 'grace'
+const PRO_STATE_LAPSED = 'lapsed'
+const PRO_STATE_NONE = 'none'
+const PRO_STATES = [PRO_STATE_ACTIVE, PRO_STATE_GRACE, PRO_STATE_LAPSED, PRO_STATE_NONE]
+// States in which Pro features work (and hasPro is true)
+const PRO_FEATURE_STATES = [PRO_STATE_ACTIVE, PRO_STATE_GRACE]
+// States in which a monthly limit or allowance may start a new month. Not 'grace': usage keeps
+// counting against the last paid month until the group pays again.
+const LIMIT_REFRESH_STATES = [PRO_STATE_ACTIVE]
 
 function toDate (value) {
   if (!value) return null
@@ -47,7 +74,7 @@ function toDate (value) {
  */
 function isActive (row, now = new Date()) {
   if (!row) return false
-  const attrs = typeof row.get === 'function' ? row.attributes : row
+  const attrs = attrsOf(row)
   const nowTime = toDate(now).getTime()
   const passed = value => {
     const date = toDate(value)
@@ -69,6 +96,55 @@ function isActive (row, now = new Date()) {
   if (passed(attrs.cancel_at)) return false
   if (attrs.cancel_at_period_end && passed(attrs.current_period_end)) return false
   return withinGrace(attrs.current_period_end)
+}
+
+function attrsOf (row) {
+  return typeof row.get === 'function' ? row.attributes : row
+}
+
+// Whether a row gives Pro at `now` only because of the past_due grace period ('grace', see proState)
+function isInGrace (row, now = new Date()) {
+  if (!row) return false
+  const attrs = attrsOf(row)
+  return attrs.source === SOURCE_STRIPE && attrs.status === 'past_due' && isActive(attrs, now)
+}
+
+// When a row's grace period ends (Pro stops unless the group pays), or null when it isn't in grace
+function graceEndsAt (row, now = new Date()) {
+  if (!isInGrace(row, now)) return null
+  return new Date(toDate(attrsOf(row).current_period_start).getTime() + STRIPE_GRACE_MS)
+}
+
+// Whether a row ever gave the group Pro: any grant, and any subscription whose first payment went through
+function everGavePro (row) {
+  if (!row) return false
+  const attrs = attrsOf(row)
+  if (attrs.source === SOURCE_MANUAL) return true
+  return !NEVER_PAID_STRIPE_STATUSES.includes(attrs.status)
+}
+
+/**
+ * A group's Pro state at `now` from all of its rows (models or plain objects): 'active' if any row
+ * gives Pro outright (so a grant covers a failed payment), else 'grace' if a past_due subscription
+ * is in its grace period, else 'lapsed' if any row ever gave Pro, else 'none'. See PRO_STATES.
+ */
+function proState (rows, now = new Date()) {
+  const list = rows || []
+  const giving = list.filter(row => isActive(row, now))
+  if (giving.some(row => !isInGrace(row, now))) return PRO_STATE_ACTIVE
+  if (giving.length > 0) return PRO_STATE_GRACE
+  if (list.some(everGavePro)) return PRO_STATE_LAPSED
+  return PRO_STATE_NONE
+}
+
+// Whether Pro features work in a state ('active' or 'grace')
+function stateHasPro (state) {
+  return PRO_FEATURE_STATES.includes(state)
+}
+
+// Whether monthly limits and allowances may start a new month in a state (only 'active')
+function stateRefreshesLimits (state) {
+  return LIMIT_REFRESH_STATES.includes(state)
 }
 
 /**
@@ -124,6 +200,14 @@ module.exports = bookshelf.Model.extend({
     return isActive(this, now)
   },
 
+  isInGrace: function (now = new Date()) {
+    return isInGrace(this, now)
+  },
+
+  graceEndsAt: function (now = new Date()) {
+    return graceEndsAt(this, now)
+  },
+
   // When Pro access stops if nothing changes: a scheduled cancellation, the end of a manual grant, or null if it renews
   endsAt: function () {
     if (this.get('source') === SOURCE_MANUAL) return this.get('expires_at') || null
@@ -138,9 +222,23 @@ module.exports = bookshelf.Model.extend({
   OPEN_UNPAID_STRIPE_STATUSES,
   NEEDS_PAYMENT_STRIPE_STATUSES,
   TERMINAL_STRIPE_STATUSES,
+  NEVER_PAID_STRIPE_STATUSES,
   STRIPE_GRACE_DAYS,
+  PRO_STATE_ACTIVE,
+  PRO_STATE_GRACE,
+  PRO_STATE_LAPSED,
+  PRO_STATE_NONE,
+  PRO_STATES,
+  PRO_FEATURE_STATES,
+  LIMIT_REFRESH_STATES,
 
   isActive,
+  isInGrace,
+  graceEndsAt,
+  everGavePro,
+  proState,
+  stateHasPro,
+  stateRefreshesLimits,
   isOpenStripeSubscription,
   whereActive,
 
@@ -152,6 +250,16 @@ module.exports = bookshelf.Model.extend({
     }).fetchAll(opts)
   },
 
+  // The group's Pro state at `now` (see proState)
+  groupProState: async function (groupId, now = new Date()) {
+    const rows = await bookshelf.knex('hylo_pro_subscriptions')
+      .where('group_id', groupId)
+      .select('source', 'status', 'expires_at', 'current_period_start', 'current_period_end',
+        'cancel_at_period_end', 'cancel_at', 'ended_at')
+    return proState(rows, now)
+  },
+
+  // Whether the group has Pro at `now`: its state is 'active' or 'grace'. Decided in SQL (whereActive)
   groupHasPro: async function (groupId, now = new Date()) {
     const row = await bookshelf.knex('hylo_pro_subscriptions')
       .where('group_id', groupId)
@@ -167,6 +275,8 @@ module.exports = bookshelf.Model.extend({
    *   so stewards can still see a failed payment and manage the subscription.
    * - grant: an active manual grant, or null
    * - hasPro: whether any row gives the group Pro
+   * - state: the group's Pro state (see proState)
+   * - graceEndsAt: in 'grace', when Pro stops unless the group pays; otherwise null
    */
   billingForGroup: async function (groupId, now = new Date()) {
     const rows = (await this.forGroup(groupId)).models
@@ -176,6 +286,13 @@ module.exports = bookshelf.Model.extend({
       stripeRows[0] ||
       null
     const grant = rows.find(row => row.get('source') === SOURCE_MANUAL && isActive(row, now)) || null
-    return { subscription, grant, hasPro: rows.some(row => isActive(row, now)) }
+    const state = proState(rows, now)
+    return {
+      subscription,
+      grant,
+      hasPro: stateHasPro(state),
+      state,
+      graceEndsAt: state === PRO_STATE_GRACE ? graceEndsAt(subscription, now) : null
+    }
   }
 })

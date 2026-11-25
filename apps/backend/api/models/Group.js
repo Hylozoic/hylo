@@ -153,10 +153,18 @@ module.exports = bookshelf.Model.extend(merge({
   },
 
   /**
-   * Whether this group currently has Hylo Pro (a paid subscription or a manual grant)
+   * Whether this group currently has Hylo Pro (a paid subscription or a manual grant): its Pro
+   * state is 'active' or 'grace' (see proState)
    */
   hasPro () {
     return HyloProSubscription.groupHasPro(this.id)
+  },
+
+  /**
+   * This group's Hylo Pro state: 'active', 'grace', 'lapsed' or 'none' (see HyloProSubscription.PRO_STATES)
+   */
+  proState () {
+    return HyloProSubscription.groupProState(this.id)
   },
 
   /**

@@ -3541,6 +3541,7 @@
   "Thanks for upgrading! It is taking longer than usual to confirm your payment. Refresh this page in a few minutes.": "अपग्रेड करने के लिए धन्यवाद! आपके भुगतान की पुष्टि में सामान्य से अधिक समय लग रहा है। कुछ मिनटों में यह पेज रीफ़्रेश करें।",
   "Thanks for upgrading! Your Hylo Pro subscription will appear here in a moment.": "अपग्रेड करने के लिए धन्यवाद! आपकी Hylo Pro सदस्यता कुछ ही क्षणों में यहाँ दिखाई देगी।",
   "Checkout was canceled. You have not been charged.": "चेकआउट रद्द कर दिया गया। आपसे कोई शुल्क नहीं लिया गया है।",
+  "Your last payment failed. Hylo Pro features keep working until {{date}}. Update your payment method to keep Hylo Pro.": "आपका पिछला भुगतान विफल रहा। Hylo Pro की सुविधाएँ {{date}} तक काम करती रहेंगी। Hylo Pro बनाए रखने के लिए अपनी भुगतान विधि अपडेट करें।",
   "Your last payment failed. Update your payment method to keep Hylo Pro.": "आपका पिछला भुगतान विफल रहा। Hylo Pro बनाए रखने के लिए अपनी भुगतान विधि अपडेट करें।",
   "Free": "मुफ़्त",
   "Hylo Pro (yearly)": "Hylo Pro (वार्षिक)",

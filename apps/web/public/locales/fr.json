@@ -3542,6 +3542,7 @@
   "Thanks for upgrading! It is taking longer than usual to confirm your payment. Refresh this page in a few minutes.": "Merci pour votre mise à niveau ! La confirmation de votre paiement prend plus de temps que d'habitude. Actualisez cette page dans quelques minutes.",
   "Thanks for upgrading! Your Hylo Pro subscription will appear here in a moment.": "Merci pour votre mise à niveau ! Votre abonnement Hylo Pro apparaîtra ici dans un instant.",
   "Checkout was canceled. You have not been charged.": "Le paiement a été annulé. Vous n'avez pas été débité.",
+  "Your last payment failed. Hylo Pro features keep working until {{date}}. Update your payment method to keep Hylo Pro.": "Votre dernier paiement a échoué. Les fonctionnalités Hylo Pro restent actives jusqu'au {{date}}. Mettez à jour votre moyen de paiement pour conserver Hylo Pro.",
   "Your last payment failed. Update your payment method to keep Hylo Pro.": "Votre dernier paiement a échoué. Mettez à jour votre moyen de paiement pour conserver Hylo Pro.",
   "Free": "Gratuit",
   "Hylo Pro (yearly)": "Hylo Pro (annuel)",
