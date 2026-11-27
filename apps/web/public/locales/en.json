@@ -3532,5 +3532,10 @@
   "You can attach up to {{max}} files at a time": "You can attach up to {{max}} files at a time",
   "Upload failed. Please try again.": "Upload failed. Please try again.",
   "Give this view a name of at least 2 characters": "Give this view a name of at least 2 characters",
-  "Choose at least one post type": "Choose at least one post type"
+  "Choose at least one post type": "Choose at least one post type",
+  "This link has expired or is no longer valid.": "This link has expired or is no longer valid.",
+  "Log in to change your notification settings": "Log in to change your notification settings",
+  "Your notification settings could not be loaded. Please try again later.": "Your notification settings could not be loaded. Please try again later.",
+  "Your notification settings have been saved.": "Your notification settings have been saved.",
+  "Your notification settings could not be saved. Please try again.": "Your notification settings could not be saved. Please try again."
 }

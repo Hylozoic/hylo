@@ -81,6 +81,28 @@ test.describe('root and auth shell', () => {
     await expect(page).toHaveTitle(/Manage Notifications/i, uiTimeout)
     await expect(page.getByRole('heading', { name: /Hi E2E/i })).toBeVisible(uiTimeout)
   })
+
+  test('GET /notifications confirms a save', async ({ page }) => {
+    test.skip(
+      !process.env.E2E_NOTIFICATION_PAGE_JWT,
+      'Isolated E2E mints this when OIDC_KEYS is set (apps/backend/.env); or set E2E_NOTIFICATION_PAGE_JWT'
+    )
+    const token = process.env.E2E_NOTIFICATION_PAGE_JWT
+    await page.goto(`/notifications?token=${encodeURIComponent(token)}&name=E2E`)
+    await waitPastRootSessionLoading(page)
+    // Saves without changing anything, so the seeded user's settings stay as they are
+    await page.getByRole('button', { name: 'Save Settings' }).click(uiTimeout)
+    await expect(page.getByTestId('manage-notifications-saved')).toBeVisible(uiTimeout)
+  })
+
+  test('GET /notifications with an invalid token says the link has expired', async ({ page }) => {
+    await page.goto('/notifications?token=not-a-valid-token&name=E2E')
+    await waitPastRootSessionLoading(page)
+    await expect(page.getByTestId('manage-notifications-expired')).toBeVisible(uiTimeout)
+    await expect(page.getByRole('link', { name: 'Log in to change your notification settings' }))
+      .toHaveAttribute('href', '/login?returnToUrl=%2Fmy%2Fnotifications')
+    await expect(page.getByRole('button', { name: 'Save Settings' })).toHaveCount(0)
+  })
 })
 
 test.describe('public layout', () => {
