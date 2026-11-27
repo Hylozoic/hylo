@@ -12,6 +12,7 @@ import {
   partitionFiles
 } from 'util/droppedFiles'
 import { cn } from 'util/index'
+import { uploadErrorMessage } from 'util/uploadErrorMessage'
 
 const MESSAGE_TIMEOUT = 5000
 
@@ -84,7 +85,7 @@ export default function AttachmentDropZone ({
     }
     try {
       const { failed } = await uploadFiles(accepted, onAttachment)
-      if (failed.length > 0 && mounted.current) showMessage(t('Upload failed. Please try again.'))
+      if (failed.length > 0 && mounted.current) showMessage(uploadErrorMessage(failed[0].error, t))
     } finally {
       inFlight.current -= 1
       if (inFlight.current === 0) {

@@ -3534,6 +3534,7 @@
   "Files must be smaller than 50 MB": "Dateien müssen kleiner als 50 MB sein",
   "You can attach up to {{max}} files at a time": "Du kannst bis zu {{max}} Dateien auf einmal anhängen",
   "Upload failed. Please try again.": "Hochladen fehlgeschlagen. Bitte versuche es erneut.",
+  "We couldn't download that file. The site may not allow it. Try downloading it and uploading it directly.": "Wir konnten diese Datei nicht herunterladen. Die Website erlaubt das möglicherweise nicht. Lade die Datei herunter und lade sie direkt hoch.",
   "Give this view a name of at least 2 characters": "Gib dieser Ansicht einen Namen mit mindestens 2 Zeichen",
   "Choose at least one post type": "Wähle mindestens einen Beitragstyp aus",
   "This link has expired or is no longer valid.": "Dieser Link ist abgelaufen oder nicht mehr gültig.",

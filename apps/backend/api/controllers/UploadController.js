@@ -1,5 +1,5 @@
 import Busboy from 'busboy'
-import { upload } from '../../lib/uploader'
+import { upload, REMOTE_DOWNLOAD_FAILED } from '../../lib/uploader'
 import { getMediaTypeFromMimetype } from '../models/media/util'
 
 module.exports = {
@@ -46,6 +46,10 @@ const doUpload = (res, args, resolve) =>
     .catch(err => {
       if (err.message.startsWith('Validation error')) {
         return resolve(res.status(422).send({ error: err.message }))
+      }
+
+      if (err.code === REMOTE_DOWNLOAD_FAILED) {
+        return resolve(res.status(422).send({ error: err.message, code: err.code }))
       }
 
       if (err.message.includes('unsupported image format')) {
