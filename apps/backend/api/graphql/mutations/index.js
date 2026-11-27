@@ -129,8 +129,16 @@ export {
   recordClickthrough
 } from './moderation_actions'
 export {
+  assignTask,
+  createTaskStatus,
+  deleteTaskStatus,
+  moveTask,
+  unassignTask,
+  updateTaskStatus
+} from './task'
+export { convertProjectToSpace } from './projectSpace'
+export {
   addPeopleToProjectRole,
-  createProject,
   createProjectRole,
   deleteProjectRole,
   joinProject,

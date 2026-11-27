@@ -3,16 +3,24 @@ export default {
     return this.get('type') === Post.Type.PROJECT
   },
 
+  isTask () {
+    return this.get('type') === Post.Type.TASK
+  },
+
   // Membership is the project role, not the follow flag. Unfollowing a post
   // must not drop someone from the member list.
+  // On a task the members are its assignees.
   members: function () {
-    if (!this.isProject()) return false
+    if (!this.isProject() && !this.isTask()) return false
     return this.belongsToMany(User).through(PostUser)
       .where({ 'posts_users.active': true, 'users.active': true })
       .query(q => q.whereNotNull('posts_users.project_role_id'))
   },
 
-  addProjectMembers: async function (usersOrIds, opts) {
+  // The add/remove/set helpers serve both kinds of post that have members: legacy project
+  // posts (their members) and tasks (their assignees). Both are stored as a posts_users row
+  // holding the post's member project role.
+  addPostMembers: async function (usersOrIds, opts) {
     // need to fetchId for ProjectRole
     const projectRole = await this.getOrCreateMemberProjectRole(opts)
     return this.addFollowers(usersOrIds, {
@@ -21,17 +29,17 @@ export default {
     }, opts)
   },
 
-  removeProjectMembers: async function (usersOrIds, opts) {
+  removePostMembers: async function (usersOrIds, opts) {
     return this.updateFollowers(usersOrIds, {
       project_role_id: null,
       following: false
     }, opts)
   },
 
-  setProjectMembers: async function (userIds, opts) {
+  setPostMembers: async function (userIds, opts) {
     const members = await this.members().fetch(opts)
-    await this.removeProjectMembers(members, opts)
-    await this.addProjectMembers(userIds, opts)
+    await this.removePostMembers(members, opts)
+    await this.addPostMembers(userIds, opts)
   },
 
   getOrCreateMemberProjectRole: async function (opts) {

@@ -85,6 +85,12 @@ exports.de = {
     ? `${actor.get('name')} möchte ${groupName} in ${parentGroupName} beitreten`
     : `${actor.get('name')} möchte ${groupName} beitreten`,
   textForMemberJoinedGroup: ({ group, actor }) => `Neues Mitglied in ${group.get('name')}: ${actor.get('name')}`,
+  textForTask: ({ post, actor, reason, meta = {} }) => {
+    const name = post.summary()
+    if (reason === 'taskAssigned') return `${actor.get('name')} hat dir die Aufgabe "${name}" zugewiesen`
+    if (reason === 'taskStatusChanged') return `${actor.get('name')} hat "${name}" nach ${meta.statusName} verschoben`
+    return meta.when === 'today' ? `"${name}" ist heute fällig` : `"${name}" ist morgen fällig`
+  },
   textForPostModeratedFulfillment: ({ post, actor, reason }) => {
     const postName = post.summary()
     if (reason === 'postUnfulfilled') {

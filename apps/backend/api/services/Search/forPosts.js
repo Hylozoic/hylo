@@ -41,7 +41,7 @@ export default function forPosts (opts) {
       qb.whereRaw('(posts.start_time > now())')
     }
 
-    if (opts.type === 'project' && opts.filter === 'mine') {
+    if ((opts.type === 'task' || opts.type === 'project') && opts.filter === 'mine') {
       qb.joinRaw(
         'left join posts_users as project_posts_users on posts.id = project_posts_users.post_id ' +
         'and project_posts_users.user_id = ? and project_posts_users.active = true ' +

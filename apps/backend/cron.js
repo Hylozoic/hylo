@@ -12,6 +12,7 @@ const OIDCAdapter = require('./api/services/oidc/KnexAdapter')
 const { computeDueSnapshots } = require('./lib/analytics/snapshots')
 const { computeDailyCounts } = require('./lib/analytics/dailyCounts')
 const { utcDay } = require('./lib/analytics/periods')
+const { sendTaskDueReminders } = require('./api/models/task/notifications')
 
 const sendAndLogDigests = type =>
   digest2.sendAllDigests(type)
@@ -65,6 +66,12 @@ const daily = now => {
 
 const hourly = now => {
   const tasks = [
+    sendTaskDueReminders()
+      .then(count => sails.log.debug(`Sent ${count} task due reminders`))
+      .catch(err => {
+        sails.log.error('Task due reminders failed; continuing hourly tasks', err)
+        return 0
+      }),
     GroupViewUser.sendDigests()
       .then(count => sails.log.debug(`Sent ${count} chat digests`))
       .catch(err => {

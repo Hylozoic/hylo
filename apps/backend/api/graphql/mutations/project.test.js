@@ -1,36 +1,10 @@
 import '../../../test/setup'
 import factories from '../../../test/setup/factories'
 import {
-  createProject, createProjectRole, deleteProjectRole, addPeopleToProjectRole,
+  createProjectRole, deleteProjectRole, addPeopleToProjectRole,
   joinProject, leaveProject, createStripePaymentNotifications
 } from './project'
 import mockRequire from 'mock-require'
-
-describe('createProject', () => {
-  var user, user2, group
-
-  before(function () {
-    user = factories.user()
-    user2 = factories.user()
-    group = factories.group()
-    return Promise.join(group.save(), user.save(), user2.save())
-    .then(() => user.joinGroup(group))
-  })
-
-  it('creates a post with project type, adding members and creator as member', async () => {
-    const data = {
-      title: 'abc',
-      groupIds: [group.id],
-      memberIds: [user2.id]
-    }
-    const post = await createProject(user.id, data)
-    const project = await Post.find(post.id)
-    expect(project.get('type')).to.equal(Post.Type.PROJECT)
-    const members = await project.members().fetch()
-    expect(members.length).to.equal(2)
-    expect(members.map(m => m.id).sort()).to.deep.equal([user.id, user2.id].sort())
-  })
-})
 
 describe('createProjectRole', () => {
   var user, project
@@ -121,7 +95,7 @@ describe('leaveProject', () => {
     await user.save()
     project = factories.post({type: Post.Type.PROJECT})
     await project.save()
-    await project.addProjectMembers([user.id])
+    await project.addPostMembers([user.id])
   })
 
   it('removes a user from a project', async () => {

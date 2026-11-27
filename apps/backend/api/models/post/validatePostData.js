@@ -107,7 +107,7 @@ export async function assertGroupsAcceptPostType (groupIds, postType) {
 }
 
 export default function validatePostData (userId, data, { skipMembershipCheck = false } = {}) {
-  const allowedTypes = [Post.Type.ACTION, Post.Type.CHAT, Post.Type.REQUEST, Post.Type.OFFER, Post.Type.DISCUSSION, Post.Type.PROJECT, Post.Type.EVENT, Post.Type.RESOURCE, Post.Type.PROPOSAL, Post.Type.SUBMISSION]
+  const allowedTypes = [Post.Type.ACTION, Post.Type.CHAT, Post.Type.REQUEST, Post.Type.OFFER, Post.Type.DISCUSSION, Post.Type.PROJECT, Post.Type.EVENT, Post.Type.RESOURCE, Post.Type.PROPOSAL, Post.Type.SUBMISSION, Post.Type.TASK]
   if (data.type && !includes(allowedTypes, data.type)) {
     throw new GraphQLError('not a valid type')
   }

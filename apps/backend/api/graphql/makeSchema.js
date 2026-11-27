@@ -51,7 +51,6 @@ import {
   createMessage,
   createModerationAction,
   createPost,
-  createProject,
   createProjectRole,
   createSavedSearch,
   createSpace,
@@ -106,6 +105,13 @@ import {
   joinFundingRound,
   joinGroup,
   joinProject,
+  assignTask,
+  convertProjectToSpace,
+  createTaskStatus,
+  deleteTaskStatus,
+  moveTask,
+  unassignTask,
+  updateTaskStatus,
   joinSpace,
   leaveFundingRound,
   leaveGroup,
@@ -767,8 +773,8 @@ export function makeMutations ({ fetchOne }) {
 
     reorderViewPost: (root, { viewId, postId, order }, context) => reorderViewPost(context.currentUserId, viewId, postId, order),
 
-    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context) =>
-      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers }, context),
+    createSpace: (root, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers, taskStatuses }, context) =>
+      createSpace(context.currentUserId, { parentGroupId, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, purpose, location, locationId, geoShape, viewTypes, bannerUrl, avatarUrl, paywall, addToMenu, status, autoAddMembers, taskStatuses }, context),
 
     updateSpace: (root, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context) =>
       updateSpace(context.currentUserId, { id, name, slug, acceptedPostTypes, visibility, accessibility, icon, description, requiredRoles, location, locationId, geoShape, purpose, bannerUrl, avatarUrl, paywall, status, autoAddMembers }, context),
@@ -798,8 +804,6 @@ export function makeMutations ({ fetchOne }) {
     createModerationAction: (root, { data }, context) => createModerationAction({ data, userId: context.currentUserId }),
 
     createPost: (root, { data }, context) => createPost(context.currentUserId, data, context),
-
-    createProject: (root, { data }, context) => createProject(context.currentUserId, data, context),
 
     createProjectRole: (root, { projectId, roleName }, context) => createProjectRole(context.currentUserId, projectId, roleName),
 
@@ -882,6 +886,15 @@ export function makeMutations ({ fetchOne }) {
     joinGroup: (root, { groupId, questionAnswers, accessCode, invitationToken, acceptAgreements }, context) => joinGroup(groupId, context.currentUserId, questionAnswers, accessCode, invitationToken, acceptAgreements, context),
 
     joinProject: (root, { id }, context) => joinProject(id, context.currentUserId),
+
+    // Tasks
+    convertProjectToSpace: (root, args, context) => convertProjectToSpace(context.currentUserId, args, context),
+    assignTask: (root, args, context) => assignTask(context.currentUserId, args),
+    createTaskStatus: (root, args, context) => createTaskStatus(context.currentUserId, args),
+    deleteTaskStatus: (root, args, context) => deleteTaskStatus(context.currentUserId, args),
+    moveTask: (root, args, context) => moveTask(context.currentUserId, args),
+    unassignTask: (root, args, context) => unassignTask(context.currentUserId, args),
+    updateTaskStatus: (root, args, context) => updateTaskStatus(context.currentUserId, args),
 
     rejoinGroup: (root, { groupId }, context) => rejoinGroup(context.currentUserId, groupId),
 

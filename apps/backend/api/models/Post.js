@@ -908,6 +908,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     REQUEST: 'request',
     RESOURCE: 'resource',
     SUBMISSION: 'submission',
+    TASK: 'task',
     THREAD: 'thread',
     WELCOME: 'welcome'
   },
@@ -1049,7 +1050,7 @@ module.exports = bookshelf.Model.extend(Object.assign({
     const startingSoon = await Post.collection().query(function (qb) {
       wherePostedInGroups(qb, groupIds)
       qb.whereRaw('(posts.start_time between ? and ?)', [startTime, endTime])
-      qb.whereIn('posts.type', ['event', 'offer', 'project', 'proposal', 'resource', 'request'])
+      qb.whereIn('posts.type', ['event', 'offer', 'project', 'task', 'proposal', 'resource', 'request'])
       qb.where('posts.fulfilled_at', null)
       qb.where('posts.active', true)
       qb.orderBy('posts.start_time', 'asc')

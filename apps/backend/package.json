@@ -256,6 +256,8 @@
       "TagFollow",
       "Thank",
       "TokenAuth",
+      "TaskEvent",
+      "TaskStatus",
       "Track",
       "TopicFollow",
       "User",
