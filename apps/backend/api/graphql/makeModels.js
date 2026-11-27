@@ -1,4 +1,4 @@
-/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost */
+/* global FundingRound ContentAccess Draft GroupView GroupViewUser CollectionPost TrackModule */
 import DataLoader from 'dataloader'
 import { camelCase, isNil, mapKeys, startCase } from 'lodash/fp'
 import pluralize from 'pluralize'
@@ -1484,6 +1484,10 @@ export default function makeModels (userId, isAdmin, apiClient) {
           const postsById = new Map(posts.map(post => [String(post.id), post]))
           return postIds.map(id => postsById.get(String(id))).filter(Boolean)
         },
+        // Modules only exist on track-actions views; skip the query everywhere else
+        trackModules: async gv => gv.get('type') === GroupView.Type.TRACK_ACTIONS
+          ? gv.trackModulesWithIndex()
+          : [],
         pinnedPostIds: gv => pinnedPostIdsLoader.load(gv.id),
         pinnedPosts: async gv => {
           const postIds = await pinnedPostIdsLoader.load(gv.id)
@@ -1531,6 +1535,28 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'view',
         'post'
       ]
+    },
+
+    TrackModule: {
+      model: TrackModule,
+      attributes: [
+        'id',
+        'title',
+        'description',
+        'order',
+        'created_at',
+        'updated_at'
+      ],
+      relations: [
+        'view'
+      ],
+      getters: {
+        // Set by GroupView.trackModulesWithIndex; null when a module is loaded on its own
+        index: m => m.topLevelIndex == null ? null : m.topLevelIndex,
+        opensAt: m => m.opensAt(),
+        opensAfterPrevious: m => m.opensAfterPrevious(),
+        postIds: async m => (await m.collectionPosts().fetch()).map(row => row.get('post_id'))
+      }
     },
 
     GroupJoinQuestion: {
@@ -1915,6 +1941,8 @@ export default function makeModels (userId, isAdmin, apiClient) {
         'created_at',
         'completion_message',
         'deactivated_at',
+        'module_descriptor',
+        'module_descriptor_plural',
         'num_actions',
         'num_people_completed',
         'num_people_enrolled',

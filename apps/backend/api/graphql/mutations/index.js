@@ -51,6 +51,12 @@ export {
   reorderViewPost
 } from './group_views'
 export {
+  createTrackModule,
+  deleteTrackModule,
+  updateTrackModule,
+  updateTrackOutline
+} from './track_modules'
+export {
   createSpace,
   updateSpace,
   archiveSpace,

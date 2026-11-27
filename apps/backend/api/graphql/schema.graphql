@@ -1458,6 +1458,8 @@ type GroupView {
   settings: JSON
   # Posts in this view, for 'collection' and 'track-actions' type views
   collectionPosts: [Post]
+  # Modules that group some of the posts, for 'track-actions' type views
+  trackModules: [TrackModule]
   # Post ids pinned to this view (max 3). Cheap to load with the menu.
   pinnedPostIds: [ID]
   # Posts pinned to this view, newest pin first. Separate from the stream query.
@@ -1494,6 +1496,32 @@ type GroupViewUser {
   lastReadPostId: ID
   # Per-user, per-view settings. Null = inherit from the user's space membership settings
   settings: JSON
+}
+
+# A module in a Track: an optional group of actions, e.g. a week or a unit. Modules don't nest.
+# Modules and the actions outside any module share one order sequence, which is the track's top-level outline
+type TrackModule {
+  id: ID
+  # The 'track-actions' View this module belongs to
+  view: GroupView
+  # The name of the module
+  title: String
+  # What the module is about
+  description: String
+  # Position in the track's order sequence, shared with the track's posts. A module's number comes right before its posts' numbers
+  order: Int
+  # Position in the track's top-level outline, counting modules and the posts outside any module. Null when the module isn't loaded through its View
+  index: Int
+  # If set, the module's actions can't be opened until this date
+  opensAt: Date
+  # If true, the module opens once every action in the module before it is complete
+  opensAfterPrevious: Boolean
+  # Ids of the posts in this module, in order
+  postIds: [ID]
+  # When this was created
+  createdAt: Date
+  # When this was last updated
+  updatedAt: Date
 }
 
 # A Post within a 'collection' or 'track-actions' type GroupView (see docs/spaces-and-views-engineering-spec.md section 2.7)
@@ -2917,6 +2945,10 @@ type Track {
   groupsTotal: Int
   # Whether the current user is enrolled in this track
   isEnrolled: Boolean
+  # The word used in this track to describe a module, e.g. "Week"
+  moduleDescriptor: String
+  # The word used in this track to describe multiple modules
+  moduleDescriptorPlural: String
   # The total number of actions in this track
   numActions: Int
   # The total number of people enrolled in this track
@@ -3642,6 +3674,14 @@ type Mutation {
   removePostFromView(viewId: ID!, postId: ID!): GenericResult
   # Reorder a Post within a View
   reorderViewPost(viewId: ID!, postId: ID!, order: Int!): GenericResult
+  # Add an empty module to the end of a Track's 'track-actions' View
+  createTrackModule(viewId: ID!, data: TrackModuleInput): TrackModule
+  # Update a Track module's title, description or opening rule
+  updateTrackModule(id: ID!, data: TrackModuleInput): TrackModule
+  # Remove a Track module. Its posts stay in the track, at the top level where the module was
+  deleteTrackModule(id: ID!): GenericResult
+  # Save the whole outline of a Track: the order of its top-level items and which posts are in which module
+  updateTrackOutline(viewId: ID!, items: [TrackOutlineItemInput]!): GroupView
 
   # Invite email addresses and/or existing people to join a Group. With 'limited' invite access: email addresses only, up to 10 at a time and within the daily allowance (fails with 'invite-limit' otherwise)
   createInvitation(groupId: ID, data: InviteInput): CreatedInvitations
@@ -4729,6 +4769,8 @@ input PostInput {
   trackId: ID
   # The GroupView to add this post to (e.g. track-actions / collection / funding-round-submissions)
   viewId: ID
+  # The Track module to put this post in, for an action added to a track. Leave empty for the top level
+  moduleId: ID
   # Post type: 'action', 'chat', 'discussion', 'event', 'offer', 'project', 'proposal', 'request', 'resource', 'submission'
   type: String
 }
@@ -4811,7 +4853,29 @@ input TrackInput {
   completionRoleId: ID
   # The Track space group (tracks.group_id / groups.track_id)
   groupId: ID
+  # The word used in this track to describe a module, e.g. "Week"
+  moduleDescriptor: String
+  # The word used in this track to describe multiple modules
+  moduleDescriptorPlural: String
   # The posts (actions) for the track
+  postIds: [ID]
+}
+
+input TrackModuleInput {
+  # The name of the module
+  title: String
+  # What the module is about
+  description: String
+  # The date the module opens on. Null opens it right away
+  opensAt: Date
+  # Open the module once every action in the module before it is complete
+  opensAfterPrevious: Boolean
+}
+
+# One top-level item of a track's outline: either a post outside any module (postId), or a module with the posts in it (moduleId and postIds)
+input TrackOutlineItemInput {
+  postId: ID
+  moduleId: ID
   postIds: [ID]
 }
 

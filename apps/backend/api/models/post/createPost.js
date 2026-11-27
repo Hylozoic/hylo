@@ -19,7 +19,7 @@ export default async function createPost (userId, params) {
     .then(attrs => bookshelf.transaction(transacting =>
       Post.create(attrs, { transacting })
         .tap(post => afterCreatingPost(post, merge(
-          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'markAsReadTopicName', 'skip_link_preview', 'silent'),
+          pick(params, 'localId', 'group_ids', 'imageUrl', 'videoUrl', 'docs', 'topicNames', 'memberIds', 'eventInviteeIds', 'fileUrls', 'fundingRoundId', 'announcement', 'location', 'location_id', 'proposalOptions', 'trackId', 'viewId', 'moduleId', 'markAsReadTopicName', 'skip_link_preview', 'silent'),
           { imageUrls: hostedImageUrls, children: params.requests, transacting }
         ))))
       .then(function (inserts) {
@@ -123,7 +123,7 @@ export function afterCreatingPost (post, opts) {
     }, trx),
     opts.docs && Promise.map(opts.docs, (doc) => Media.createDoc(post.id, doc, trx)),
 
-    opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId }),
+    opts.trackId && Track.addPost(post, opts.trackId, { ...trxOpts, userId, moduleId: opts.moduleId }),
 
     // Track.addPost already links the post into the track-actions view — skip viewId
     // to avoid a parallel duplicate insert into collections_posts.

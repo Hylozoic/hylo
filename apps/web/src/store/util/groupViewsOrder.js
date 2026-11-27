@@ -439,6 +439,9 @@ export function preserveViewLoadedPosts (existingItems, newItems) {
     if (existing.collectionPosts !== undefined && newView.collectionPosts === undefined) {
       merged.collectionPosts = existing.collectionPosts
     }
+    if (existing.trackModules !== undefined && newView.trackModules === undefined) {
+      merged.trackModules = existing.trackModules
+    }
     if (existing.pinnedPosts !== undefined && newView.pinnedPosts === undefined) {
       merged.pinnedPosts = existing.pinnedPosts
     }

@@ -947,7 +947,10 @@ export default function ormReducer (state = orm.getEmptyState(), action) {
       if (!targetGroup) break
       items.forEach(viewData => {
         if (viewData?.id != null && viewData.collectionPosts !== undefined) {
-          updateGroupViewInMenu(targetGroup, viewData.id, { collectionPosts: viewData.collectionPosts })
+          updateGroupViewInMenu(targetGroup, viewData.id, {
+            collectionPosts: viewData.collectionPosts,
+            trackModules: viewData.trackModules
+          })
         }
       })
       break

@@ -37,7 +37,8 @@ export default
   $topicNames: [String],
   $trackId: ID,
   $type: String,
-  $viewId: ID
+  $viewId: ID,
+  $moduleId: ID
 ) {
   createPost(data: {
     acceptContributions: $acceptContributions,
@@ -76,5 +77,6 @@ export default
     trackId: $trackId,
     type: $type,
     viewId: $viewId,
+    moduleId: $moduleId,
   }) {${postFieldsFragment(false, true)}}
 }`

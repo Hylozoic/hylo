@@ -28,6 +28,7 @@ export default function createPost (postParams) {
     locationId,
     meetingLink,
     memberIds = [],
+    moduleId,
     isAnonymousVote,
     isPublic,
     isStrictProposal,
@@ -89,7 +90,8 @@ export default function createPost (postParams) {
         topicNames,
         trackId,
         type,
-        viewId
+        viewId,
+        moduleId
       }
     },
     meta: {
@@ -112,7 +114,8 @@ export default function createPost (postParams) {
       fundingRoundId,
       groupIds,
       trackId,
-      viewId
+      viewId,
+      moduleId
     }
   }
 }

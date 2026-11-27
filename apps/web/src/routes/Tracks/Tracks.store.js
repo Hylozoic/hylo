@@ -91,6 +91,8 @@ export function ormSessionReducer (
           id: createdTrack.id,
           actionDescriptor: createdTrack.actionDescriptor,
           actionDescriptorPlural: createdTrack.actionDescriptorPlural,
+          moduleDescriptor: createdTrack.moduleDescriptor,
+          moduleDescriptorPlural: createdTrack.moduleDescriptorPlural,
           completionMessage: createdTrack.completionMessage,
           completionRole: createdTrack.completionRole,
           space: createdTrack.space
@@ -122,6 +124,14 @@ export function ormSessionReducer (
     }
 
     case UPDATE_TRACK_PENDING: {
+      // The track screen reads the copy of the track embedded on its space Group,
+      // so renames made there (action and module names) are patched onto it too
+      const { completionRole: _completionRole, ...embeddedFields } = meta.data || {}
+      Group.all().toModelArray().forEach(group => {
+        if (group.track?.id && String(group.track.id) === String(meta.trackId)) {
+          group.update({ track: { ...group.track, ...embeddedFields } })
+        }
+      })
       const track = Track.safeGet({ id: meta.trackId })
       if (!track) return
       const data = meta.data
