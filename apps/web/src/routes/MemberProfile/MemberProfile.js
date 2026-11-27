@@ -265,7 +265,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     !isPublicView && { id: 'Comments', label: t('Comments'), title: t('{{name}}\'s comments', { name: person.name }), component: MemberComments },
     !isPublicView && { id: 'Reactions', label: t('Reactions'), title: t('{{name}}\'s reactions', { name: person.name }), component: MemberReactions }
   ].filter(Boolean).map(contentDropDownitem => ({
-    ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.label)
+    ...contentDropDownitem, onClick: () => selectTab(contentDropDownitem.id)
   }))
   const profileLinks = (personModel?.profileLinks?.toRefArray() || []).slice().sort(compareProfileLinks)
   const actionButtonsItems = [
@@ -285,10 +285,14 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
     { icon: <X className='w-4 h-4 text-foreground' />, label: t('Block this Member'), onClick: () => handleBlockUser(personId), hide: isCurrentUser || isAxolotl },
     { icon: <Trash2 className='w-4 h-4 text-destructive' />, label: t('Remove member from group'), onClick: () => setConfirmingRemove(true), hide: isCurrentUser || isAxolotl || !canRemove }
   ]
+  // Fall back to the first available tab if the current one isn't in the list
+  // (e.g. a tab hidden in the public view)
+  const currentContentItem = contentDropDownItems.find(contentItem => contentItem.id === currentTabState) || contentDropDownItems[0]
   const {
+    label: currentContentLabel,
     title: currentContentTitle,
     component: CurrentContentComponent
-  } = contentDropDownItems.find(contentItem => contentItem.id === currentTabState)
+  } = currentContentItem
 
   return (
     <div className='h-full overflow-auto flex flex-col items-center px-2 sm:px-0' ref={setContainer}>
@@ -568,7 +572,7 @@ const MemberProfile = ({ currentTab = 'Overview', blockConfirmMessage, isSingleC
                   items={contentDropDownItems}
                   toggleChildren={
                     <button className='focus:text-foreground relative text-sm border-2 border-foreground/20 hover:border-foreground/50 hover:text-foreground rounded-md py-1 px-2 bg-background text-foreground transition-all scale-100 hover:scale-105 opacity-85 hover:opacity-100 flex items-center justify-center gap-2'>
-                      {currentTabState} <Icon className='text-foreground' name='ArrowDown' />
+                      {currentContentLabel} <Icon className='text-foreground' name='ArrowDown' />
                     </button>
                   }
                 />
