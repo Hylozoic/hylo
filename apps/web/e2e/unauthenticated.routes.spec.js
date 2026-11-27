@@ -98,6 +98,22 @@ test.describe('public layout', () => {
     await expect(page.getByRole('link', { name: /Sign in/i }).first()).toBeVisible(uiTimeout)
   })
 
+  test('GET /public/map renders the map in a browser without geolocation', async ({ page }, testInfo) => {
+    // Some Firefox/Linux setups, privacy-hardened browsers and webviews have no navigator.geolocation (#1802)
+    await page.addInitScript(() => {
+      Object.defineProperty(window.Navigator.prototype, 'geolocation', { get: () => undefined, configurable: true })
+    })
+    const pageErrors = []
+    page.on('pageerror', error => pageErrors.push(error.message))
+
+    await page.goto('/public/map', { waitUntil: 'domcontentloaded' })
+    await waitPastRootSessionLoading(page)
+    await expect(page.getByTestId('map-container')).toBeVisible(uiTimeout)
+    expect(await page.evaluate(() => navigator.geolocation)).toBeUndefined()
+    expect(pageErrors.filter(message => message.includes('getCurrentPosition'))).toEqual([])
+    await page.screenshot({ path: `e2e/screenshots/issue-1802-public-map-no-geolocation-${testInfo.project.name}.png` })
+  })
+
   test('GET /public/groups loads public shell', async ({ page }) => {
     await page.goto('/public/groups', { waitUntil: 'domcontentloaded' })
     await waitPastRootSessionLoading(page)

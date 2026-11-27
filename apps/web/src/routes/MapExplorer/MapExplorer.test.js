@@ -46,6 +46,17 @@ describe('MapExplorer', () => {
     expect(screen.getByPlaceholderText('Search for a location...')).toBeInTheDocument()
   })
 
+  it('renders without a center when the browser has no geolocation', () => {
+    const originalGeolocation = navigator.geolocation
+    navigator.geolocation = undefined
+    try {
+      render(<MapExplorer {...defaultProps} />)
+      expect(screen.getByTestId('map-container')).toBeInTheDocument()
+    } finally {
+      navigator.geolocation = originalGeolocation
+    }
+  })
+
   it('renders the feature filters button', () => {
     render(
       <MapExplorer {...defaultProps} />

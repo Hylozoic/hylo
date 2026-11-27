@@ -34,6 +34,7 @@ import useRouteParams from 'hooks/useRouteParams'
 import { useEffectiveGroupSlug } from 'contexts/SpaceGroupContext'
 import getQuerystringParam from 'store/selectors/getQuerystringParam'
 import { locationObjectToViewport, shapeCenter } from 'util/geo'
+import { getBrowserPosition } from 'util/browserPosition'
 import { isMobileDevice } from 'util/mobile'
 import { generateViewParams } from 'util/savedSearch'
 import { updateUserSettings } from 'routes/UserSettings/UserSettings.store'
@@ -288,16 +289,13 @@ function MapExplorer (props) {
         !(scopedMapState && reduxState.centerLocation) &&
         !getGroupMapCenter(group) &&
         !getLocationCenter(currentUser)) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setBrowserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        })
+      getBrowserPosition(({ lat, lng }) => {
+        setBrowserLocation({ lat, lng })
         setViewport({
           ...viewport,
           zoom: 10,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          latitude: lat,
+          longitude: lng
         })
       })
     }
