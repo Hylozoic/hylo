@@ -141,6 +141,21 @@ describe('graphql request handler', () => {
     })
   })
 
+  describe('deprecated social profile fields', () => {
+    it('still resolves to null on Me and Person for older mobile app builds', async () => {
+      const { executionResult } = await handler.inject({
+        document: `{
+          me { facebookUrl linkedinUrl twitterName }
+          person(id: "${user2.id}") { facebookUrl linkedinUrl twitterName }
+        }`,
+        serverContext: { req, res }
+      })
+      const nulls = { facebookUrl: null, linkedinUrl: null, twitterName: null }
+      expect(executionResult.errors).to.be.undefined
+      expect(executionResult.data).to.deep.equal({ me: nulls, person: nulls })
+    })
+  })
+
   describe('retained paid access for former members', () => {
     const grantGroupScope = (userId, groupId, sourceId, expiresAt = null) =>
       bookshelf.knex('user_scopes').insert({

@@ -1906,6 +1906,8 @@ type Me {
   email: String
   # Whether the logged in user has validated their email address or not
   emailValidated: Boolean
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  facebookUrl: String
  # DEPRECATED: Whether the logged in user is using the Hylo app on any mobile devices
   hasDevice: Boolean  # False for new users who have not completed the registration process
   hasRegistered: Boolean
@@ -1917,6 +1919,8 @@ type Me {
   isAdmin: Boolean
   # Whether this user's profile is publicly viewable without logging in
   isProfilePublic: Boolean
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  linkedinUrl: String
   # String representing the logged in user's physical location
   location: String
   # Object with the geocoded details of the logged in user's physical location
@@ -1939,6 +1943,8 @@ type Me {
   settings: UserSettings
   # Short tagline
   tagline: String
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  twitterName: String
   # The number of message threads with unread content
   unseenThreadCount: Int
   # When this record was last updated
@@ -2315,12 +2321,16 @@ type Person {
   contactPhone: String
   # When loading through a track: membership created_at (join space = enroll)
   enrolledAt: Date
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  facebookUrl: String
   # False for new users who have not completed the registration process
   hasRegistered: Boolean
   # Whether this person's profile is publicly viewable without logging in
   isProfilePublic: Boolean
   # When this person last viewed Hylo
   lastActiveAt: String
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  linkedinUrl: String
   # String representing this person's physical location
   location: String
   # Object with the geocoded details of this person's physical location
@@ -2335,6 +2345,8 @@ type Person {
   name: String
   # Short tagline
   tagline: String
+  # DEPRECATED: always null. Kept so older mobile app builds can still query it
+  twitterName: String
   # DEPRECATED: returns the first profile link url
   url: String
 

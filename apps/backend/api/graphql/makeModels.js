@@ -415,6 +415,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         name: p => p.get('name') || '',
         pendingEmail: u => getPendingEmail(u),
         url: firstProfileLinkUrl,
+        ...fieldsReturning(null, ['facebookUrl', 'linkedinUrl', 'twitterName']),
         rsvpCalendarUrl: u => u.rsvpCalendarUrl(),
         settings: u => mapKeys(camelCase, u.get('settings'))
       }
@@ -588,6 +589,7 @@ export default function makeModels (userId, isAdmin, apiClient) {
         enrolledAt: p => p.pivot && p.pivot.get('created_at'),
         location: p => (userId || p.get('is_profile_public')) ? p.get('location') : null,
         url: firstProfileLinkUrl,
+        ...fieldsReturning(null, ['facebookUrl', 'linkedinUrl', 'twitterName']),
         locationObject: async p => {
           if (!userId && !p.get('is_profile_public')) return null
           await p.load('locationObject')
