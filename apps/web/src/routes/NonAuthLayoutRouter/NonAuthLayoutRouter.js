@@ -65,55 +65,58 @@ export default function NonAuthLayoutRouter (props) {
         <title>Hylo</title>
         <meta name='description' content='Prosocial Coordination for a Thriving Planet' />
       </Helmet>
-      <div className='relative w-full h-full flex flex-col justify-center items-center p-2'>
+      <div className='relative flex h-full w-full flex-col'>
         <div className={classes.particlesBackgroundWrapper}>
           <Particles options={particlesjsConfig} style={particlesStyle} />
         </div>
-        <div className='flex justify-between items-center w-full px-4 absolute top-0'>
-          <a href='/'>
-            <img className='h-10' src={logoSrc} alt={t('Hylo logo')} />
+        <div className='relative z-20 flex w-full shrink-0 items-center justify-between px-4 py-2'>
+          <a href='/' className='flex'>
+            {/* my-0: a global stylesheet gives imgs vertical margins, which inflated this row over the form */}
+            <img className='h-10 my-0' src={logoSrc} alt={t('Hylo logo')} />
           </a>
           <LocaleDropdown renderToggleChildren={<span className='text-foreground'>{t('Locale')}: {locale} {localeDisplay}</span>} />
         </div>
-        <div className='flex flex-col items-center justify-center w-full'>
-          <Routes>
-            <Route
-              path='login'
-              element={<Login {...props} className={classes.form} />}
-            />
-            <Route
-              path='signup/*'
-              element={<SignupRouter {...props} className={classes.form} />}
-            />
-            <Route
-              path='reset-password'
-              element={<PasswordReset {...props} className={classes.form} />}
-            />
-            <Route
-              path='notifications'
-              element={<ManageNotifications {...props} className={classes.form} />}
-            />
-            <Route
-              path='groups/:groupSlug/join/:accessCode'
-              element={<JoinGroup />}
-            />
-            <Route
-              path='invite/:accessCode'
-              element={<JoinGroup />}
-            />
-            <Route
-              path='view/:accessCode'
-              element={<JoinGroup />}
-            />
-            <Route
-              path='h/use-invitation'
-              element={<JoinGroup />}
-            />
-            <Route
-              path='h/invitation'
-              element={<JoinGroup />}
-            />
-            {/*
+        <div className='flex min-h-0 w-full flex-1 flex-col overflow-y-auto'>
+          <div className='flex min-h-full w-full flex-col'>
+            <div className='m-auto flex w-full flex-col items-center p-2'>
+              <Routes>
+                <Route
+                  path='login'
+                  element={<Login {...props} className={classes.form} />}
+                />
+                <Route
+                  path='signup/*'
+                  element={<SignupRouter {...props} className={classes.form} />}
+                />
+                <Route
+                  path='reset-password'
+                  element={<PasswordReset {...props} className={classes.form} />}
+                />
+                <Route
+                  path='notifications'
+                  element={<ManageNotifications {...props} className={classes.form} />}
+                />
+                <Route
+                  path='groups/:groupSlug/join/:accessCode'
+                  element={<JoinGroup />}
+                />
+                <Route
+                  path='invite/:accessCode'
+                  element={<JoinGroup />}
+                />
+                <Route
+                  path='view/:accessCode'
+                  element={<JoinGroup />}
+                />
+                <Route
+                  path='h/use-invitation'
+                  element={<JoinGroup />}
+                />
+                <Route
+                  path='h/invitation'
+                  element={<JoinGroup />}
+                />
+                {/*
               Default route
               NOTE: This passes the unmatched location for anything unmatched except `/`
               into `location.state.from` which persists navigation and will be set as the
@@ -121,58 +124,60 @@ export default function NonAuthLayoutRouter (props) {
               with the static pages as those routes are first use `path='/(.+)'` to match
               anything BUT root if there is any issue.
             */}
-            <Route path='*' element={<Navigate to='/login' state={{ from: location }} replace />} />
-          </Routes>
-        </div>
+                <Route path='*' element={<Navigate to='/login' state={{ from: location }} replace />} />
+              </Routes>
 
-        {/* The below-container content for each route */}
-        <Routes>
-          <Route
-            path='signup/*'
-            element={
-              // The agreements step is past the sign-in fork — offering it there
-              // would only lead people out of a signup they already committed to
-              location.pathname === '/signup/agreements'
-                ? null
-                : (
-                  <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
-                    <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
-                      {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
-                    </Link>
-                  </div>
-                  )
-            }
-          />
-          <Route
-            path='reset-password'
-            element={
+              {/* The below-container content for each route */}
+              <Routes>
+                <Route
+                  path='signup/*'
+                  element={
+                  // The agreements step is past the sign-in fork — offering it there
+                  // would only lead people out of a signup they already committed to
+                  location.pathname === '/signup/agreements'
+                    ? null
+                    : (
+                      <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                        <Link to='/login' className='text-foreground flex items-center justify-between gap-2'>
+                          {t('Already have an account?')} <Button variant='outline'>{t('Sign in')}</Button>
+                        </Link>
+                      </div>
+                      )
+                }
+                />
+                <Route
+                  path='reset-password'
+                  element={
+                    <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
+                      <div className='flex items-center justify-center gap-2'>
+                        <Link tabIndex={-1} to='/signup' className='text-foreground'>
+                          <Button variant='outline'>{t('Sign up')}</Button>
+                        </Link>
+                        or
+                        <Link to='/login' className='text-foreground'>
+                          <Button variant='outline'>{t('Sign in')}</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  }
+                />
+                <Route
+                  path='/login'
+                  element={
+                    <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
+                      <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
+                        {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
+                      </Link>
+                    </div>
+                  }
+                />
+              </Routes>
               <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
-                <div className='flex items-center justify-center gap-2'>
-                  <Link tabIndex={-1} to='/signup' className='text-foreground'>
-                    <Button variant='outline'>{t('Sign up')}</Button>
-                  </Link>
-                  or
-                  <Link to='/login' className='text-foreground'>
-                    <Button variant='outline'>{t('Sign in')}</Button>
-                  </Link>
-                </div>
+                <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
+                <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
               </div>
-            }
-          />
-          <Route
-            path='/login'
-            element={
-              <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-sm'>
-                <Link className='flex items-center justify-between gap-2 text-foreground' tabIndex={-1} to='/signup'>
-                  {t('Not a member of Hylo?')} <Button variant='outline'>{t('Sign Up')}</Button>
-                </Link>
-              </div>
-            }
-          />
-        </Routes>
-        <div className='bg-midground rounded-md w-full max-w-[320px] mx-auto p-4 mt-4 text-center'>
-          <a href='https://hylo.com/terms/' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Terms of Service')}</a> +&nbsp;
-          <a href='https://hylo.com/privacy' target='_blank' rel='noreferrer' className='text-foreground/100'>{t('Privacy Policy')}</a>
+            </div>
+          </div>
         </div>
       </div>
     </Div100vh>
