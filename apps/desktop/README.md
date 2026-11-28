@@ -26,6 +26,8 @@ The Desktop version of Hylo built with Electron.
    yarn desktop
    ```
 
+The unpackaged app loads http://localhost:3000. When that web app is already running from `docker compose up` at the repo root, `yarn desktop` is enough. Electron runs on the host, not in Docker.
+
 ### Building
 
 The desktop app uses shared packages from the monorepo. The build process automatically:

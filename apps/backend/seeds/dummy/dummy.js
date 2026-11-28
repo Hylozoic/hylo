@@ -7,13 +7,22 @@ const hash = promisify(bcrypt.hash, bcrypt)
 const readline = require('readline')
 const { URL } = require('url')
 
-const n = {
-  groups: 50,
-  posts: 5000,
-  tags: 20,
-  users: 1000,
-  threads: 100
-}
+// HYLO_SEED=small keeps local setup fast. Unset or "large" is the full dummy dataset.
+const n = process.env.HYLO_SEED === 'small'
+  ? {
+      groups: 5,
+      posts: 200,
+      tags: 10,
+      users: 50,
+      threads: 10
+    }
+  : {
+      groups: 50,
+      posts: 5000,
+      tags: 20,
+      users: 1000,
+      threads: 100
+    }
 
 const SYSTEM_ROLES = [
   {
@@ -85,6 +94,9 @@ const groupSlug = 'test'
 let provider_user_id = ''
 
 function warning (knex) {
+  // Setup scripts set this so Docker can seed without a terminal prompt.
+  if (process.env.HYLO_SEED_CONFIRM === 'yes') return Promise.resolve()
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
