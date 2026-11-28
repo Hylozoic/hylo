@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.14] - 2026-11-27
+
+### Fixed
+- Logging in on mobile
+- Don't crash chat posts when a reaction has no user (blocked or deleted user)
+- Tell the user when a remote site refuses an upload by URL
+- Member profile crash when switching tabs in other languages
+- Show save and expired-link messages on the emailed notification settings page
+- Browser crash when geolocating on browser that doesn't support geolocation
+- Overlapping elements on login form on shorter phones
+
 ## [7.1.13] - 2026-11-25
 
 ### Added

@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [7.1.14] - 2026-11-27
+
+### Fixed
+- Logging in on mobile
+- Tell the user when a remote site refuses an upload by URL
+
 ## [7.1.13] - 2026-11-25
 
 ### Added
